@@ -2,9 +2,6 @@
   "name": "cosmic-voyage-next-three",
   "version": "1.0.1",
   "private": true,
-  "engines": {
-      "node": "20.x"
-      }
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -23,5 +20,9 @@
   "devDependencies": {
     "eslint": "9.39.4",
     "eslint-config-next": "16.2.7"
+  },
+  "engines": {
+    "node": "20.x",
+    "npm": ">=10 <11"
   }
 }
