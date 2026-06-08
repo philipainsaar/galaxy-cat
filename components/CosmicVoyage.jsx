@@ -2,32 +2,148 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+
+const CAT_MODEL_URL = '/models/alien-cat.glb';
+const BOAT_MODEL_URL = '/models/cosmic-boat.glb';
+
+// Change either value to Math.PI if a model faces backward after export.
+const CAT_MODEL_ROTATION_Y = 0;
+const BOAT_MODEL_ROTATION_Y = 0;
 
 const START = new THREE.Vector3(3.2, 0.4, 2.5);
-const SEATED_FRONT_OF_BOAT = new THREE.Vector3(0, 0.72, 1.15);
+const DEFAULT_SEAT = new THREE.Vector3(0, 0.72, 1.15);
 const DRAG_Z = 2.5;
 const DROP_R = 2.2;
+const CAT_GROUND_Y = -0.5;
+
+function improveModelQuality(root, renderer) {
+  const anisotropy = renderer.capabilities.getMaxAnisotropy();
+
+  root.traverse((object) => {
+    if (!object.isMesh) return;
+
+    object.castShadow = true;
+    object.receiveShadow = true;
+    object.frustumCulled = true;
+
+    if (object.geometry && !object.geometry.attributes.normal) {
+      object.geometry.computeVertexNormals();
+    }
+
+    const materials = Array.isArray(object.material)
+      ? object.material
+      : [object.material];
+
+    materials.forEach((material) => {
+      if (!material) return;
+
+      // Smooth shading avoids the faceted low-poly appearance when the
+      // source model contains smooth vertex normals.
+      material.flatShading = false;
+
+      [
+        material.map,
+        material.normalMap,
+        material.roughnessMap,
+        material.metalnessMap,
+        material.emissiveMap,
+        material.aoMap,
+      ].forEach((texture) => {
+        if (!texture) return;
+        texture.anisotropy = anisotropy;
+        texture.magFilter = THREE.LinearFilter;
+        texture.minFilter = THREE.LinearMipmapLinearFilter;
+        texture.generateMipmaps = true;
+        texture.needsUpdate = true;
+      });
+
+      material.needsUpdate = true;
+    });
+  });
+}
+
+function fitModel(root, targetSize, groundY, rotationY, scaleMode = 'max') {
+  root.rotation.set(0, rotationY, 0);
+  root.updateMatrixWorld(true);
+
+  let box = new THREE.Box3().setFromObject(root);
+  const initialSize = box.getSize(new THREE.Vector3());
+
+  const measuredSize =
+    scaleMode === 'horizontal'
+      ? Math.max(initialSize.x, initialSize.z)
+      : Math.max(initialSize.x, initialSize.y, initialSize.z);
+
+  if (!Number.isFinite(measuredSize) || measuredSize <= 0) {
+    throw new Error('The GLB model has no measurable geometry.');
+  }
+
+  root.scale.multiplyScalar(targetSize / measuredSize);
+  root.updateMatrixWorld(true);
+
+  box = new THREE.Box3().setFromObject(root);
+  const center = box.getCenter(new THREE.Vector3());
+
+  root.position.x -= center.x;
+  root.position.z -= center.z;
+  root.position.y += groundY - box.min.y;
+  root.updateMatrixWorld(true);
+
+  return new THREE.Box3().setFromObject(root);
+}
+
+function createMixer(root, clips, mixers) {
+  if (!clips?.length) return;
+
+  const mixer = new THREE.AnimationMixer(root);
+  clips.forEach((clip) => mixer.clipAction(clip).play());
+  mixers.push(mixer);
+}
+
+function disposeObject(root) {
+  root.traverse((object) => {
+    if (object.geometry) object.geometry.dispose();
+
+    const materials = object.material
+      ? Array.isArray(object.material)
+        ? object.material
+        : [object.material]
+      : [];
+
+    materials.forEach((material) => {
+      Object.values(material).forEach((value) => {
+        if (value?.isTexture) value.dispose();
+      });
+      material.dispose();
+    });
+  });
+}
 
 export default function CosmicVoyage() {
   const canvasRef = useRef(null);
   const stateRef = useRef(null);
+
   const [loading, setLoading] = useState(false);
   const [loadingPercent, setLoadingPercent] = useState(0);
   const [popupOpen, setPopupOpen] = useState(false);
   const [landedUI, setLandedUI] = useState(false);
+  const [modelError, setModelError] = useState('');
 
   const resetExperience = () => {
-    const s = stateRef.current;
-    if (!s) return;
+    const state = stateRef.current;
+    if (!state) return;
 
-    s.landed = false;
-    s.isDragging = false;
-    s.cur.copy(START);
-    s.tgt.copy(START);
-    s.catGroup.position.copy(START);
-    s.catGroup.rotation.set(0, 0, 0);
-    s.burstT = -1;
-    s.pMat.opacity = 0;
+    state.landed = false;
+    state.isDragging = false;
+    state.cur.copy(START);
+    state.tgt.copy(START);
+    state.catGroup.position.copy(START);
+    state.catGroup.rotation.set(0, 0, 0);
+    state.burstT = -1;
+    state.particleMaterial.opacity = 0;
+
+    document.body.style.cursor = '';
 
     setLoading(false);
     setLoadingPercent(0);
@@ -37,272 +153,483 @@ export default function CosmicVoyage() {
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!canvas) return undefined;
 
+    let disposed = false;
     let width = window.innerWidth;
     let height = window.innerHeight;
+
+    THREE.Cache.enabled = true;
 
     const renderer = new THREE.WebGLRenderer({
       canvas,
       antialias: true,
       alpha: false,
-      powerPreference: 'high-performance'
+      powerPreference: 'high-performance',
+      precision: 'highp',
     });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2.5));
     renderer.setSize(width, height);
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.15;
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x03000f);
 
     const camera = new THREE.PerspectiveCamera(55, width / height, 0.1, 200);
-    if (height > width) camera.position.set(0, 2.8, 13.5);
-    else camera.position.set(0, 2.5, 11);
+    camera.position.set(0, height > width ? 2.8 : 2.5, height > width ? 13.5 : 11);
     camera.lookAt(0, 0, 0);
 
-    scene.add(new THREE.AmbientLight(0x8899cc, 1.6));
-    const key = new THREE.PointLight(0xffffff, 2.0, 40);
-    key.position.set(3, 8, 8);
-    scene.add(key);
-    const fill = new THREE.PointLight(0x4466ff, 1.2, 30);
-    fill.position.set(-5, 2, 5);
-    scene.add(fill);
+    scene.add(new THREE.HemisphereLight(0xaaccff, 0x100022, 2));
 
+    const keyLight = new THREE.DirectionalLight(0xffffff, 3);
+    keyLight.position.set(4, 8, 7);
+    keyLight.castShadow = true;
+    keyLight.shadow.mapSize.set(2048, 2048);
+    keyLight.shadow.camera.near = 0.1;
+    keyLight.shadow.camera.far = 40;
+    scene.add(keyLight);
+
+    const blueFill = new THREE.PointLight(0x4466ff, 2.5, 30);
+    blueFill.position.set(-5, 2, 5);
+    scene.add(blueFill);
+
+    const pinkFill = new THREE.PointLight(0xff44cc, 1.5, 20);
+    pinkFill.position.set(5, 3, 3);
+    scene.add(pinkFill);
+
+    // Star field
     const starCount = 2000;
     const starPositions = new Float32Array(starCount * 3);
-    for (let i = 0; i < starCount; i++) {
+
+    for (let i = 0; i < starCount; i += 1) {
       const u = Math.random();
       const v = Math.random();
-      const th = Math.PI * 2 * u;
-      const ph = Math.acos(2 * v - 1);
-      const r = 60 + Math.random() * 30;
-      starPositions[i * 3] = r * Math.sin(ph) * Math.cos(th);
-      starPositions[i * 3 + 1] = r * Math.sin(ph) * Math.sin(th);
-      starPositions[i * 3 + 2] = r * Math.cos(ph);
+      const theta = Math.PI * 2 * u;
+      const phi = Math.acos(2 * v - 1);
+      const radius = 60 + Math.random() * 30;
+
+      starPositions[i * 3] =
+        radius * Math.sin(phi) * Math.cos(theta);
+      starPositions[i * 3 + 1] =
+        radius * Math.sin(phi) * Math.sin(theta);
+      starPositions[i * 3 + 2] =
+        radius * Math.cos(phi);
     }
-    const starGeo = new THREE.BufferGeometry();
-    starGeo.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
+
+    const starGeometry = new THREE.BufferGeometry();
+    starGeometry.setAttribute(
+      'position',
+      new THREE.BufferAttribute(starPositions, 3),
+    );
+
     const stars = new THREE.Points(
-      starGeo,
+      starGeometry,
       new THREE.PointsMaterial({
         color: 0xaaccff,
         size: 0.3,
         sizeAttenuation: true,
         transparent: true,
         opacity: 0.85,
-        depthWrite: false
-      })
+        depthWrite: false,
+      }),
     );
     scene.add(stars);
 
-    const waveMat = new THREE.ShaderMaterial({
+    // Animated cosmic water
+    const waveMaterial = new THREE.ShaderMaterial({
       uniforms: { uT: { value: 0 } },
-      vertexShader: `uniform float uT; varying float vE; void main(){ vec3 p=position; float e=sin(p.x*1.4+uT*.8)*.12+sin(p.z*1.1+uT*.6)*.09; p.y+=e; vE=e; gl_Position=projectionMatrix*modelViewMatrix*vec4(p,1.); }`,
-      fragmentShader: `varying float vE; void main(){ float t=clamp((vE+.21)/.42,0.,1.); vec3 c=mix(vec3(0.,.05,.2),vec3(0.,.18,.5),t); gl_FragColor=vec4(c,.75); }`,
+      vertexShader: `
+        uniform float uT;
+        varying float vE;
+
+        void main() {
+          vec3 p = position;
+          float e =
+            sin(p.x * 1.4 + uT * 0.8) * 0.12 +
+            sin(p.z * 1.1 + uT * 0.6) * 0.09;
+
+          p.y += e;
+          vE = e;
+
+          gl_Position =
+            projectionMatrix *
+            modelViewMatrix *
+            vec4(p, 1.0);
+        }
+      `,
+      fragmentShader: `
+        varying float vE;
+
+        void main() {
+          float t = clamp((vE + 0.21) / 0.42, 0.0, 1.0);
+          vec3 color = mix(
+            vec3(0.0, 0.05, 0.2),
+            vec3(0.0, 0.18, 0.5),
+            t
+          );
+
+          gl_FragColor = vec4(color, 0.75);
+        }
+      `,
       transparent: true,
       depthWrite: false,
-      side: THREE.DoubleSide
+      side: THREE.DoubleSide,
     });
-    const wave = new THREE.Mesh(new THREE.PlaneGeometry(20, 20, 48, 48), waveMat);
+
+    const wave = new THREE.Mesh(
+      new THREE.PlaneGeometry(20, 20, 64, 64),
+      waveMaterial,
+    );
     wave.rotation.x = -Math.PI / 2;
     wave.position.y = -0.75;
+    wave.receiveShadow = true;
     scene.add(wave);
 
+    const waterRingMaterial = new THREE.MeshBasicMaterial({
+      color: 0x0055ff,
+      transparent: true,
+      opacity: 0.25,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+    });
+
     const waterRing = new THREE.Mesh(
-      new THREE.RingGeometry(3.4, 3.55, 96),
-      new THREE.MeshBasicMaterial({ color: 0x0055ff, transparent: true, opacity: 0.25, side: THREE.DoubleSide, depthWrite: false })
+      new THREE.RingGeometry(3.4, 3.55, 128),
+      waterRingMaterial,
     );
     waterRing.rotation.x = -Math.PI / 2;
     waterRing.position.y = -0.72;
     scene.add(waterRing);
 
+    // These groups preserve all of the original motion and drag behaviour.
+    // The GLB scenes are inserted inside them after loading.
     const boatGroup = new THREE.Group();
     scene.add(boatGroup);
 
-    const addMesh = (geometry, material, x = 0, y = 0, z = 0, rx = 0, ry = 0, rz = 0, group = boatGroup) => {
-      const m = new THREE.Mesh(geometry, material);
-      m.position.set(x, y, z);
-      m.rotation.set(rx, ry, rz);
-      group.add(m);
-      return m;
-    };
-
-    const mWood = new THREE.MeshLambertMaterial({ color: 0x5a2800, emissive: 0x1a0800, emissiveIntensity: 0.3 });
-    const mRim = new THREE.MeshLambertMaterial({ color: 0x00f5ff, emissive: 0x00f5ff, emissiveIntensity: 1.5 });
-    const mSail = new THREE.MeshLambertMaterial({ color: 0xaaccee, emissive: 0x003388, emissiveIntensity: 0.5, transparent: true, opacity: 0.88, side: THREE.DoubleSide });
-    const mMast = new THREE.MeshLambertMaterial({ color: 0x997722 });
-    const mGold = new THREE.MeshLambertMaterial({ color: 0xffd700, emissive: 0xffaa00, emissiveIntensity: 1.2 });
-    const mCyan = new THREE.MeshLambertMaterial({ color: 0x00f5ff, emissive: 0x00f5ff, emissiveIntensity: 1.2 });
-
-    addMesh(new THREE.CylinderGeometry(1.3, 0.85, 0.6, 64, 6, true), mWood, 0, -0.16, 0);
-    addMesh(new THREE.CircleGeometry(0.85, 64), mWood, 0, -0.46, 0, Math.PI / 2);
-    addMesh(new THREE.TorusGeometry(1.3, 0.055, 24, 128), mRim, 0, 0.14, 0);
-    addMesh(new THREE.CylinderGeometry(0.03, 0.045, 2.1, 24), mMast, 0, 1.0, 0);
-    addMesh(new THREE.PlaneGeometry(0.9, 1.35, 4, 4), mSail, 0.26, 0.62, 0, 0, 0.08, 0);
-    addMesh(new THREE.SphereGeometry(0.06, 24, 16), mGold, 0, 2.1, 0);
-    addMesh(new THREE.BoxGeometry(0.1, 0.2, 0.1), mCyan, 0, 0.05, 1.05);
-
-    const boatLight = new THREE.PointLight(0x00f5ff, 2.5, 6);
-    boatLight.position.set(0, 0.4, 0);
-    boatGroup.add(boatLight);
-
-    const dzMat = new THREE.MeshBasicMaterial({ color: 0x00f5ff, transparent: true, opacity: 0, depthWrite: false, side: THREE.DoubleSide });
-    const dzRing = new THREE.Mesh(new THREE.RingGeometry(0.85, 1.38, 96), dzMat);
-    dzRing.rotation.x = -Math.PI / 2;
-    dzRing.position.y = 0.15;
-    boatGroup.add(dzRing);
-
     const catGroup = new THREE.Group();
-    catGroup.scale.setScalar(1.15);
     catGroup.position.copy(START);
     scene.add(catGroup);
 
-    const cm = (geo, mat, x, y, z, rx = 0, ry = 0, rz = 0) => addMesh(geo, mat, x, y, z, rx, ry, rz, catGroup);
+    const seatPosition = DEFAULT_SEAT.clone();
+    const mixers = [];
 
-    const mBody = new THREE.MeshLambertMaterial({ color: 0x00cc66, emissive: 0x00ff88, emissiveIntensity: 0.7 });
-    const mEarO = new THREE.MeshLambertMaterial({ color: 0x00dd77, emissive: 0x00ff88, emissiveIntensity: 0.6 });
-    const mEarI = new THREE.MeshLambertMaterial({ color: 0xff44cc, emissive: 0xff44cc, emissiveIntensity: 0.9, transparent: true, opacity: 0.9 });
-    const mEyeW = new THREE.MeshLambertMaterial({ color: 0xeeffff, emissive: 0x88ffee, emissiveIntensity: 0.4 });
-    const mPup = new THREE.MeshLambertMaterial({ color: 0x001100 });
-    const mIris = new THREE.MeshLambertMaterial({ color: 0x00ffdd, emissive: 0x00ffdd, emissiveIntensity: 2.0 });
-    const mNose = new THREE.MeshLambertMaterial({ color: 0xff22cc, emissive: 0xff22cc, emissiveIntensity: 1.2 });
-    const mTail = new THREE.MeshLambertMaterial({ color: 0xaa44ff, emissive: 0xaa44ff, emissiveIntensity: 1.5 });
-    const mWisk = new THREE.MeshLambertMaterial({ color: 0x44ffee, emissive: 0x44ffee, emissiveIntensity: 0.8, transparent: true, opacity: 0.8 });
+    const dropZoneMaterial = new THREE.MeshBasicMaterial({
+      color: 0x00f5ff,
+      transparent: true,
+      opacity: 0,
+      depthWrite: false,
+      side: THREE.DoubleSide,
+    });
 
-    cm(new THREE.SphereGeometry(0.32, 48, 32), mBody, 0, -0.18, 0);
-    cm(new THREE.SphereGeometry(0.26, 48, 32), mBody, 0, 0.24, 0);
-    cm(new THREE.ConeGeometry(0.08, 0.18, 18), mEarO, -0.16, 0.48, 0, 0, 0, -0.45);
-    cm(new THREE.ConeGeometry(0.08, 0.18, 18), mEarO, 0.16, 0.48, 0, 0, 0, 0.45);
-    cm(new THREE.ConeGeometry(0.042, 0.1, 18), mEarI, -0.16, 0.48, 0.04, 0, 0, -0.45);
-    cm(new THREE.ConeGeometry(0.042, 0.1, 18), mEarI, 0.16, 0.48, 0.04, 0, 0, 0.45);
-    cm(new THREE.SphereGeometry(0.072, 24, 16), mEyeW, -0.10, 0.26, 0.22);
-    cm(new THREE.SphereGeometry(0.072, 24, 16), mEyeW, 0.10, 0.26, 0.22);
-    cm(new THREE.SphereGeometry(0.038, 20, 14), mPup, -0.10, 0.26, 0.282);
-    cm(new THREE.SphereGeometry(0.038, 20, 14), mPup, 0.10, 0.26, 0.282);
-    cm(new THREE.RingGeometry(0.025, 0.058, 32), mIris, -0.10, 0.26, 0.278);
-    cm(new THREE.RingGeometry(0.025, 0.058, 32), mIris, 0.10, 0.26, 0.278);
-    cm(new THREE.SphereGeometry(0.026, 16, 12), mNose, 0, 0.16, 0.25);
-    cm(new THREE.CylinderGeometry(0.03, 0.055, 0.6, 18), mEarO, 0.44, -0.14, 0, 0, 0, -1.1);
-    cm(new THREE.SphereGeometry(0.045, 18, 12), mTail, 0.68, -0.42, 0);
-    cm(new THREE.SphereGeometry(0.035, 16, 12), mNose, -0.15, 0.74, 0);
-    cm(new THREE.SphereGeometry(0.035, 16, 12), mNose, 0.15, 0.74, 0);
-    cm(new THREE.CylinderGeometry(0.009, 0.012, 0.24, 12), mEarO, -0.14, 0.62, 0, 0, 0, -0.26);
-    cm(new THREE.CylinderGeometry(0.009, 0.012, 0.24, 12), mEarO, 0.14, 0.62, 0, 0, 0, 0.26);
-    cm(new THREE.BoxGeometry(0.22, 0.007, 0.007), mWisk, -0.27, 0.16, 0.22, 0, 0, 0.1);
-    cm(new THREE.BoxGeometry(0.22, 0.007, 0.007), mWisk, 0.27, 0.16, 0.22, 0, 0, -0.1);
-    cm(new THREE.SphereGeometry(0.1, 24, 18), mBody, -0.2, -0.48, 0.1);
-    cm(new THREE.SphereGeometry(0.1, 24, 18), mBody, 0.2, -0.48, 0.1);
+    const dropZoneRing = new THREE.Mesh(
+      new THREE.RingGeometry(0.85, 1.38, 128),
+      dropZoneMaterial,
+    );
+    dropZoneRing.rotation.x = -Math.PI / 2;
+    dropZoneRing.position.y = 0.15;
+    boatGroup.add(dropZoneRing);
 
-    const catSpot = new THREE.PointLight(0x00ffcc, 3.5, 3.5);
-    catSpot.position.set(0, 0.3, 0.4);
-    catGroup.add(catSpot);
-    const catSpot2 = new THREE.PointLight(0xff44cc, 1.5, 2.5);
-    catSpot2.position.set(0, 0.7, 0);
-    catGroup.add(catSpot2);
+    const boatGlow = new THREE.PointLight(0x00f5ff, 3, 7);
+    boatGlow.position.set(0, 0.45, 0);
+    boatGroup.add(boatGlow);
 
+    const catGlow = new THREE.PointLight(0x00ffcc, 3.5, 4);
+    catGlow.position.set(0, 0.4, 0.5);
+    catGroup.add(catGlow);
+
+    const catPinkGlow = new THREE.PointLight(0xff44cc, 1.5, 3);
+    catPinkGlow.position.set(0, 0.9, 0);
+    catGroup.add(catPinkGlow);
+
+    // Load both GLB models.
+    const loader = new GLTFLoader();
+
+    Promise.all([
+      loader.loadAsync(BOAT_MODEL_URL),
+      loader.loadAsync(CAT_MODEL_URL),
+    ])
+      .then(([boatGLTF, catGLTF]) => {
+        if (disposed) {
+          disposeObject(boatGLTF.scene);
+          disposeObject(catGLTF.scene);
+          return;
+        }
+
+        const boatModel = boatGLTF.scene;
+        boatModel.name = 'CosmicBoatModel';
+        improveModelQuality(boatModel, renderer);
+
+        const boatBox = fitModel(
+          boatModel,
+          3.1,
+          -0.48,
+          BOAT_MODEL_ROTATION_Y,
+          'horizontal',
+        );
+
+        boatGroup.add(boatModel);
+        createMixer(boatModel, boatGLTF.animations, mixers);
+
+        const boatSize = boatBox.getSize(new THREE.Vector3());
+
+        // Optional exact marker:
+        // Add an Empty named "CatSeat" inside cosmic-boat.glb to control
+        // the final cat position precisely.
+        const seatMarker =
+          boatModel.getObjectByName('CatSeat') ||
+          boatModel.getObjectByName('cat_seat') ||
+          boatModel.getObjectByName('CAT_SEAT');
+
+        if (seatMarker) {
+          const markerWorld = seatMarker.getWorldPosition(new THREE.Vector3());
+          seatPosition.copy(boatGroup.worldToLocal(markerWorld));
+        } else {
+          const estimatedDeckY = boatBox.min.y + boatSize.y * 0.25;
+
+          seatPosition.set(
+            0,
+            estimatedDeckY - CAT_GROUND_Y + 0.03,
+            boatBox.max.z - boatSize.z * 0.18,
+          );
+        }
+
+        dropZoneRing.position.y =
+          seatPosition.y + CAT_GROUND_Y + 0.04;
+
+        const catModel = catGLTF.scene;
+        catModel.name = 'AlienCatModel';
+        improveModelQuality(catModel, renderer);
+
+        const catBox = fitModel(
+          catModel,
+          1.45,
+          CAT_GROUND_Y,
+          CAT_MODEL_ROTATION_Y,
+          'max',
+        );
+
+        catGroup.add(catModel);
+        createMixer(catModel, catGLTF.animations, mixers);
+
+        const catSize = catBox.getSize(new THREE.Vector3());
+        const hitRadius =
+          Math.max(catSize.x, catSize.y, catSize.z) * 0.7;
+
+        const currentState = stateRef.current;
+        if (currentState) {
+          currentState.modelsReady = true;
+          currentState.catHitRadius = Math.max(0.7, hitRadius);
+        }
+      })
+      .catch((error) => {
+        console.error('Failed to load Cosmic Voyage GLB models:', error);
+
+        if (!disposed) {
+          setModelError(
+            'Could not load /models/alien-cat.glb or /models/cosmic-boat.glb',
+          );
+        }
+      });
+
+    // Celebration particles
     const particleCount = 50;
-    const pPos = new Float32Array(particleCount * 3);
-    const pCol = new Float32Array(particleCount * 3);
-    const pVel = new Float32Array(particleCount * 3);
-    const palette = [new THREE.Color(0xffd700), new THREE.Color(0x00ffc8), new THREE.Color(0xff00cc), new THREE.Color(0x00f5ff), new THREE.Color(0xffffff)];
-    for (let i = 0; i < particleCount; i++) {
-      const c = palette[i % palette.length];
-      pCol[i * 3] = c.r;
-      pCol[i * 3 + 1] = c.g;
-      pCol[i * 3 + 2] = c.b;
+    const particlePositions = new Float32Array(particleCount * 3);
+    const particleColors = new Float32Array(particleCount * 3);
+    const particleVelocities = new Float32Array(particleCount * 3);
+
+    const palette = [
+      new THREE.Color(0xffd700),
+      new THREE.Color(0x00ffc8),
+      new THREE.Color(0xff00cc),
+      new THREE.Color(0x00f5ff),
+      new THREE.Color(0xffffff),
+    ];
+
+    for (let i = 0; i < particleCount; i += 1) {
+      const color = palette[i % palette.length];
+      particleColors[i * 3] = color.r;
+      particleColors[i * 3 + 1] = color.g;
+      particleColors[i * 3 + 2] = color.b;
     }
-    const pGeo = new THREE.BufferGeometry();
-    pGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3));
-    pGeo.setAttribute('color', new THREE.BufferAttribute(pCol, 3));
-    const pMat = new THREE.PointsMaterial({ size: 0.14, vertexColors: true, sizeAttenuation: true, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending });
-    const burstPoints = new THREE.Points(pGeo, pMat);
+
+    const particleGeometry = new THREE.BufferGeometry();
+    particleGeometry.setAttribute(
+      'position',
+      new THREE.BufferAttribute(particlePositions, 3),
+    );
+    particleGeometry.setAttribute(
+      'color',
+      new THREE.BufferAttribute(particleColors, 3),
+    );
+
+    const particleMaterial = new THREE.PointsMaterial({
+      size: 0.14,
+      vertexColors: true,
+      sizeAttenuation: true,
+      transparent: true,
+      opacity: 0,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+    });
+
+    const burstPoints = new THREE.Points(
+      particleGeometry,
+      particleMaterial,
+    );
     burstPoints.position.set(0, 0.8, 0.3);
     scene.add(burstPoints);
 
-    const ray = new THREE.Raycaster();
-    const dragPlane = new THREE.Plane(new THREE.Vector3(0, 0, 1), -DRAG_Z);
-    const ndc = new THREE.Vector2();
-    const tmp = new THREE.Vector3();
-    const cur = START.clone();
-    const tgt = START.clone();
+    const raycaster = new THREE.Raycaster();
+    const dragPlane = new THREE.Plane(
+      new THREE.Vector3(0, 0, 1),
+      -DRAG_Z,
+    );
+    const pointerNDC = new THREE.Vector2();
+    const temporaryWorldPosition = new THREE.Vector3();
+
+    const currentPosition = START.clone();
+    const targetPosition = START.clone();
 
     const state = {
       landed: false,
       isDragging: false,
-      cur,
-      tgt,
+      modelsReady: false,
+      catHitRadius: 0.9,
+      cur: currentPosition,
+      tgt: targetPosition,
       catGroup,
-      pMat,
-      burstT: -1
+      particleMaterial,
+      burstT: -1,
     };
+
     stateRef.current = state;
 
-    const toWorld = (clientX, clientY) => {
+    const setPointerRay = (clientX, clientY) => {
       const rect = canvas.getBoundingClientRect();
-      ndc.set(((clientX - rect.left) / rect.width) * 2 - 1, -((clientY - rect.top) / rect.height) * 2 + 1);
-      ray.setFromCamera(ndc, camera);
-      ray.ray.intersectPlane(dragPlane, tmp);
-      return tmp;
+
+      pointerNDC.set(
+        ((clientX - rect.left) / rect.width) * 2 - 1,
+        -((clientY - rect.top) / rect.height) * 2 + 1,
+      );
+
+      raycaster.setFromCamera(pointerNDC, camera);
+    };
+
+    const pointerToWorld = (clientX, clientY) => {
+      setPointerRay(clientX, clientY);
+      raycaster.ray.intersectPlane(
+        dragPlane,
+        temporaryWorldPosition,
+      );
+      return temporaryWorldPosition;
     };
 
     const tryDrag = (clientX, clientY) => {
-      if (state.landed) return;
-      const rect = canvas.getBoundingClientRect();
-      ndc.set(((clientX - rect.left) / rect.width) * 2 - 1, -((clientY - rect.top) / rect.height) * 2 + 1);
-      ray.setFromCamera(ndc, camera);
-      const catWorldPos = new THREE.Vector3();
-      catGroup.getWorldPosition(catWorldPos);
-      if (ray.ray.distanceToPoint(catWorldPos) < 0.9) {
+      if (state.landed || !state.modelsReady) return;
+
+      setPointerRay(clientX, clientY);
+
+      const modelIntersections = raycaster.intersectObject(
+        catGroup,
+        true,
+      );
+
+      const catWorldPosition = catGroup.getWorldPosition(
+        new THREE.Vector3(),
+      );
+
+      const closeToCat =
+        raycaster.ray.distanceToPoint(catWorldPosition) <
+        state.catHitRadius;
+
+      if (modelIntersections.length > 0 || closeToCat) {
         state.isDragging = true;
         document.body.style.cursor = 'grabbing';
       }
     };
 
-    const doMove = (clientX, clientY) => {
+    const moveDraggedCat = (clientX, clientY) => {
       if (!state.isDragging || state.landed) return;
-      const w = toWorld(clientX, clientY);
-      if (w.lengthSq() > 0.001) state.tgt.set(w.x, w.y, DRAG_Z);
+
+      const worldPosition = pointerToWorld(clientX, clientY);
+
+      if (worldPosition.lengthSq() > 0.001) {
+        state.tgt.set(
+          worldPosition.x,
+          worldPosition.y,
+          DRAG_Z,
+        );
+      }
     };
 
     const spawnBurst = () => {
       state.burstT = 0;
-      const arr = pGeo.attributes.position.array;
-      for (let i = 0; i < particleCount; i++) {
-        arr[i * 3] = 0;
-        arr[i * 3 + 1] = 0;
-        arr[i * 3 + 2] = 0;
+      const positions =
+        particleGeometry.attributes.position.array;
+
+      for (let i = 0; i < particleCount; i += 1) {
+        positions[i * 3] = 0;
+        positions[i * 3 + 1] = 0;
+        positions[i * 3 + 2] = 0;
+
         const phi = Math.acos(2 * Math.random() - 1);
-        const th = Math.random() * Math.PI * 2;
-        const spd = 1.5 + Math.random() * 3;
-        pVel[i * 3] = Math.sin(phi) * Math.cos(th) * spd;
-        pVel[i * 3 + 1] = Math.abs(Math.sin(phi) * Math.sin(th) * spd) + 0.5;
-        pVel[i * 3 + 2] = Math.cos(phi) * spd;
+        const theta = Math.random() * Math.PI * 2;
+        const speed = 1.5 + Math.random() * 3;
+
+        particleVelocities[i * 3] =
+          Math.sin(phi) * Math.cos(theta) * speed;
+        particleVelocities[i * 3 + 1] =
+          Math.abs(Math.sin(phi) * Math.sin(theta) * speed) +
+          0.5;
+        particleVelocities[i * 3 + 2] =
+          Math.cos(phi) * speed;
       }
-      pGeo.attributes.position.needsUpdate = true;
+
+      particleGeometry.attributes.position.needsUpdate = true;
     };
 
-    const doUp = (clientX, clientY) => {
+    const finishDrag = (clientX, clientY) => {
       if (!state.isDragging || state.landed) return;
+
       state.isDragging = false;
       document.body.style.cursor = '';
-      const w = toWorld(clientX, clientY);
-      const dx = w.x;
-      const dy = w.y - 0.3;
-      if (Math.sqrt(dx * dx + dy * dy) < DROP_R) {
+
+      const worldPosition = pointerToWorld(clientX, clientY);
+      const deltaX = worldPosition.x;
+      const deltaY = worldPosition.y - 0.3;
+
+      if (
+        Math.sqrt(deltaX * deltaX + deltaY * deltaY) <
+        DROP_R
+      ) {
         state.landed = true;
-        state.tgt.copy(SEATED_FRONT_OF_BOAT);
+        state.tgt.copy(seatPosition);
+
         setLandedUI(true);
         setLoading(true);
         setLoadingPercent(0);
         spawnBurst();
 
         const startedAt = Date.now();
+
         const progressTimer = window.setInterval(() => {
-          const next = Math.min(100, Math.round(((Date.now() - startedAt) / 3000) * 100));
-          setLoadingPercent(next);
-          if (next >= 100) window.clearInterval(progressTimer);
+          const nextPercent = Math.min(
+            100,
+            Math.round(
+              ((Date.now() - startedAt) / 3000) * 100,
+            ),
+          );
+
+          setLoadingPercent(nextPercent);
+
+          if (nextPercent >= 100) {
+            window.clearInterval(progressTimer);
+          }
         }, 60);
 
         window.setTimeout(() => {
@@ -316,72 +643,144 @@ export default function CosmicVoyage() {
       }
     };
 
-    const onMouseDown = (e) => tryDrag(e.clientX, e.clientY);
-    const onMouseMove = (e) => doMove(e.clientX, e.clientY);
-    const onMouseUp = (e) => doUp(e.clientX, e.clientY);
-    const onTouchStart = (e) => {
-      e.preventDefault();
-      const t = e.touches[0];
-      tryDrag(t.clientX, t.clientY);
+    const onMouseDown = (event) => {
+      tryDrag(event.clientX, event.clientY);
     };
-    const onTouchMove = (e) => {
-      if (state.isDragging) e.preventDefault();
-      const t = e.touches[0];
-      if (t) doMove(t.clientX, t.clientY);
+
+    const onMouseMove = (event) => {
+      moveDraggedCat(event.clientX, event.clientY);
     };
-    const onTouchEnd = (e) => {
-      const t = e.changedTouches[0];
-      if (t) doUp(t.clientX, t.clientY);
+
+    const onMouseUp = (event) => {
+      finishDrag(event.clientX, event.clientY);
+    };
+
+    const onTouchStart = (event) => {
+      event.preventDefault();
+      const touch = event.touches[0];
+
+      if (touch) {
+        tryDrag(touch.clientX, touch.clientY);
+      }
+    };
+
+    const onTouchMove = (event) => {
+      if (state.isDragging) event.preventDefault();
+      const touch = event.touches[0];
+
+      if (touch) {
+        moveDraggedCat(touch.clientX, touch.clientY);
+      }
+    };
+
+    const onTouchEnd = (event) => {
+      const touch = event.changedTouches[0];
+
+      if (touch) {
+        finishDrag(touch.clientX, touch.clientY);
+      }
     };
 
     canvas.addEventListener('mousedown', onMouseDown);
     window.addEventListener('mousemove', onMouseMove);
     window.addEventListener('mouseup', onMouseUp);
-    canvas.addEventListener('touchstart', onTouchStart, { passive: false });
-    window.addEventListener('touchmove', onTouchMove, { passive: false });
+
+    canvas.addEventListener('touchstart', onTouchStart, {
+      passive: false,
+    });
+    window.addEventListener('touchmove', onTouchMove, {
+      passive: false,
+    });
     window.addEventListener('touchend', onTouchEnd);
 
     const onResize = () => {
       width = window.innerWidth;
       height = window.innerHeight;
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+
+      renderer.setPixelRatio(
+        Math.min(window.devicePixelRatio || 1, 2.5),
+      );
       renderer.setSize(width, height);
+
       camera.aspect = width / height;
-      if (height > width) camera.position.set(0, 2.8, 13.5);
-      else camera.position.set(0, 2.5, 11);
+      camera.position.set(
+        0,
+        height > width ? 2.8 : 2.5,
+        height > width ? 13.5 : 11,
+      );
       camera.lookAt(0, 0, 0);
       camera.updateProjectionMatrix();
     };
+
     window.addEventListener('resize', onResize);
 
     const clock = new THREE.Clock();
     let elapsed = 0;
-    const lerp = (a, b, t) => a + (b - a) * t;
+
+    const lerp = (from, to, amount) =>
+      from + (to - from) * amount;
 
     renderer.setAnimationLoop(() => {
-      const dt = Math.min(clock.getDelta(), 0.05);
-      elapsed += dt;
-      waveMat.uniforms.uT.value = elapsed;
-      waterRing.material.opacity = 0.1 + Math.abs(Math.sin(elapsed * 0.6)) * 0.18;
+      const delta = Math.min(clock.getDelta(), 0.05);
+      elapsed += delta;
+
+      waveMaterial.uniforms.uT.value = elapsed;
+      waterRingMaterial.opacity =
+        0.1 + Math.abs(Math.sin(elapsed * 0.6)) * 0.18;
 
       boatGroup.position.y = Math.sin(elapsed * 0.75) * 0.2;
       boatGroup.rotation.z = Math.sin(elapsed * 0.55) * 0.04;
 
-      const dragging = state.isDragging && !state.landed;
-      dzMat.opacity = lerp(dzMat.opacity, dragging ? 0.5 + Math.sin(elapsed * 4) * 0.2 : 0, Math.min(1, dt * 7));
+      mixers.forEach((mixer) => mixer.update(delta));
 
-      const speed = state.isDragging ? 13 : state.landed ? 4 : 7;
-      const f = Math.min(1, dt * speed);
-      state.cur.x = lerp(state.cur.x, state.tgt.x, f);
-      state.cur.y = lerp(state.cur.y, state.tgt.y, f);
-      state.cur.z = lerp(state.cur.z, state.tgt.z, f);
+      const dragging = state.isDragging && !state.landed;
+      dropZoneMaterial.opacity = lerp(
+        dropZoneMaterial.opacity,
+        dragging
+          ? 0.5 + Math.sin(elapsed * 4) * 0.2
+          : 0,
+        Math.min(1, delta * 7),
+      );
+
+      const followSpeed = state.isDragging
+        ? 13
+        : state.landed
+          ? 4
+          : 7;
+
+      const followAmount = Math.min(
+        1,
+        delta * followSpeed,
+      );
+
+      state.cur.x = lerp(
+        state.cur.x,
+        state.tgt.x,
+        followAmount,
+      );
+      state.cur.y = lerp(
+        state.cur.y,
+        state.tgt.y,
+        followAmount,
+      );
+      state.cur.z = lerp(
+        state.cur.z,
+        state.tgt.z,
+        followAmount,
+      );
+
       catGroup.position.copy(state.cur);
 
       if (!state.isDragging) {
-        catGroup.position.y += state.landed ? Math.sin(elapsed * 0.75) * 0.055 : Math.sin(elapsed * 1.0) * 0.09;
-        if (!state.landed) catGroup.rotation.y += dt * 0.4;
+        catGroup.position.y += state.landed
+          ? Math.sin(elapsed * 0.75) * 0.055
+          : Math.sin(elapsed) * 0.09;
+
+        if (!state.landed) {
+          catGroup.rotation.y += delta * 0.4;
+        }
       } else {
-        catGroup.rotation.y += dt * 1.5;
+        catGroup.rotation.y += delta * 1.5;
       }
 
       if (state.landed) {
@@ -393,26 +792,44 @@ export default function CosmicVoyage() {
       }
 
       if (state.burstT >= 0) {
-        state.burstT += dt;
-        const arr = pGeo.attributes.position.array;
-        for (let i = 0; i < particleCount; i++) {
-          arr[i * 3] += pVel[i * 3] * dt;
-          arr[i * 3 + 1] += pVel[i * 3 + 1] * dt;
-          arr[i * 3 + 2] += pVel[i * 3 + 2] * dt;
-          pVel[i * 3 + 1] -= dt * 1.6;
-          pVel[i * 3] *= 0.98;
-          pVel[i * 3 + 2] *= 0.98;
+        state.burstT += delta;
+
+        const positions =
+          particleGeometry.attributes.position.array;
+
+        for (let i = 0; i < particleCount; i += 1) {
+          positions[i * 3] +=
+            particleVelocities[i * 3] * delta;
+          positions[i * 3 + 1] +=
+            particleVelocities[i * 3 + 1] * delta;
+          positions[i * 3 + 2] +=
+            particleVelocities[i * 3 + 2] * delta;
+
+          particleVelocities[i * 3 + 1] -= delta * 1.6;
+          particleVelocities[i * 3] *= 0.98;
+          particleVelocities[i * 3 + 2] *= 0.98;
         }
-        pGeo.attributes.position.needsUpdate = true;
-        pMat.opacity = state.burstT < 1.6 ? Math.max(0, 1 - state.burstT / 1.6) : 0;
-        if (state.burstT > 2.0) state.burstT = -1;
+
+        particleGeometry.attributes.position.needsUpdate =
+          true;
+
+        particleMaterial.opacity =
+          state.burstT < 1.6
+            ? Math.max(0, 1 - state.burstT / 1.6)
+            : 0;
+
+        if (state.burstT > 2) {
+          state.burstT = -1;
+        }
       }
 
       renderer.render(scene, camera);
     });
 
     return () => {
+      disposed = true;
       renderer.setAnimationLoop(null);
+
       canvas.removeEventListener('mousedown', onMouseDown);
       window.removeEventListener('mousemove', onMouseMove);
       window.removeEventListener('mouseup', onMouseUp);
@@ -420,18 +837,20 @@ export default function CosmicVoyage() {
       window.removeEventListener('touchmove', onTouchMove);
       window.removeEventListener('touchend', onTouchEnd);
       window.removeEventListener('resize', onResize);
+
+      document.body.style.cursor = '';
+      stateRef.current = null;
+
+      mixers.forEach((mixer) => mixer.stopAllAction());
+      disposeObject(scene);
       renderer.dispose();
-      scene.traverse((obj) => {
-        if (obj.geometry) obj.geometry.dispose();
-        if (obj.material) {
-          if (Array.isArray(obj.material)) obj.material.forEach((m) => m.dispose());
-          else obj.material.dispose();
-        }
-      });
     };
   }, []);
 
-  const loadingBarStyle = useMemo(() => ({ width: `${loadingPercent}%` }), [loadingPercent]);
+  const loadingBarStyle = useMemo(
+    () => ({ width: `${loadingPercent}%` }),
+    [loadingPercent],
+  );
 
   return (
     <main className="stage">
@@ -444,33 +863,76 @@ export default function CosmicVoyage() {
         </div>
 
         {!landedUI && <div className="arrow3d">➜</div>}
-        {!landedUI && <div className="hint">☽ drag the alien cat into the cosmic boat ☾</div>}
+
+        {!landedUI && (
+          <div className="hint">
+            ☽ drag the alien cat into the cosmic boat ☾
+          </div>
+        )}
       </div>
 
       {loading && (
-        <div className="loadingPopup" role="dialog" aria-label="Loading">
+        <div className="loadingPopup" role="status">
           <div className="loadingWindowBar">
             <span />
+            <span>□</span>
             <span>✕</span>
           </div>
+
           <div className="loadingTitle">LOADING...</div>
+
           <div className="loadingBarOuter">
-            <div className="loadingBarInner" style={loadingBarStyle} />
+            <div
+              className="loadingBarInner"
+              style={loadingBarStyle}
+            />
           </div>
-          <div className="loadingPercent">{loadingPercent}%</div>
+
+          <div className="loadingPercent">
+            {loadingPercent}%
+          </div>
         </div>
       )}
 
       {popupOpen && (
-        <div className="popupWindow" role="dialog" aria-label="Mission status">
+        <div className="popupWindow">
           <div className="termHeader">
             <span>MISSION STATUS</span>
-            <button type="button" onClick={resetExperience}>CLOSE</button>
+            <button type="button" onClick={resetExperience}>
+              CLOSE
+            </button>
           </div>
+
           <div className="termText">
-            ALIEN CAT SUCCESSFULLY DOCKED.<br /><br />
-            STARSHIP ENGINES ONLINE.<br />
+            ALIEN CAT SUCCESSFULLY DOCKED.
+            <br />
+            <br />
+            STARSHIP ENGINES ONLINE.
+            <br />
             READY FOR HYPERJUMP.
+          </div>
+        </div>
+      )}
+
+      {modelError && (
+        <div className="popupWindow">
+          <div className="termHeader">
+            <span>MODEL LOAD ERROR</span>
+            <button
+              type="button"
+              onClick={() => setModelError('')}
+            >
+              CLOSE
+            </button>
+          </div>
+
+          <div className="termText">
+            {modelError}
+            <br />
+            <br />
+            Confirm both files exist in:
+            <br />
+            public/models/
           </div>
         </div>
       )}
