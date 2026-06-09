@@ -14,7 +14,7 @@ const BOAT_MODEL_ROTATION_Y = 0;
 const START = new THREE.Vector3(1.62, -0.50, 5.0);
 const DEFAULT_SEAT = new THREE.Vector3(2.5, 1.0, 2.1);
 const DRAG_Z = 5.0;
-const BOAT_DEPTH = -4.2;
+const BOAT_DEPTH = -8.2;
 const CAT_GROUND_Y = -0.5;
 
 function improveModelQuality(root, renderer, pastelPalette) {
