@@ -11,7 +11,7 @@ const BOAT_MODEL_URL = '/models/cosmic-boat.glb';
 const CAT_MODEL_ROTATION_Y = 0;
 const BOAT_MODEL_ROTATION_Y = 0;
 
-const START = new THREE.Vector3(1.62, -0.40, 5.0);
+const START = new THREE.Vector3(1.62, -0.50, 5.0);
 const DEFAULT_SEAT = new THREE.Vector3(0, 1.05, 2.1);
 const DRAG_Z = 5.0;
 const BOAT_DEPTH = -4.2;
@@ -953,14 +953,13 @@ export default function CosmicVoyage() {
 
       <div className="ui">
         <div className="title">
-          <h1>✦ COSMIC VOYAGE ✦</h1>
-          <p>a journey through the infinite</p>
+          <h1>✦ ALMOSTJAPAN ✦</h1>
         </div>
 
 
         {!landedUI && (
           <div className="hint">
-            ☽ drag the alien cat into the cosmic boat ☾
+            ▲ drag the alien cat into the cosmic boat ▲
           </div>
         )}
       </div>
@@ -1001,11 +1000,6 @@ export default function CosmicVoyage() {
 
           <div className="termText">
             ALIEN CAT SUCCESSFULLY DOCKED.
-            <br />
-            <br />
-            STARSHIP ENGINES ONLINE.
-            <br />
-            READY FOR HYPERJUMP.
           </div>
         </div>
       )}
