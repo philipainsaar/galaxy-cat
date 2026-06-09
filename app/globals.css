@@ -120,51 +120,24 @@ button {
   animation: hintPulse 2.5s ease-in-out infinite;
 }
 
-.arrow3d {
-  position: fixed;
-  right: 4vw;
-  top: 42%;
-  z-index: 12;
-  font-size: clamp(4rem, 16vw, 6.4rem);
-  color: var(--pink-strong);
-  filter:
-    drop-shadow(0 0 10px rgba(174, 219, 255, 0.95))
-    drop-shadow(5px 7px 0 rgba(202, 184, 255, 0.65));
-  animation: arrowBounce 1.4s infinite;
-  transform: rotate(16deg);
-  pointer-events: none;
-}
 
-/* Opaque overlay prevents the cat or boat from peeking behind the loader. */
+/* Transparent overlay keeps the happy cat and boat visible while loading. */
 .loadingOverlay {
   position: fixed;
   inset: 0;
   z-index: 54;
-  display: grid;
-  place-items: center;
-  padding: 4vw;
-  background:
-    radial-gradient(
-      circle at 18% 18%,
-      rgba(255, 183, 220, 0.42),
-      transparent 34%
-    ),
-    radial-gradient(
-      circle at 82% 76%,
-      rgba(174, 219, 255, 0.48),
-      transparent 36%
-    ),
-    linear-gradient(
-      145deg,
-      rgba(255, 255, 255, 0.98),
-      rgba(239, 233, 255, 0.98)
-    );
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: max(12vh, 88px) 4vw 0;
+  background: transparent;
+  pointer-events: none;
 }
 
 .loadingPopup {
   position: relative;
   z-index: 55;
-  width: min(92vw, 520px);
+  width: min(88vw, 440px);
   background: #e8ddff;
   border: 3px solid var(--pink-strong);
   padding: 0 1rem 1.2rem;
@@ -311,15 +284,6 @@ button {
   }
 }
 
-@keyframes arrowBounce {
-  0%,
-  100% {
-    transform: translateY(0) rotate(16deg) scale(1);
-  }
-  50% {
-    transform: translateY(-14px) rotate(16deg) scale(1.08);
-  }
-}
 
 @media (min-aspect-ratio: 1/1) {
   .title h1 {
@@ -335,11 +299,5 @@ button {
     width: auto;
     white-space: nowrap;
     font-size: clamp(0.6rem, 1.3vw, 0.82rem);
-  }
-
-  .arrow3d {
-    right: 15vw;
-    top: 39%;
-    font-size: 4.5rem;
   }
 }

@@ -14,7 +14,6 @@ const BOAT_MODEL_ROTATION_Y = 0;
 const START = new THREE.Vector3(1.62, 0.28, 5.0);
 const DEFAULT_SEAT = new THREE.Vector3(0, 1.05, 2.1);
 const DRAG_Z = 5.0;
-const DROP_R = 2.5;
 const BOAT_DEPTH = -4.2;
 const CAT_GROUND_Y = -0.5;
 
@@ -158,6 +157,7 @@ export default function CosmicVoyage() {
     state.tgt.copy(START);
     state.catGroup.position.copy(START);
     state.catGroup.rotation.set(0, 0, 0);
+    state.catGroup.scale.setScalar(1);
     state.catGroup.visible = true;
     state.burstT = -1;
     state.particleMaterial.opacity = 0;
@@ -354,6 +354,23 @@ export default function CosmicVoyage() {
     dropZoneRing.position.y = 0.15;
     boatGroup.add(dropZoneRing);
 
+    const dropTargetMaterial = new THREE.MeshBasicMaterial({
+      transparent: true,
+      opacity: 0,
+      depthWrite: false,
+      depthTest: false,
+      colorWrite: false,
+      side: THREE.DoubleSide,
+    });
+
+    const dropTarget = new THREE.Mesh(
+      new THREE.BoxGeometry(6.4, 3.8, 6.4),
+      dropTargetMaterial,
+    );
+    dropTarget.position.set(0, 0.8, 0);
+    dropTarget.name = 'BoatDropTarget';
+    boatGroup.add(dropTarget);
+
     const boatGlow = new THREE.PointLight(0xb8dfff, 2.4, 10);
     boatGlow.position.set(0, 0.45, 0);
     boatGroup.add(boatGlow);
@@ -526,6 +543,9 @@ export default function CosmicVoyage() {
     const state = {
       landed: false,
       isDragging: false,
+      hasDragged: false,
+      dragDistancePx: 0,
+      dragStartClient: new THREE.Vector2(),
       modelsReady: false,
       catHitRadius: 0.9,
       cur: currentPosition,
@@ -577,12 +597,30 @@ export default function CosmicVoyage() {
 
       if (modelIntersections.length > 0 || closeToCat) {
         state.isDragging = true;
+        state.hasDragged = false;
+        state.dragDistancePx = 0;
+        state.dragStartClient.set(clientX, clientY);
         document.body.style.cursor = 'grabbing';
       }
     };
 
     const moveDraggedCat = (clientX, clientY) => {
       if (!state.isDragging || state.landed) return;
+
+      const deltaX = clientX - state.dragStartClient.x;
+      const deltaY = clientY - state.dragStartClient.y;
+      const distance = Math.hypot(deltaX, deltaY);
+
+      state.dragDistancePx = Math.max(
+        state.dragDistancePx,
+        distance,
+      );
+
+      // This threshold prevents a tap or tiny finger wobble from
+      // counting as a completed drag.
+      if (state.dragDistancePx < 14) return;
+
+      state.hasDragged = true;
 
       const worldPosition = pointerToWorld(clientX, clientY);
 
@@ -627,14 +665,24 @@ export default function CosmicVoyage() {
       state.isDragging = false;
       document.body.style.cursor = '';
 
-      const worldPosition = pointerToWorld(clientX, clientY);
-      const deltaX = worldPosition.x;
-      const deltaY = worldPosition.y - 0.3;
+      // A press-and-release without meaningful movement is only a tap.
+      if (!state.hasDragged) {
+        state.tgt.copy(START);
+        state.dragDistancePx = 0;
+        return;
+      }
 
-      if (
-        Math.sqrt(deltaX * deltaX + deltaY * deltaY) <
-        DROP_R
-      ) {
+      // The release point must actually be over the boat's invisible
+      // 3D drop target. This keeps drop detection visually accurate
+      // even though the boat is farther away in depth.
+      setPointerRay(clientX, clientY);
+      const releasedOverBoat =
+        raycaster.intersectObject(dropTarget, false).length > 0;
+
+      state.hasDragged = false;
+      state.dragDistancePx = 0;
+
+      if (releasedOverBoat) {
         state.landed = true;
 
         boatGroup.updateMatrixWorld(true);
@@ -642,10 +690,7 @@ export default function CosmicVoyage() {
           boatGroup.localToWorld(seatPosition.clone()),
         );
 
-        // Hide the cat while the full-screen loading overlay is shown,
-        // so it cannot peek around or behind the popup.
-        state.catGroup.visible = false;
-
+        // Keep the cat visible throughout the loading sequence.
         setLandedUI(true);
         setLoading(true);
         setLoadingPercent(0);
@@ -670,7 +715,6 @@ export default function CosmicVoyage() {
 
         window.setTimeout(() => {
           window.clearInterval(progressTimer);
-          state.catGroup.visible = true;
           setLoading(false);
           setLoadingPercent(100);
           setPopupOpen(true);
@@ -825,9 +869,21 @@ export default function CosmicVoyage() {
       }
 
       if (state.landed) {
-        catGroup.rotation.z = boatGroup.rotation.z;
-        catGroup.rotation.y = 0;
+        const happyPulse = Math.max(
+          0,
+          Math.sin(elapsed * 8),
+        );
+
+        catGroup.position.y += happyPulse * 0.09;
+        catGroup.rotation.z =
+          boatGroup.rotation.z +
+          Math.sin(elapsed * 7) * 0.035;
+        catGroup.rotation.y =
+          Math.sin(elapsed * 6) * 0.12;
         catGroup.rotation.x = -0.08;
+        catGroup.scale.setScalar(1 + happyPulse * 0.035);
+      } else {
+        catGroup.scale.setScalar(1);
       }
 
       if (state.burstT >= 0) {
@@ -901,7 +957,6 @@ export default function CosmicVoyage() {
           <p>a journey through the infinite</p>
         </div>
 
-        {!landedUI && <div className="arrow3d">➜</div>}
 
         {!landedUI && (
           <div className="hint">
