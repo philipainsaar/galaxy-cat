@@ -136,9 +136,11 @@ button {
                     }
 
 .loadingPopup {
-  position: relative;
+      position: fixed !important;
+        left: 50% !important;
+          top: 50% !important;
+            transform: translate(-50%, -50%) !important;
   z-index: 55;
-  width: min(88vw, 440px);
   background: #e8ddff;
   border: 3px solid var(--pink-strong);
   padding: 0 1rem 1.2rem;
