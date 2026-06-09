@@ -127,12 +127,13 @@ button {
     position: fixed;
       inset: 0;
         z-index: 54;
-          display: grid;
-            place-items: center;
-              padding: 0;
-                background: transparent;
-                  pointer-events: none;
-                  }
+          display: flex;
+            justify-content: center;
+              align-items: flex-start;
+                padding: max(12vh, 88px) 4vw 0;
+                  background: transparent;
+                    pointer-events: none;
+                    }
 
 .loadingPopup {
   position: relative;
