@@ -122,17 +122,17 @@ button {
 
 
 /* Transparent overlay keeps the happy cat and boat visible while loading. */
+
 .loadingOverlay {
-  position: fixed;
-  inset: 0;
-  z-index: 54;
-  display: flex;
-  justify-content: center;
-  align-items: flex-start;
-  padding: 0;
-  background: transparent;
-  pointer-events: none;
-}
+    position: fixed;
+      inset: 0;
+        z-index: 54;
+          display: grid;
+            place-items: center;
+              padding: 0;
+                background: transparent;
+                  pointer-events: none;
+                  }
 
 .loadingPopup {
   position: relative;
