@@ -11,14 +11,17 @@ const BOAT_MODEL_URL = '/models/cosmic-boat.glb';
 const CAT_MODEL_ROTATION_Y = 0;
 const BOAT_MODEL_ROTATION_Y = 0;
 
-const START = new THREE.Vector3(3.2, 0.4, 2.5);
-const DEFAULT_SEAT = new THREE.Vector3(0, 0.72, 1.15);
-const DRAG_Z = 2.5;
-const DROP_R = 2.2;
+const START = new THREE.Vector3(1.62, 0.28, 5.0);
+const DEFAULT_SEAT = new THREE.Vector3(0, 1.05, 2.1);
+const DRAG_Z = 5.0;
+const DROP_R = 2.5;
+const BOAT_DEPTH = -4.2;
 const CAT_GROUND_Y = -0.5;
 
-function improveModelQuality(root, renderer) {
+function improveModelQuality(root, renderer, pastelPalette) {
   const anisotropy = renderer.capabilities.getMaxAnisotropy();
+  const processedMaterials = new Set();
+  let meshIndex = 0;
 
   root.traverse((object) => {
     if (!object.isMesh) return;
@@ -31,16 +34,31 @@ function improveModelQuality(root, renderer) {
       object.geometry.computeVertexNormals();
     }
 
+    const tint = pastelPalette?.[
+      meshIndex % pastelPalette.length
+    ];
+
+    meshIndex += 1;
+
     const materials = Array.isArray(object.material)
       ? object.material
       : [object.material];
 
     materials.forEach((material) => {
-      if (!material) return;
+      if (!material || processedMaterials.has(material)) return;
+      processedMaterials.add(material);
 
-      // Smooth shading avoids the faceted low-poly appearance when the
-      // source model contains smooth vertex normals.
+      // Smooth shading avoids faceted, low-poly-looking surfaces.
       material.flatShading = false;
+
+      // Preserve textures while gently shifting the whole scene toward
+      // pastel pink, purple and blue.
+      if (tint && material.color) {
+        material.color.lerp(
+          tint,
+          material.map ? 0.18 : 0.42,
+        );
+      }
 
       [
         material.map,
@@ -140,6 +158,7 @@ export default function CosmicVoyage() {
     state.tgt.copy(START);
     state.catGroup.position.copy(START);
     state.catGroup.rotation.set(0, 0, 0);
+    state.catGroup.visible = true;
     state.burstT = -1;
     state.particleMaterial.opacity = 0;
 
@@ -173,18 +192,18 @@ export default function CosmicVoyage() {
     renderer.setSize(width, height);
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.15;
+    renderer.toneMappingExposure = 1.0;
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x03000f);
+    scene.background = new THREE.Color(0xffffff);
 
     const camera = new THREE.PerspectiveCamera(55, width / height, 0.1, 200);
     camera.position.set(0, height > width ? 2.8 : 2.5, height > width ? 13.5 : 11);
     camera.lookAt(0, 0, 0);
 
-    scene.add(new THREE.HemisphereLight(0xaaccff, 0x100022, 2));
+    scene.add(new THREE.HemisphereLight(0xe9e4ff, 0xffe8f5, 2.4));
 
     const keyLight = new THREE.DirectionalLight(0xffffff, 3);
     keyLight.position.set(4, 8, 7);
@@ -194,11 +213,11 @@ export default function CosmicVoyage() {
     keyLight.shadow.camera.far = 40;
     scene.add(keyLight);
 
-    const blueFill = new THREE.PointLight(0x4466ff, 2.5, 30);
+    const blueFill = new THREE.PointLight(0xaedbff, 2.2, 30);
     blueFill.position.set(-5, 2, 5);
     scene.add(blueFill);
 
-    const pinkFill = new THREE.PointLight(0xff44cc, 1.5, 20);
+    const pinkFill = new THREE.PointLight(0xffb7dc, 1.8, 20);
     pinkFill.position.set(5, 3, 3);
     scene.add(pinkFill);
 
@@ -230,7 +249,7 @@ export default function CosmicVoyage() {
     const stars = new THREE.Points(
       starGeometry,
       new THREE.PointsMaterial({
-        color: 0xaaccff,
+        color: 0xb7c8ff,
         size: 0.3,
         sizeAttenuation: true,
         transparent: true,
@@ -268,12 +287,12 @@ export default function CosmicVoyage() {
         void main() {
           float t = clamp((vE + 0.21) / 0.42, 0.0, 1.0);
           vec3 color = mix(
-            vec3(0.0, 0.05, 0.2),
-            vec3(0.0, 0.18, 0.5),
+            vec3(0.86, 0.92, 1.0),
+            vec3(0.82, 0.73, 1.0),
             t
           );
 
-          gl_FragColor = vec4(color, 0.75);
+          gl_FragColor = vec4(color, 0.72);
         }
       `,
       transparent: true,
@@ -291,7 +310,7 @@ export default function CosmicVoyage() {
     scene.add(wave);
 
     const waterRingMaterial = new THREE.MeshBasicMaterial({
-      color: 0x0055ff,
+      color: 0xffb7dc,
       transparent: true,
       opacity: 0.25,
       side: THREE.DoubleSide,
@@ -309,6 +328,7 @@ export default function CosmicVoyage() {
     // These groups preserve all of the original motion and drag behaviour.
     // The GLB scenes are inserted inside them after loading.
     const boatGroup = new THREE.Group();
+    boatGroup.position.z = BOAT_DEPTH;
     scene.add(boatGroup);
 
     const catGroup = new THREE.Group();
@@ -319,7 +339,7 @@ export default function CosmicVoyage() {
     const mixers = [];
 
     const dropZoneMaterial = new THREE.MeshBasicMaterial({
-      color: 0x00f5ff,
+      color: 0xaedbff,
       transparent: true,
       opacity: 0,
       depthWrite: false,
@@ -334,15 +354,15 @@ export default function CosmicVoyage() {
     dropZoneRing.position.y = 0.15;
     boatGroup.add(dropZoneRing);
 
-    const boatGlow = new THREE.PointLight(0x00f5ff, 3, 7);
+    const boatGlow = new THREE.PointLight(0xb8dfff, 2.4, 10);
     boatGlow.position.set(0, 0.45, 0);
     boatGroup.add(boatGlow);
 
-    const catGlow = new THREE.PointLight(0x00ffcc, 3.5, 4);
+    const catGlow = new THREE.PointLight(0xb8dfff, 2.8, 5);
     catGlow.position.set(0, 0.4, 0.5);
     catGroup.add(catGlow);
 
-    const catPinkGlow = new THREE.PointLight(0xff44cc, 1.5, 3);
+    const catPinkGlow = new THREE.PointLight(0xffb7dc, 2.0, 4);
     catPinkGlow.position.set(0, 0.9, 0);
     catGroup.add(catPinkGlow);
 
@@ -362,12 +382,16 @@ export default function CosmicVoyage() {
 
         const boatModel = boatGLTF.scene;
         boatModel.name = 'CosmicBoatModel';
-        improveModelQuality(boatModel, renderer);
+        improveModelQuality(boatModel, renderer, [
+          new THREE.Color(0xaedbff),
+          new THREE.Color(0xcab8ff),
+          new THREE.Color(0xffb7dc),
+        ]);
 
         const boatBox = fitModel(
           boatModel,
-          3.1,
-          -0.48,
+          7.0,
+          -0.65,
           BOAT_MODEL_ROTATION_Y,
           'horizontal',
         );
@@ -403,11 +427,15 @@ export default function CosmicVoyage() {
 
         const catModel = catGLTF.scene;
         catModel.name = 'AlienCatModel';
-        improveModelQuality(catModel, renderer);
+        improveModelQuality(catModel, renderer, [
+          new THREE.Color(0xffb7dc),
+          new THREE.Color(0xcab8ff),
+          new THREE.Color(0xaedbff),
+        ]);
 
         const catBox = fitModel(
           catModel,
-          1.45,
+          2.35,
           CAT_GROUND_Y,
           CAT_MODEL_ROTATION_Y,
           'max',
@@ -443,10 +471,10 @@ export default function CosmicVoyage() {
     const particleVelocities = new Float32Array(particleCount * 3);
 
     const palette = [
-      new THREE.Color(0xffd700),
-      new THREE.Color(0x00ffc8),
-      new THREE.Color(0xff00cc),
-      new THREE.Color(0x00f5ff),
+      new THREE.Color(0xffb7dc),
+      new THREE.Color(0xcab8ff),
+      new THREE.Color(0xaedbff),
+      new THREE.Color(0xf5c8ff),
       new THREE.Color(0xffffff),
     ];
 
@@ -608,7 +636,15 @@ export default function CosmicVoyage() {
         DROP_R
       ) {
         state.landed = true;
-        state.tgt.copy(seatPosition);
+
+        boatGroup.updateMatrixWorld(true);
+        state.tgt.copy(
+          boatGroup.localToWorld(seatPosition.clone()),
+        );
+
+        // Hide the cat while the full-screen loading overlay is shown,
+        // so it cannot peek around or behind the popup.
+        state.catGroup.visible = false;
 
         setLandedUI(true);
         setLoading(true);
@@ -634,6 +670,7 @@ export default function CosmicVoyage() {
 
         window.setTimeout(() => {
           window.clearInterval(progressTimer);
+          state.catGroup.visible = true;
           setLoading(false);
           setLoadingPercent(100);
           setPopupOpen(true);
@@ -753,6 +790,15 @@ export default function CosmicVoyage() {
         delta * followSpeed,
       );
 
+      if (state.landed) {
+        // Convert the seat marker/local seat position into scene space
+        // every frame so the cat follows the farther-away floating boat.
+        boatGroup.updateMatrixWorld(true);
+        state.tgt.copy(
+          boatGroup.localToWorld(seatPosition.clone()),
+        );
+      }
+
       state.cur.x = lerp(
         state.cur.x,
         state.tgt.x,
@@ -771,21 +817,14 @@ export default function CosmicVoyage() {
 
       catGroup.position.copy(state.cur);
 
-      if (!state.isDragging) {
-        catGroup.position.y += state.landed
-          ? Math.sin(elapsed * 0.75) * 0.055
-          : Math.sin(elapsed) * 0.09;
-
-        if (!state.landed) {
-          catGroup.rotation.y += delta * 0.4;
-        }
-      } else {
+      if (!state.isDragging && !state.landed) {
+        catGroup.position.y += Math.sin(elapsed) * 0.09;
+        catGroup.rotation.y += delta * 0.4;
+      } else if (state.isDragging) {
         catGroup.rotation.y += delta * 1.5;
       }
 
       if (state.landed) {
-        catGroup.position.x += boatGroup.position.x;
-        catGroup.position.y += boatGroup.position.y;
         catGroup.rotation.z = boatGroup.rotation.z;
         catGroup.rotation.y = 0;
         catGroup.rotation.x = -0.08;
@@ -872,24 +911,26 @@ export default function CosmicVoyage() {
       </div>
 
       {loading && (
-        <div className="loadingPopup" role="status">
-          <div className="loadingWindowBar">
-            <span />
-            <span>□</span>
-            <span>✕</span>
-          </div>
+        <div className="loadingOverlay">
+          <div className="loadingPopup" role="status">
+            <div className="loadingWindowBar">
+              <span />
+              <span>□</span>
+              <span>✕</span>
+            </div>
 
-          <div className="loadingTitle">LOADING...</div>
+            <div className="loadingTitle">LOADING...</div>
 
-          <div className="loadingBarOuter">
-            <div
-              className="loadingBarInner"
-              style={loadingBarStyle}
-            />
-          </div>
+            <div className="loadingBarOuter">
+              <div
+                className="loadingBarInner"
+                style={loadingBarStyle}
+              />
+            </div>
 
-          <div className="loadingPercent">
-            {loadingPercent}%
+            <div className="loadingPercent">
+              {loadingPercent}%
+            </div>
           </div>
         </div>
       )}
