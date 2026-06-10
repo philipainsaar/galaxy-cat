@@ -120,10 +120,10 @@ function createMixer(root, clips, mixers) {
 }
 
 function createUltraFastWater() {
-  // Smooth high-wave water for mobile:
-  // No GLB, no textures, no extra overlay slabs that can slice through waves.
-  // The mesh has enough vertices for real crests but stays light for phones.
-  const segments = window.innerWidth < 768 ? 40 : 56;
+  // Smooth, high pastel waves for mobile:
+  // one water mesh, no flat overlay planes, no GLB, no texture slicing.
+  // Colors live directly on the wave vertices so pink/lavender/cyan stay visible.
+  const segments = window.innerWidth < 768 ? 44 : 64;
   const geometry = new THREE.PlaneGeometry(
     120,
     120,
@@ -134,38 +134,42 @@ function createUltraFastWater() {
   const waterPositions = geometry.attributes.position;
   const basePositions = waterPositions.array.slice();
 
-  // Soft pastel color variation baked into vertices, so the water keeps
-  // the pink/lavender/cyan candy look without separate flat planes.
-  const colorArray = new Float32Array(waterPositions.count * 3);
-  const cyan = new THREE.Color(0xd8fbff);
-  const pink = new THREE.Color(0xffd6f5);
-  const lavender = new THREE.Color(0xc9b7ff);
+  const waterColors = new Float32Array(waterPositions.count * 3);
+  const cyan = new THREE.Color('#4ffaff');
+  const deepCyan = new THREE.Color('#00d8ff');
+  const pink = new THREE.Color('#ff5eea');
+  const softPink = new THREE.Color('#ffd6f5');
+  const lavender = new THREE.Color('#a98cff');
+  const whiteFoam = new THREE.Color('#ffffff');
   const mixedColor = new THREE.Color();
 
   for (let i = 0; i < waterPositions.count; i += 1) {
     const x = basePositions[i * 3];
     const y = basePositions[i * 3 + 1];
-    const mixA = (Math.sin(x * 0.045) + 1) * 0.5;
-    const mixB = (Math.cos(y * 0.055) + 1) * 0.5;
 
-    mixedColor.copy(cyan).lerp(pink, mixA * 0.25);
-    mixedColor.lerp(lavender, mixB * 0.18);
+    const ribbonA = (Math.sin(x * 0.11 + y * 0.035) + 1) * 0.5;
+    const ribbonB = (Math.cos(y * 0.10 - x * 0.025) + 1) * 0.5;
+    const ribbonC = (Math.sin((x + y) * 0.055) + 1) * 0.5;
 
-    colorArray[i * 3] = mixedColor.r;
-    colorArray[i * 3 + 1] = mixedColor.g;
-    colorArray[i * 3 + 2] = mixedColor.b;
+    mixedColor.copy(cyan).lerp(pink, ribbonA * 0.55);
+    mixedColor.lerp(lavender, ribbonB * 0.45);
+    mixedColor.lerp(softPink, ribbonC * 0.18);
+
+    waterColors[i * 3] = mixedColor.r;
+    waterColors[i * 3 + 1] = mixedColor.g;
+    waterColors[i * 3 + 2] = mixedColor.b;
   }
 
   geometry.setAttribute(
     'color',
-    new THREE.BufferAttribute(colorArray, 3),
+    new THREE.BufferAttribute(waterColors, 3),
   );
   geometry.computeVertexNormals();
 
   const material = new THREE.MeshStandardMaterial({
     color: 0xffffff,
     vertexColors: true,
-    roughness: 0.38,
+    roughness: 0.18,
     metalness: 0,
     transparent: false,
     flatShading: false,
@@ -173,7 +177,7 @@ function createUltraFastWater() {
   });
 
   const water = new THREE.Mesh(geometry, material);
-  water.name = 'SmoothHighPastelWater';
+  water.name = 'SmoothColorfulHighPastelWater';
   water.rotation.x = -Math.PI / 2;
   water.position.set(0, -1.03, -2.2);
   water.receiveShadow = false;
@@ -181,7 +185,7 @@ function createUltraFastWater() {
   water.frustumCulled = true;
 
   const group = new THREE.Group();
-  group.name = 'SmoothHighPastelWaterGroup';
+  group.name = 'SmoothColorfulHighPastelWaterGroup';
   group.add(water);
 
   return {
@@ -189,6 +193,13 @@ function createUltraFastWater() {
     water,
     waterPositions,
     basePositions,
+    waterColors,
+    cyan,
+    deepCyan,
+    pink,
+    softPink,
+    lavender,
+    whiteFoam,
   };
 }
 function disposeObject(root) {
@@ -405,7 +416,7 @@ export default function CosmicVoyage() {
           return;
         }
 
-                const boatModel = boatGLTF.scene;
+        const boatModel = boatGLTF.scene;
         boatModel.name = 'CosmicBoatModel';
         improveModelQuality(boatModel, renderer, [
           new THREE.Color(0xaedbff),
@@ -813,20 +824,60 @@ export default function CosmicVoyage() {
       const delta = Math.min(clock.getDelta(), 0.05);
       elapsed += delta;
 
-      // Smooth high waves. PlaneGeometry lies in local X/Y, so wave height
-      // must be written to local Z because the mesh is rotated flat afterward.
+      // Smooth high waves with animated vertex colors.
+      // PlaneGeometry lies in local X/Y, so wave height is local Z after rotation.
+      const colorAttr = pastelWater.water.geometry.attributes.color;
+
       for (let i = 0; i < pastelWater.waterPositions.count; i += 1) {
         const x = pastelWater.basePositions[i * 3];
         const y = pastelWater.basePositions[i * 3 + 1];
 
-        pastelWater.waterPositions.array[i * 3 + 2] =
-          Math.sin(x * 0.20 + elapsed * 2.8) * 0.46 +
-          Math.cos(y * 0.17 + elapsed * 2.35) * 0.34 +
-          Math.sin((x + y) * 0.10 + elapsed * 3.45) * 0.20 +
-          Math.cos((x - y) * 0.075 + elapsed * 1.95) * 0.16;
+        const longWave =
+          Math.sin(x * 0.18 + elapsed * 2.55) * 0.50;
+        const crossWave =
+          Math.cos(y * 0.16 + elapsed * 2.15) * 0.36;
+        const diagonalWave =
+          Math.sin((x + y) * 0.085 + elapsed * 3.2) * 0.22;
+        const smallTide =
+          Math.cos((x - y) * 0.12 + elapsed * 4.1) * 0.12;
+
+        const height =
+          longWave +
+          crossWave +
+          diagonalWave +
+          smallTide;
+
+        pastelWater.waterPositions.array[i * 3 + 2] = height;
+
+        const crest = THREE.MathUtils.clamp(
+          (height + 0.75) / 1.65,
+          0,
+          1,
+        );
+
+        const ribbonA =
+          (Math.sin(x * 0.105 + elapsed * 0.9) + 1) * 0.5;
+        const ribbonB =
+          (Math.cos(y * 0.115 - elapsed * 0.7) + 1) * 0.5;
+        const ribbonC =
+          (Math.sin((x + y) * 0.06 + elapsed * 1.15) + 1) * 0.5;
+
+        const c = new THREE.Color();
+
+        c.copy(pastelWater.deepCyan)
+          .lerp(pastelWater.cyan, crest * 0.65)
+          .lerp(pastelWater.pink, ribbonA * 0.42)
+          .lerp(pastelWater.lavender, ribbonB * 0.34)
+          .lerp(pastelWater.softPink, ribbonC * 0.20)
+          .lerp(pastelWater.whiteFoam, Math.max(0, crest - 0.72) * 0.75);
+
+        colorAttr.array[i * 3] = c.r;
+        colorAttr.array[i * 3 + 1] = c.g;
+        colorAttr.array[i * 3 + 2] = c.b;
       }
 
       pastelWater.waterPositions.needsUpdate = true;
+      colorAttr.needsUpdate = true;
       pastelWater.water.geometry.computeVertexNormals();
       pastelWater.water.rotation.z = Math.sin(elapsed * 0.8) * 0.006;
 
