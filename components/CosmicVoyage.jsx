@@ -120,34 +120,35 @@ function createMixer(root, clips, mixers) {
 }
 
 function createUltraFastWater() {
-  // Mobile-first water: 2 triangles, no GLB, no textures, no animation tracks.
-  // The faceted triangle strip sits large under the boat and gets animated by
-  // moving the whole mesh, which is dramatically cheaper than vertex animation.
-  const geometry = new THREE.PlaneGeometry(120, 120, 1, 1);
+  // Mobile-friendly real wave mesh: still tiny, but enough vertices to make
+  // visible sharp crests. No GLB, no textures, no animation tracks.
+  const geometry = new THREE.PlaneGeometry(120, 120, 32, 32);
+  const waterPositions = geometry.attributes.position;
+  const basePositions = waterPositions.array.slice();
 
   const material = new THREE.MeshStandardMaterial({
-    color: 0xb8f5ff,
-    roughness: 0.32,
+    color: 0xd8fbff,
+    roughness: 0.42,
     metalness: 0,
     transparent: false,
+    flatShading: true,
     side: THREE.DoubleSide,
   });
 
   const water = new THREE.Mesh(geometry, material);
-  water.name = 'UltraFastPastelWater';
+  water.name = 'SharpPastelWaveWater';
   water.rotation.x = -Math.PI / 2;
-  water.position.set(0, -0.95, -2.2);
+  water.position.set(0, -0.98, -2.2);
   water.receiveShadow = false;
   water.castShadow = false;
   water.frustumCulled = true;
 
-  // Add two very cheap pastel highlight slabs so it still feels like the
-  // previous bright candy-water style without loading an animated GLB.
+  // Pastel reflection layers. These stay cheap: each layer is just 2 triangles.
   const highlightGeometry = new THREE.PlaneGeometry(120, 120, 1, 1);
   const highlightMaterial = new THREE.MeshBasicMaterial({
     color: 0xffd6f5,
     transparent: true,
-    opacity: 0.18,
+    opacity: 0.28,
     depthWrite: false,
     side: THREE.DoubleSide,
   });
@@ -155,7 +156,7 @@ function createUltraFastWater() {
   const highlight = new THREE.Mesh(highlightGeometry, highlightMaterial);
   highlight.name = 'PastelWaterPinkHighlight';
   highlight.rotation.x = -Math.PI / 2;
-  highlight.position.set(0, -0.93, -2.2);
+  highlight.position.set(0, -0.88, -2.2);
   highlight.receiveShadow = false;
   highlight.castShadow = false;
 
@@ -163,7 +164,7 @@ function createUltraFastWater() {
   const lavenderMaterial = new THREE.MeshBasicMaterial({
     color: 0xc9b7ff,
     transparent: true,
-    opacity: 0.12,
+    opacity: 0.18,
     depthWrite: false,
     side: THREE.DoubleSide,
   });
@@ -171,14 +172,23 @@ function createUltraFastWater() {
   const lavender = new THREE.Mesh(lavenderGeometry, lavenderMaterial);
   lavender.name = 'PastelWaterLavenderHighlight';
   lavender.rotation.x = -Math.PI / 2;
-  lavender.position.set(0, -0.92, -2.2);
+  lavender.position.set(0, -0.86, -2.2);
   lavender.receiveShadow = false;
   lavender.castShadow = false;
 
   const group = new THREE.Group();
-  group.name = 'UltraFastPastelWaterGroup';
+  group.name = 'SharpPastelWaveWaterGroup';
   group.add(water, highlight, lavender);
-  return { group, water, highlight, lavender };
+
+  return {
+    group,
+    water,
+    highlight,
+    lavender,
+    waterPositions,
+    basePositions,
+    normalFrame: 0,
+  };
 }
 
 function disposeObject(root) {
@@ -395,7 +405,7 @@ export default function CosmicVoyage() {
           return;
         }
 
-                const boatModel = boatGLTF.scene;
+        const boatModel = boatGLTF.scene;
         boatModel.name = 'CosmicBoatModel';
         improveModelQuality(boatModel, renderer, [
           new THREE.Color(0xaedbff),
@@ -803,20 +813,41 @@ export default function CosmicVoyage() {
       const delta = Math.min(clock.getDelta(), 0.05);
       elapsed += delta;
 
-      // Super-cheap animated water illusion: the planes slide, tilt and bob.
-      // Faster than animated GLB water because only object transforms change.
-      pastelWater.group.position.y = Math.sin(elapsed * 2.7) * 0.045;
-      pastelWater.water.rotation.z = Math.sin(elapsed * 2.1) * 0.018;
-      pastelWater.highlight.position.x = Math.sin(elapsed * 1.9) * 1.4;
-      pastelWater.highlight.position.z = -2.2 + Math.cos(elapsed * 2.4) * 1.1;
-      pastelWater.highlight.rotation.z = Math.sin(elapsed * 2.8) * 0.025;
-      pastelWater.lavender.position.x = Math.cos(elapsed * 2.2) * 1.1;
-      pastelWater.lavender.position.z = -2.2 + Math.sin(elapsed * 1.7) * 1.3;
-      pastelWater.lavender.rotation.z = Math.cos(elapsed * 2.5) * 0.02;
+      // Real visible waves. The plane is rotated, so local Z becomes
+      // vertical height in world space. Updating 1089 vertices is lightweight
+      // compared with the old animated water GLB.
+      for (let i = 0; i < pastelWater.waterPositions.count; i += 1) {
+        const x = pastelWater.basePositions[i * 3];
+        const y = pastelWater.basePositions[i * 3 + 1];
+
+        pastelWater.waterPositions.array[i * 3 + 2] =
+          Math.sin(x * 0.22 + elapsed * 3.2) * 0.55 +
+          Math.cos(y * 0.18 + elapsed * 2.6) * 0.35 +
+          Math.sin((x + y) * 0.09 + elapsed * 4.1) * 0.15;
+      }
+
+      pastelWater.waterPositions.needsUpdate = true;
+      pastelWater.normalFrame += 1;
+
+      // Refresh normals every other frame for crisper lighting without
+      // wasting mobile GPU/CPU time.
+      if (pastelWater.normalFrame % 2 === 0) {
+        pastelWater.water.geometry.computeVertexNormals();
+      }
+
+      pastelWater.highlight.position.x = Math.sin(elapsed * 2.3) * 1.8;
+      pastelWater.highlight.position.z = -2.2 + Math.cos(elapsed * 2.9) * 1.4;
+      pastelWater.highlight.rotation.z = Math.sin(elapsed * 3.0) * 0.035;
+      pastelWater.lavender.position.x = Math.cos(elapsed * 2.5) * 1.4;
+      pastelWater.lavender.position.z = -2.2 + Math.sin(elapsed * 2.1) * 1.6;
+      pastelWater.lavender.rotation.z = Math.cos(elapsed * 2.8) * 0.03;
 
       boatGroup.position.y =
-        BOAT_WATERLINE_Y + Math.sin(elapsed * 1.8) * 0.09;
-      boatGroup.rotation.z = Math.sin(elapsed * 1.4) * 0.035;
+        BOAT_WATERLINE_Y +
+        Math.sin(elapsed * 2.6) * 0.18 +
+        Math.cos(elapsed * 1.7) * 0.08;
+      boatGroup.rotation.z = Math.sin(elapsed * 2.2) * 0.06;
+      boatGroup.rotation.x = Math.cos(elapsed * 1.9) * 0.03;
 
       mixers.forEach((mixer) => mixer.update(delta));
 
