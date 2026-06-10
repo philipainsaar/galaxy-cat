@@ -1028,9 +1028,12 @@ export default function CosmicVoyage() {
       <canvas ref={canvasRef} className="canvas" />
 
       <div className="ui">
-        <div className="title">
-          <h1>✦ COSMIC VOYAGE ✦</h1>
-          <p>a journey through the infinite</p>
+        <div className="logoContainer">
+            <img
+                src="/images/almostmadeinjapan.png"
+                    alt="Almost Made in Japan"
+                        className="logoImage"
+                          />
         </div>
 
 
