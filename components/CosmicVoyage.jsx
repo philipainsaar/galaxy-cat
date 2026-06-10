@@ -1039,7 +1039,7 @@ export default function CosmicVoyage() {
 
         {!landedUI && (
           <div className="hint">
-            ☽ drag the alien cat into the cosmic boat ☾
+           ↑ drag the alien cat to the boat ↑
           </div>
         )}
       </div>
