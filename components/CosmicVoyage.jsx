@@ -6,7 +6,6 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 
 const CAT_MODEL_URL = '/models/alien-cat.glb';
 const BOAT_MODEL_URL = '/models/cosmic-boat.glb';
-const WATER_MODEL_URL = '/models/pastel-looping-animated-water.glb';
 
 // Change either value to Math.PI if a model faces backward after export.
 const CAT_MODEL_ROTATION_Y = 0;
@@ -27,8 +26,8 @@ function improveModelQuality(root, renderer, pastelPalette) {
   root.traverse((object) => {
     if (!object.isMesh) return;
 
-    object.castShadow = true;
-    object.receiveShadow = true;
+    object.castShadow = false;
+    object.receiveShadow = false;
     object.frustumCulled = true;
 
     if (object.geometry && !object.geometry.attributes.normal) {
@@ -120,6 +119,68 @@ function createMixer(root, clips, mixers) {
   mixers.push(mixer);
 }
 
+function createUltraFastWater() {
+  // Mobile-first water: 2 triangles, no GLB, no textures, no animation tracks.
+  // The faceted triangle strip sits large under the boat and gets animated by
+  // moving the whole mesh, which is dramatically cheaper than vertex animation.
+  const geometry = new THREE.PlaneGeometry(120, 120, 1, 1);
+
+  const material = new THREE.MeshStandardMaterial({
+    color: 0xb8f5ff,
+    roughness: 0.32,
+    metalness: 0,
+    transparent: false,
+    side: THREE.DoubleSide,
+  });
+
+  const water = new THREE.Mesh(geometry, material);
+  water.name = 'UltraFastPastelWater';
+  water.rotation.x = -Math.PI / 2;
+  water.position.set(0, -0.95, -2.2);
+  water.receiveShadow = false;
+  water.castShadow = false;
+  water.frustumCulled = true;
+
+  // Add two very cheap pastel highlight slabs so it still feels like the
+  // previous bright candy-water style without loading an animated GLB.
+  const highlightGeometry = new THREE.PlaneGeometry(120, 120, 1, 1);
+  const highlightMaterial = new THREE.MeshBasicMaterial({
+    color: 0xffd6f5,
+    transparent: true,
+    opacity: 0.18,
+    depthWrite: false,
+    side: THREE.DoubleSide,
+  });
+
+  const highlight = new THREE.Mesh(highlightGeometry, highlightMaterial);
+  highlight.name = 'PastelWaterPinkHighlight';
+  highlight.rotation.x = -Math.PI / 2;
+  highlight.position.set(0, -0.93, -2.2);
+  highlight.receiveShadow = false;
+  highlight.castShadow = false;
+
+  const lavenderGeometry = new THREE.PlaneGeometry(120, 120, 1, 1);
+  const lavenderMaterial = new THREE.MeshBasicMaterial({
+    color: 0xc9b7ff,
+    transparent: true,
+    opacity: 0.12,
+    depthWrite: false,
+    side: THREE.DoubleSide,
+  });
+
+  const lavender = new THREE.Mesh(lavenderGeometry, lavenderMaterial);
+  lavender.name = 'PastelWaterLavenderHighlight';
+  lavender.rotation.x = -Math.PI / 2;
+  lavender.position.set(0, -0.92, -2.2);
+  lavender.receiveShadow = false;
+  lavender.castShadow = false;
+
+  const group = new THREE.Group();
+  group.name = 'UltraFastPastelWaterGroup';
+  group.add(water, highlight, lavender);
+  return { group, water, highlight, lavender };
+}
+
 function disposeObject(root) {
   root.traverse((object) => {
     if (object.geometry) object.geometry.dispose();
@@ -184,19 +245,18 @@ export default function CosmicVoyage() {
 
     const renderer = new THREE.WebGLRenderer({
       canvas,
-      antialias: true,
+      antialias: false,
       alpha: false,
       powerPreference: 'high-performance',
-      precision: 'highp',
+      precision: 'mediump',
     });
 
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2.5));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
     renderer.setSize(width, height);
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.0;
-    renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.shadowMap.enabled = false;
 
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0xffffff);
@@ -209,10 +269,7 @@ export default function CosmicVoyage() {
 
     const keyLight = new THREE.DirectionalLight(0xffffff, 3);
     keyLight.position.set(4, 8, 7);
-    keyLight.castShadow = true;
-    keyLight.shadow.mapSize.set(2048, 2048);
-    keyLight.shadow.camera.near = 0.1;
-    keyLight.shadow.camera.far = 40;
+    keyLight.castShadow = false;
     scene.add(keyLight);
 
     const blueFill = new THREE.PointLight(0xaedbff, 2.2, 30);
@@ -224,7 +281,7 @@ export default function CosmicVoyage() {
     scene.add(pinkFill);
 
     // Star field
-    const starCount = 2000;
+    const starCount = width < 768 ? 450 : 900;
     const starPositions = new Float32Array(starCount * 3);
 
     for (let i = 0; i < starCount; i += 1) {
@@ -261,12 +318,10 @@ export default function CosmicVoyage() {
     );
     scene.add(stars);
 
-    // Animated pastel water loaded from the supplied GLB.
-    // The GLB contains a seamless four-second morph-target animation.
-    const waterGroup = new THREE.Group();
-    waterGroup.name = 'AnimatedWaterGroup';
-    waterGroup.position.set(0, -0.78, -1.5);
-    scene.add(waterGroup);
+    // Ultra-fast pastel water: no GLB, no textures, no vertex animation.
+    // This is the mobile performance version for Galaxy Cat.
+    const pastelWater = createUltraFastWater();
+    scene.add(pastelWater.group);
 
     // These groups preserve all of the original motion and drag behaviour.
     // The GLB scenes are inserted inside them after loading.
@@ -326,62 +381,21 @@ export default function CosmicVoyage() {
     catPinkGlow.position.set(0, 0.9, 0);
     catGroup.add(catPinkGlow);
 
-    // Load the boat, cat and animated water GLB models.
+    // Load the boat and cat GLB models. Water is generated as cheap geometry above.
     const loader = new GLTFLoader();
 
     Promise.all([
       loader.loadAsync(BOAT_MODEL_URL),
       loader.loadAsync(CAT_MODEL_URL),
-      loader.loadAsync(WATER_MODEL_URL),
     ])
-      .then(([boatGLTF, catGLTF, waterGLTF]) => {
+      .then(([boatGLTF, catGLTF]) => {
         if (disposed) {
           disposeObject(boatGLTF.scene);
           disposeObject(catGLTF.scene);
-          disposeObject(waterGLTF.scene);
           return;
         }
 
-        const waterModel = waterGLTF.scene;
-        waterModel.name = 'PastelLoopingAnimatedWater';
-        improveModelQuality(waterModel, renderer);
-
-        // The source water is 12 × 12 units. Widen it beneath the distant,
-        // oversized boat while keeping the vertical wave height controlled.
-        waterModel.scale.set(2.35, 0.58, 3.15);
-        waterModel.updateMatrixWorld(true);
-
-        const waterBox = new THREE.Box3().setFromObject(waterModel);
-        const waterCenter = waterBox.getCenter(new THREE.Vector3());
-
-        waterModel.position.x -= waterCenter.x;
-        waterModel.position.y -= waterCenter.y;
-        waterModel.position.z -= waterCenter.z;
-
-        waterModel.traverse((object) => {
-          if (!object.isMesh) return;
-
-          object.castShadow = false;
-          object.receiveShadow = true;
-          object.renderOrder = -1;
-
-          const materials = Array.isArray(object.material)
-            ? object.material
-            : [object.material];
-
-          materials.forEach((material) => {
-            if (!material) return;
-            material.side = THREE.DoubleSide;
-            material.needsUpdate = true;
-          });
-        });
-
-        waterGroup.add(waterModel);
-
-        // Plays the embedded seamless morph-target water loop.
-        createMixer(waterModel, waterGLTF.animations, mixers);
-
-        const boatModel = boatGLTF.scene;
+                const boatModel = boatGLTF.scene;
         boatModel.name = 'CosmicBoatModel';
         improveModelQuality(boatModel, renderer, [
           new THREE.Color(0xaedbff),
@@ -460,7 +474,7 @@ export default function CosmicVoyage() {
 
         if (!disposed) {
           setModelError(
-            'Could not load alien-cat.glb, cosmic-boat.glb, or pastel-looping-animated-water.glb from /public/models',
+            'Could not load alien-cat.glb or cosmic-boat.glb from /public/models',
           );
         }
       });
@@ -763,7 +777,7 @@ export default function CosmicVoyage() {
       height = window.innerHeight;
 
       renderer.setPixelRatio(
-        Math.min(window.devicePixelRatio || 1, 2.5),
+        Math.min(window.devicePixelRatio || 1, 1.5),
       );
       renderer.setSize(width, height);
 
@@ -789,9 +803,20 @@ export default function CosmicVoyage() {
       const delta = Math.min(clock.getDelta(), 0.05);
       elapsed += delta;
 
+      // Super-cheap animated water illusion: the planes slide, tilt and bob.
+      // Faster than animated GLB water because only object transforms change.
+      pastelWater.group.position.y = Math.sin(elapsed * 2.7) * 0.045;
+      pastelWater.water.rotation.z = Math.sin(elapsed * 2.1) * 0.018;
+      pastelWater.highlight.position.x = Math.sin(elapsed * 1.9) * 1.4;
+      pastelWater.highlight.position.z = -2.2 + Math.cos(elapsed * 2.4) * 1.1;
+      pastelWater.highlight.rotation.z = Math.sin(elapsed * 2.8) * 0.025;
+      pastelWater.lavender.position.x = Math.cos(elapsed * 2.2) * 1.1;
+      pastelWater.lavender.position.z = -2.2 + Math.sin(elapsed * 1.7) * 1.3;
+      pastelWater.lavender.rotation.z = Math.cos(elapsed * 2.5) * 0.02;
+
       boatGroup.position.y =
-        BOAT_WATERLINE_Y + Math.sin(elapsed * 0.75) * 0.12;
-      boatGroup.rotation.z = Math.sin(elapsed * 0.55) * 0.04;
+        BOAT_WATERLINE_Y + Math.sin(elapsed * 1.8) * 0.09;
+      boatGroup.rotation.z = Math.sin(elapsed * 1.4) * 0.035;
 
       mixers.forEach((mixer) => mixer.update(delta));
 
@@ -1007,7 +1032,7 @@ export default function CosmicVoyage() {
             {modelError}
             <br />
             <br />
-            Confirm both files exist in:
+            Confirm both GLB files exist in:
             <br />
             public/models/
           </div>
