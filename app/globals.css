@@ -81,7 +81,7 @@ button {
 }
 
 .logoImage {
-  width: min(240px, 52vw);
+  width: min(82px, 52vw);
   height: auto;
   display: block;
   filter:
