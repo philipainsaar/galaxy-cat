@@ -938,10 +938,16 @@ export default function CosmicVoyage() {
       catGroup.position.copy(state.cur);
 
       if (!state.isDragging && !state.landed) {
-        catGroup.position.y += Math.sin(elapsed) * 0.09;
-        catGroup.rotation.y += delta * 0.4;
-      } else if (state.isDragging) {
-        catGroup.rotation.y += delta * 1.5;
+  const jump = Math.abs(Math.sin(elapsed * 3.2));
+
+  catGroup.position.y += jump * 0.38;
+  catGroup.position.z += Math.sin(elapsed * 1.6) * 0.08;
+
+  catGroup.rotation.y = 0;
+  catGroup.rotation.z = Math.sin(elapsed * 6.4) * 0.08;
+  catGroup.rotation.x = Math.sin(elapsed * 3.2) * -0.08;
+} else if (state.isDragging) {
+  catGroup.rotation.y = 0;
       }
 
       if (state.landed) {
