@@ -152,20 +152,70 @@ button {
                   background: transparent;
                     pointer-events: none;
                     }
-
 .loadingPopup {
-      position: fixed !important;
-        left: 50% !important;
-          top: 50% !important;
-            transform: translate(-50%, -50%) !important;
-  z-index: 55;
-  background: #e8ddff;
-  border: 3px solid var(--pink-strong);
-  padding: 0 1rem 1.2rem;
-  box-shadow:
-    10px 12px 0 rgba(174, 219, 255, 0.75),
-    0 0 32px rgba(255, 143, 201, 0.34);
-  image-rendering: pixelated;
+position: relative;
+
+width: min(420px, 88vw);
+
+background: linear-gradient(
+135deg,
+rgba(255, 183, 220, 0.15),
+rgba(201, 183, 255, 0.15),
+rgba(174, 219, 255, 0.15)
+);
+
+backdrop-filter: blur(20px);
+-webkit-backdrop-filter: blur(20px);
+
+border: 1px solid rgba(255, 255, 255, 0.35);
+
+border-radius: 24px;
+
+padding: 20px;
+
+box-shadow:
+0 0 20px rgba(255, 183, 220, 0.30),
+0 0 40px rgba(201, 183, 255, 0.20),
+0 0 60px rgba(174, 219, 255, 0.15);
+
+overflow: hidden;
+}
+
+.loadingPopup::before {
+content: "";
+
+position: absolute;
+inset: 0;
+
+background: linear-gradient(
+180deg,
+rgba(255,255,255,0.18),
+rgba(255,255,255,0.02)
+);
+
+pointer-events: none;
+}
+
+.loadingPopup::after {
+content: "";
+
+position: absolute;
+top: 0;
+left: -150%;
+
+width: 120%;
+height: 100%;
+
+background: linear-gradient(
+90deg,
+transparent,
+rgba(255,255,255,0.12),
+transparent
+);
+
+transform: skewX(-20deg);
+
+pointer-events: none;
 }
 
 .loadingWindowBar {
