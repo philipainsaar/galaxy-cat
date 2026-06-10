@@ -16,6 +16,7 @@ const START = new THREE.Vector3(1.62, -0.50, 5.0);
 const DEFAULT_SEAT = new THREE.Vector3(2.5, 1.0, 2.1);
 const DRAG_Z = 5.0;
 const BOAT_DEPTH = -8.2;
+const BOAT_WATERLINE_Y = -0.28;
 const CAT_GROUND_Y = -0.5;
 
 function improveModelQuality(root, renderer, pastelPalette) {
@@ -264,7 +265,7 @@ export default function CosmicVoyage() {
     // The GLB contains a seamless four-second morph-target animation.
     const waterGroup = new THREE.Group();
     waterGroup.name = 'AnimatedWaterGroup';
-    waterGroup.position.set(0, -0.82, BOAT_DEPTH);
+    waterGroup.position.set(0, -0.78, -1.5);
     scene.add(waterGroup);
 
     // These groups preserve all of the original motion and drag behaviour.
@@ -347,7 +348,7 @@ export default function CosmicVoyage() {
 
         // The source water is 12 × 12 units. Widen it beneath the distant,
         // oversized boat while keeping the vertical wave height controlled.
-        waterModel.scale.set(1.55, 0.65, 1.55);
+        waterModel.scale.set(2.35, 0.58, 3.15);
         waterModel.updateMatrixWorld(true);
 
         const waterBox = new THREE.Box3().setFromObject(waterModel);
@@ -788,7 +789,8 @@ export default function CosmicVoyage() {
       const delta = Math.min(clock.getDelta(), 0.05);
       elapsed += delta;
 
-      boatGroup.position.y = Math.sin(elapsed * 0.75) * 0.2;
+      boatGroup.position.y =
+        BOAT_WATERLINE_Y + Math.sin(elapsed * 0.75) * 0.12;
       boatGroup.rotation.z = Math.sin(elapsed * 0.55) * 0.04;
 
       mixers.forEach((mixer) => mixer.update(delta));
