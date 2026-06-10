@@ -71,6 +71,24 @@ button {
   z-index: 10;
 }
 
+.logoContainer {
+  position: fixed;
+  top: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  pointer-events: none;
+}
+
+.logoImage {
+  width: min(240px, 52vw);
+  height: auto;
+  display: block;
+  filter:
+    drop-shadow(0 0 12px rgba(255,183,220,.45))
+    drop-shadow(0 0 24px rgba(201,183,255,.35));
+}
+
 .title {
   position: absolute;
   top: 3%;
