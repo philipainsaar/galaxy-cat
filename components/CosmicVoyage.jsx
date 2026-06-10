@@ -120,77 +120,77 @@ function createMixer(root, clips, mixers) {
 }
 
 function createUltraFastWater() {
-  // Mobile-friendly real wave mesh: still tiny, but enough vertices to make
-  // visible sharp crests. No GLB, no textures, no animation tracks.
-  const geometry = new THREE.PlaneGeometry(120, 120, 32, 32);
+  // Smooth high-wave water for mobile:
+  // No GLB, no textures, no extra overlay slabs that can slice through waves.
+  // The mesh has enough vertices for real crests but stays light for phones.
+  const segments = window.innerWidth < 768 ? 40 : 56;
+  const geometry = new THREE.PlaneGeometry(
+    120,
+    120,
+    segments,
+    segments,
+  );
+
   const waterPositions = geometry.attributes.position;
   const basePositions = waterPositions.array.slice();
 
+  // Soft pastel color variation baked into vertices, so the water keeps
+  // the pink/lavender/cyan candy look without separate flat planes.
+  const colorArray = new Float32Array(waterPositions.count * 3);
+  const cyan = new THREE.Color(0xd8fbff);
+  const pink = new THREE.Color(0xffd6f5);
+  const lavender = new THREE.Color(0xc9b7ff);
+  const mixedColor = new THREE.Color();
+
+  for (let i = 0; i < waterPositions.count; i += 1) {
+    const x = basePositions[i * 3];
+    const y = basePositions[i * 3 + 1];
+    const mixA = (Math.sin(x * 0.045) + 1) * 0.5;
+    const mixB = (Math.cos(y * 0.055) + 1) * 0.5;
+
+    mixedColor.copy(cyan).lerp(pink, mixA * 0.25);
+    mixedColor.lerp(lavender, mixB * 0.18);
+
+    colorArray[i * 3] = mixedColor.r;
+    colorArray[i * 3 + 1] = mixedColor.g;
+    colorArray[i * 3 + 2] = mixedColor.b;
+  }
+
+  geometry.setAttribute(
+    'color',
+    new THREE.BufferAttribute(colorArray, 3),
+  );
+  geometry.computeVertexNormals();
+
   const material = new THREE.MeshStandardMaterial({
-    color: 0xd8fbff,
-    roughness: 0.42,
+    color: 0xffffff,
+    vertexColors: true,
+    roughness: 0.38,
     metalness: 0,
     transparent: false,
-    flatShading: true,
+    flatShading: false,
     side: THREE.DoubleSide,
   });
 
   const water = new THREE.Mesh(geometry, material);
-  water.name = 'SharpPastelWaveWater';
+  water.name = 'SmoothHighPastelWater';
   water.rotation.x = -Math.PI / 2;
-  water.position.set(0, -0.98, -2.2);
+  water.position.set(0, -1.03, -2.2);
   water.receiveShadow = false;
   water.castShadow = false;
   water.frustumCulled = true;
 
-  // Pastel reflection layers. These stay cheap: each layer is just 2 triangles.
-  const highlightGeometry = new THREE.PlaneGeometry(120, 120, 1, 1);
-  const highlightMaterial = new THREE.MeshBasicMaterial({
-    color: 0xffd6f5,
-    transparent: true,
-    opacity: 0.28,
-    depthWrite: false,
-    side: THREE.DoubleSide,
-  });
-
-  const highlight = new THREE.Mesh(highlightGeometry, highlightMaterial);
-  highlight.name = 'PastelWaterPinkHighlight';
-  highlight.rotation.x = -Math.PI / 2;
-  highlight.position.set(0, -0.88, -2.2);
-  highlight.receiveShadow = false;
-  highlight.castShadow = false;
-
-  const lavenderGeometry = new THREE.PlaneGeometry(120, 120, 1, 1);
-  const lavenderMaterial = new THREE.MeshBasicMaterial({
-    color: 0xc9b7ff,
-    transparent: true,
-    opacity: 0.18,
-    depthWrite: false,
-    side: THREE.DoubleSide,
-  });
-
-  const lavender = new THREE.Mesh(lavenderGeometry, lavenderMaterial);
-  lavender.name = 'PastelWaterLavenderHighlight';
-  lavender.rotation.x = -Math.PI / 2;
-  lavender.position.set(0, -0.86, -2.2);
-  lavender.receiveShadow = false;
-  lavender.castShadow = false;
-
   const group = new THREE.Group();
-  group.name = 'SharpPastelWaveWaterGroup';
-  group.add(water, highlight, lavender);
+  group.name = 'SmoothHighPastelWaterGroup';
+  group.add(water);
 
   return {
     group,
     water,
-    highlight,
-    lavender,
     waterPositions,
     basePositions,
-    normalFrame: 0,
   };
 }
-
 function disposeObject(root) {
   root.traverse((object) => {
     if (object.geometry) object.geometry.dispose();
@@ -328,8 +328,8 @@ export default function CosmicVoyage() {
     );
     scene.add(stars);
 
-    // Ultra-fast pastel water: no GLB, no textures, no vertex animation.
-    // This is the mobile performance version for Galaxy Cat.
+    // Smooth pastel water: no GLB and no textures, but enough geometry for real waves.
+    // This avoids the hard texture cuts caused by separate flat highlight planes.
     const pastelWater = createUltraFastWater();
     scene.add(pastelWater.group);
 
@@ -405,7 +405,7 @@ export default function CosmicVoyage() {
           return;
         }
 
-        const boatModel = boatGLTF.scene;
+                const boatModel = boatGLTF.scene;
         boatModel.name = 'CosmicBoatModel';
         improveModelQuality(boatModel, renderer, [
           new THREE.Color(0xaedbff),
@@ -813,41 +813,29 @@ export default function CosmicVoyage() {
       const delta = Math.min(clock.getDelta(), 0.05);
       elapsed += delta;
 
-      // Real visible waves. The plane is rotated, so local Z becomes
-      // vertical height in world space. Updating 1089 vertices is lightweight
-      // compared with the old animated water GLB.
+      // Smooth high waves. PlaneGeometry lies in local X/Y, so wave height
+      // must be written to local Z because the mesh is rotated flat afterward.
       for (let i = 0; i < pastelWater.waterPositions.count; i += 1) {
         const x = pastelWater.basePositions[i * 3];
         const y = pastelWater.basePositions[i * 3 + 1];
 
         pastelWater.waterPositions.array[i * 3 + 2] =
-          Math.sin(x * 0.22 + elapsed * 3.2) * 0.55 +
-          Math.cos(y * 0.18 + elapsed * 2.6) * 0.35 +
-          Math.sin((x + y) * 0.09 + elapsed * 4.1) * 0.15;
+          Math.sin(x * 0.20 + elapsed * 2.8) * 0.46 +
+          Math.cos(y * 0.17 + elapsed * 2.35) * 0.34 +
+          Math.sin((x + y) * 0.10 + elapsed * 3.45) * 0.20 +
+          Math.cos((x - y) * 0.075 + elapsed * 1.95) * 0.16;
       }
 
       pastelWater.waterPositions.needsUpdate = true;
-      pastelWater.normalFrame += 1;
-
-      // Refresh normals every other frame for crisper lighting without
-      // wasting mobile GPU/CPU time.
-      if (pastelWater.normalFrame % 2 === 0) {
-        pastelWater.water.geometry.computeVertexNormals();
-      }
-
-      pastelWater.highlight.position.x = Math.sin(elapsed * 2.3) * 1.8;
-      pastelWater.highlight.position.z = -2.2 + Math.cos(elapsed * 2.9) * 1.4;
-      pastelWater.highlight.rotation.z = Math.sin(elapsed * 3.0) * 0.035;
-      pastelWater.lavender.position.x = Math.cos(elapsed * 2.5) * 1.4;
-      pastelWater.lavender.position.z = -2.2 + Math.sin(elapsed * 2.1) * 1.6;
-      pastelWater.lavender.rotation.z = Math.cos(elapsed * 2.8) * 0.03;
+      pastelWater.water.geometry.computeVertexNormals();
+      pastelWater.water.rotation.z = Math.sin(elapsed * 0.8) * 0.006;
 
       boatGroup.position.y =
         BOAT_WATERLINE_Y +
-        Math.sin(elapsed * 2.6) * 0.18 +
-        Math.cos(elapsed * 1.7) * 0.08;
-      boatGroup.rotation.z = Math.sin(elapsed * 2.2) * 0.06;
-      boatGroup.rotation.x = Math.cos(elapsed * 1.9) * 0.03;
+        Math.sin(elapsed * 2.45) * 0.17 +
+        Math.cos(elapsed * 1.65) * 0.08;
+      boatGroup.rotation.z = Math.sin(elapsed * 2.1) * 0.055;
+      boatGroup.rotation.x = Math.cos(elapsed * 1.8) * 0.028;
 
       mixers.forEach((mixer) => mixer.update(delta));
 
