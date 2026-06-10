@@ -6,6 +6,7 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 
 const CAT_MODEL_URL = '/models/alien-cat.glb';
 const BOAT_MODEL_URL = '/models/cosmic-boat.glb';
+const WATER_MODEL_URL = '/models/pastel-looping-animated-water.glb';
 
 // Change either value to Math.PI if a model faces backward after export.
 const CAT_MODEL_ROTATION_Y = 0;
@@ -259,71 +260,12 @@ export default function CosmicVoyage() {
     );
     scene.add(stars);
 
-    // Animated cosmic water
-    const waveMaterial = new THREE.ShaderMaterial({
-      uniforms: { uT: { value: 0 } },
-      vertexShader: `
-        uniform float uT;
-        varying float vE;
-
-        void main() {
-          vec3 p = position;
-          float e =
-            sin(p.x * 1.4 + uT * 0.8) * 0.12 +
-            sin(p.z * 1.1 + uT * 0.6) * 0.09;
-
-          p.y += e;
-          vE = e;
-
-          gl_Position =
-            projectionMatrix *
-            modelViewMatrix *
-            vec4(p, 1.0);
-        }
-      `,
-      fragmentShader: `
-        varying float vE;
-
-        void main() {
-          float t = clamp((vE + 0.21) / 0.42, 0.0, 1.0);
-          vec3 color = mix(
-            vec3(0.86, 0.92, 1.0),
-            vec3(0.82, 0.73, 1.0),
-            t
-          );
-
-          gl_FragColor = vec4(color, 0.72);
-        }
-      `,
-      transparent: true,
-      depthWrite: false,
-      side: THREE.DoubleSide,
-    });
-
-    const wave = new THREE.Mesh(
-      new THREE.PlaneGeometry(20, 20, 64, 64),
-      waveMaterial,
-    );
-    wave.rotation.x = -Math.PI / 2;
-    wave.position.y = -0.75;
-    wave.receiveShadow = true;
-    scene.add(wave);
-
-    const waterRingMaterial = new THREE.MeshBasicMaterial({
-      color: 0xffb7dc,
-      transparent: true,
-      opacity: 0.25,
-      side: THREE.DoubleSide,
-      depthWrite: false,
-    });
-
-    const waterRing = new THREE.Mesh(
-      new THREE.RingGeometry(3.4, 3.55, 128),
-      waterRingMaterial,
-    );
-    waterRing.rotation.x = -Math.PI / 2;
-    waterRing.position.y = -0.72;
-    scene.add(waterRing);
+    // Animated pastel water loaded from the supplied GLB.
+    // The GLB contains a seamless four-second morph-target animation.
+    const waterGroup = new THREE.Group();
+    waterGroup.name = 'AnimatedWaterGroup';
+    waterGroup.position.set(0, -0.82, BOAT_DEPTH);
+    scene.add(waterGroup);
 
     // These groups preserve all of the original motion and drag behaviour.
     // The GLB scenes are inserted inside them after loading.
@@ -383,19 +325,60 @@ export default function CosmicVoyage() {
     catPinkGlow.position.set(0, 0.9, 0);
     catGroup.add(catPinkGlow);
 
-    // Load both GLB models.
+    // Load the boat, cat and animated water GLB models.
     const loader = new GLTFLoader();
 
     Promise.all([
       loader.loadAsync(BOAT_MODEL_URL),
       loader.loadAsync(CAT_MODEL_URL),
+      loader.loadAsync(WATER_MODEL_URL),
     ])
-      .then(([boatGLTF, catGLTF]) => {
+      .then(([boatGLTF, catGLTF, waterGLTF]) => {
         if (disposed) {
           disposeObject(boatGLTF.scene);
           disposeObject(catGLTF.scene);
+          disposeObject(waterGLTF.scene);
           return;
         }
+
+        const waterModel = waterGLTF.scene;
+        waterModel.name = 'PastelLoopingAnimatedWater';
+        improveModelQuality(waterModel, renderer);
+
+        // The source water is 12 × 12 units. Widen it beneath the distant,
+        // oversized boat while keeping the vertical wave height controlled.
+        waterModel.scale.set(1.55, 0.65, 1.55);
+        waterModel.updateMatrixWorld(true);
+
+        const waterBox = new THREE.Box3().setFromObject(waterModel);
+        const waterCenter = waterBox.getCenter(new THREE.Vector3());
+
+        waterModel.position.x -= waterCenter.x;
+        waterModel.position.y -= waterCenter.y;
+        waterModel.position.z -= waterCenter.z;
+
+        waterModel.traverse((object) => {
+          if (!object.isMesh) return;
+
+          object.castShadow = false;
+          object.receiveShadow = true;
+          object.renderOrder = -1;
+
+          const materials = Array.isArray(object.material)
+            ? object.material
+            : [object.material];
+
+          materials.forEach((material) => {
+            if (!material) return;
+            material.side = THREE.DoubleSide;
+            material.needsUpdate = true;
+          });
+        });
+
+        waterGroup.add(waterModel);
+
+        // Plays the embedded seamless morph-target water loop.
+        createMixer(waterModel, waterGLTF.animations, mixers);
 
         const boatModel = boatGLTF.scene;
         boatModel.name = 'CosmicBoatModel';
@@ -476,7 +459,7 @@ export default function CosmicVoyage() {
 
         if (!disposed) {
           setModelError(
-            'Could not load /models/alien-cat.glb or /models/cosmic-boat.glb',
+            'Could not load alien-cat.glb, cosmic-boat.glb, or pastel-looping-animated-water.glb from /public/models',
           );
         }
       });
@@ -805,10 +788,6 @@ export default function CosmicVoyage() {
       const delta = Math.min(clock.getDelta(), 0.05);
       elapsed += delta;
 
-      waveMaterial.uniforms.uT.value = elapsed;
-      waterRingMaterial.opacity =
-        0.1 + Math.abs(Math.sin(elapsed * 0.6)) * 0.18;
-
       boatGroup.position.y = Math.sin(elapsed * 0.75) * 0.2;
       boatGroup.rotation.z = Math.sin(elapsed * 0.55) * 0.04;
 
@@ -953,13 +932,14 @@ export default function CosmicVoyage() {
 
       <div className="ui">
         <div className="title">
-          <h1>✦ ALMOSTJAPAN ✦</h1>
+          <h1>✦ COSMIC VOYAGE ✦</h1>
+          <p>a journey through the infinite</p>
         </div>
 
 
         {!landedUI && (
           <div className="hint">
-            ▲ drag the alien cat into the cosmic boat ▲
+            ☽ drag the alien cat into the cosmic boat ☾
           </div>
         )}
       </div>
@@ -1000,6 +980,11 @@ export default function CosmicVoyage() {
 
           <div className="termText">
             ALIEN CAT SUCCESSFULLY DOCKED.
+            <br />
+            <br />
+            STARSHIP ENGINES ONLINE.
+            <br />
+            READY FOR HYPERJUMP.
           </div>
         </div>
       )}
