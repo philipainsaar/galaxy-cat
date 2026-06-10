@@ -1,3 +1,5 @@
+@import url("https://fonts.googleapis.com/css2?family=Podkova:wght@400;500;600;700;800&display=swap");
+
 * {
   box-sizing: border-box;
   margin: 0;
@@ -24,8 +26,7 @@ body {
   touch-action: none;
   user-select: none;
   -webkit-user-select: none;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-    'Liberation Mono', monospace;
+  font-family: "Podkova", serif;
 }
 
 body::before {
