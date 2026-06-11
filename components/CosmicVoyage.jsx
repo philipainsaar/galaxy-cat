@@ -470,7 +470,7 @@ export default function CosmicVoyage() {
           seatPosition.set(
             0,
             estimatedDeckY - CAT_GROUND_Y + 0.03,
-            boatBox.max.z - boatSize.z * 0.18,
+            boatBox.max.z - boatSize.z * 0.38,
           );
         }
 
@@ -1013,21 +1013,26 @@ boatGroup.rotation.x = 0;
 } else if (state.isDragging) {
   catGroup.rotation.y = 0;
       }
+if (state.landed) {
+  const happyPulse = Math.max(
+    0,
+    Math.sin(elapsed * 8),
+  );
 
-      if (state.landed && !state.launchComplete) {
-        const happyPulse = Math.max(
-          0,
-          Math.sin(elapsed * 8),
-        );
+  const CAT_ON_BOAT_OFFSET = new THREE.Vector3(0, 0.0, 0);
+  const CAT_ON_BOAT_ROTATION = new THREE.Euler(-0.08, 0, 0);
 
-        catGroup.position.y += happyPulse * 0.09;
-        catGroup.rotation.z =
-          boatGroup.rotation.z +
-          Math.sin(elapsed * 7) * 0.035;
-        catGroup.rotation.y = boatGroup.rotation.y;
-        catGroup.rotation.x = boatGroup.rotation.x - 0.08;
-        catGroup.scale.setScalar(1 + happyPulse * 0.035);
-      } else {
+  catGroup.position.add(CAT_ON_BOAT_OFFSET);
+  catGroup.position.y += happyPulse * 0.09;
+
+  catGroup.rotation.x = CAT_ON_BOAT_ROTATION.x;
+  catGroup.rotation.y = CAT_ON_BOAT_ROTATION.y;
+  catGroup.rotation.z =
+    boatGroup.rotation.z + CAT_ON_BOAT_ROTATION.z;
+
+  catGroup.scale.setScalar(1 + happyPulse * 0.035);
+}
+       else {
         catGroup.scale.setScalar(1);
       }
 
