@@ -26,6 +26,7 @@ function improveModelQuality(root, renderer, pastelPalette) {
   const anisotropy = renderer.capabilities.getMaxAnisotropy();
   const processedMaterials = new Set();
   let meshIndex = 0;
+  const CAT_FLYAWAY_VISIBLE_OFFSET = new THREE.Vector3(0, 1.05, 1.65);
 
   root.traverse((object) => {
     if (!object.isMesh) return;
@@ -983,6 +984,10 @@ boatGroup.rotation.x = 0;
         );
       }
 
+      if (state.launching) {
+  state.tgt.add(CAT_FLYAWAY_VISIBLE_OFFSET);
+      }
+
       state.cur.x = lerp(
         state.cur.x,
         state.tgt.x,
@@ -1023,7 +1028,8 @@ if (state.landed) {
   const CAT_ON_BOAT_ROTATION = new THREE.Euler(-0.08, 0, 0);
 
   catGroup.position.add(CAT_ON_BOAT_OFFSET);
-  catGroup.position.y += happyPulse * 0.09;
+  catGroup.position.y +=
+  happyPulse * (state.launching ? 0.16 : 0.09);
 
   catGroup.rotation.x = CAT_ON_BOAT_ROTATION.x;
   catGroup.rotation.y = CAT_ON_BOAT_ROTATION.y;
