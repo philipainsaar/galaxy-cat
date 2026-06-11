@@ -35,12 +35,12 @@ const MISSION_LINK_IMAGES = [
                                   },
                                    {
                                        title: 'NATURE',
-                                           image: '/images/covers/emo.jpg',
-                                               url: 'https://www.almostmadeinjapan.com/collections/nature',
+                                           image: '/images/covers/nature.jpg',
+                                               url: 'https://www.almostmadeinjapan.com/collections/frontpage',
                                                  },
                                                   {
                                                       title: 'CYBER',
-                                                          image: '/images/covers/emo.jpg',
+                                                          image: '/images/covers/cyber.jpg',
                                                               url: 'https://www.almostmadeinjapan.com/collections/cyber',
                                                                 },
                                                                 ];
