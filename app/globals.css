@@ -86,8 +86,8 @@ button {
   height: auto;
   display: block;
   filter:
-    drop-shadow(0 0 12px rgba(255,183,220,.45))
-    drop-shadow(0 0 24px rgba(201,183,255,.35));
+    box-shadow(0 0 12px rgba(255,183,220,.45))
+    box-shadow(0 0 24px rgba(201,183,255,.35));
 }
 
 .title {
