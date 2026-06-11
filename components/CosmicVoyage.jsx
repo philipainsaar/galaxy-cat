@@ -26,7 +26,6 @@ function improveModelQuality(root, renderer, pastelPalette) {
   const anisotropy = renderer.capabilities.getMaxAnisotropy();
   const processedMaterials = new Set();
   let meshIndex = 0;
-  const CAT_FLYAWAY_VISIBLE_OFFSET = new THREE.Vector3(0, 1.05, 1.65);
 
   root.traverse((object) => {
     if (!object.isMesh) return;
