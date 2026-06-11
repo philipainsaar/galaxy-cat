@@ -1171,7 +1171,7 @@ if (state.landed) {
           <div className="termHeader">
             <span>COLLECTIONS</span>
             <button type="button" onClick={resetExperience}>
-              X
+              •
             </button>
           </div>
 
@@ -1179,11 +1179,13 @@ if (state.landed) {
               <div className="termHeader">
                   <span>COLLECTIONS</span>
                       <button type="button" onClick={resetExperience}>
-                            X
+                            •
                                 </button>
                                   </div>
 
                                     <div className="missionGalleryIntro">
+                                                  </div>
+
                                                     <div className="missionImageGrid">
                                                         {MISSION_LINK_IMAGES.map((item) => (
                                                               <a
