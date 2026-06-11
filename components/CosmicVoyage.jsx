@@ -22,6 +22,29 @@ const LAUNCH_DURATION_SECONDS = 3;
 const LAUNCH_DISTANCE = 100;
 const LAUNCH_HEIGHT = 6;
 
+const MISSION_LINK_IMAGES = [
+    {
+        title: 'DREAMY',
+            image: '/images/covers/dreamy.jpg',
+                url: 'https://www.almostmadeinjapan.com/collections/dreamy',
+                  },
+                    {
+                        title: 'EMO',
+                            image: '/images/covers/emo.jpg',
+                                url: 'https://www.almostmadeinjapan.com/collections/emo',
+                                  },
+                                   {
+                                       title: 'NATURE',
+                                           image: '/images/covers/emo.jpg',
+                                               url: 'https://www.almostmadeinjapan.com/collections/nature',
+                                                 },
+                                                  {
+                                                      title: 'CYBER',
+                                                          image: '/images/covers/emo.jpg',
+                                                              url: 'https://www.almostmadeinjapan.com/collections/cyber',
+                                                                },
+                                                                ];
+
 function improveModelQuality(root, renderer, pastelPalette) {
   const anisotropy = renderer.capabilities.getMaxAnisotropy();
   const processedMaterials = new Set();
@@ -1146,20 +1169,46 @@ if (state.landed) {
       {popupOpen && (
         <div className="popupWindow">
           <div className="termHeader">
-            <span>MISSION STATUS</span>
+            <span>COLLECTIONS</span>
             <button type="button" onClick={resetExperience}>
               CLOSE
             </button>
           </div>
 
-          <div className="termText">
-            ALIEN CAT SUCCESSFULLY DOCKED.
-            <br />
-            <br />
-            STARSHIP ENGINES ONLINE.
-            <br />
-            READY FOR HYPERJUMP.
-          </div>
+          <div className="popupWindow missionGalleryWindow">
+              <div className="termHeader">
+                  <span>MISSION STATUS</span>
+                      <button type="button" onClick={resetExperience}>
+                            CLOSE
+                                </button>
+                                  </div>
+
+                                    <div className="missionGalleryIntro">
+                                        ALIEN CAT SUCCESSFULLY DOCKED.
+                                            <br />
+                                                SELECT A SIGNAL COVER TO OPEN THE PORTAL.
+                                                  </div>
+
+                                                    <div className="missionImageGrid">
+                                                        {MISSION_LINK_IMAGES.map((item) => (
+                                                              <a
+                                                                      key={item.title}
+                                                                              className="missionImageLink"
+                                                                                      href={item.url}
+                                                                                              target="_blank"
+                                                                                                      rel="noreferrer"
+                                                                                                              aria-label={`Open ${item.title}`}
+                                                                                                                    >
+                                                                                                                            <img
+                                                                                                                                      src={item.image}
+                                                                                                                                                alt={item.title}
+                                                                                                                                                          loading="lazy"
+                                                                                                                                                                  />
+                                                                                                                                                                          <span>{item.title}</span>
+                                                                                                                                                                                </a>
+                                                                                                                                                                                    ))}
+                                                                                                                                                                                      </div>
+                                                                                                                                                                                      </div>
         </div>
       )}
 
