@@ -976,16 +976,18 @@ boatGroup.rotation.x = 0;
       );
 
       if (state.landed && !state.launchComplete) {
-        // Convert the seat marker/local seat position into scene space
-        // every frame so the cat follows the farther-away floating boat.
-        boatGroup.updateMatrixWorld(true);
-        state.tgt.copy(
-          boatGroup.localToWorld(seatPosition.clone()),
-        );
-      }
+  // Convert the seat marker/local seat position into scene space
+  // every frame so the cat follows the boat.
+  boatGroup.updateMatrixWorld(true);
+  state.tgt.copy(
+    boatGroup.localToWorld(seatPosition.clone()),
+  );
 
-      if (state.launching) {
-  state.tgt.add(CAT_FLYAWAY_VISIBLE_OFFSET);
+  if (state.launching) {
+    // Move cat upward and toward camera only during flyaway,
+    // so it does not hide behind the boat.
+    state.tgt.add(CAT_FLYAWAY_VISIBLE_OFFSET);
+  }
       }
 
       state.cur.x = lerp(
