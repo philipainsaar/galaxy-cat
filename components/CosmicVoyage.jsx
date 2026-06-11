@@ -468,7 +468,7 @@ export default function CosmicVoyage() {
           const estimatedDeckY = boatBox.min.y + boatSize.y * 0.25;
 
           seatPosition.set(
-            0,
+            -0.8,
             estimatedDeckY - CAT_GROUND_Y + 0.03,
             boatBox.max.z - boatSize.z * 0.38,
           );
