@@ -1029,9 +1029,7 @@ if (state.landed) {
   const CAT_ON_BOAT_ROTATION = new THREE.Euler(-0.08, 0, 0);
 
   catGroup.position.add(CAT_ON_BOAT_OFFSET);
-  catGroup.position.y +=
-  happyPulse * (state.launching ? 0.16 : 0.09);
-
+  catGroup.position.y += happyPulse * 0.09;
   catGroup.rotation.x = CAT_ON_BOAT_ROTATION.x;
   catGroup.rotation.y = CAT_ON_BOAT_ROTATION.y;
   catGroup.rotation.z =
