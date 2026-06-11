@@ -935,7 +935,7 @@ export default function CosmicVoyage() {
 
       // Keep the boat facing away during the whole flyaway.
 // Math.PI turns it quarter degrees so the viewer sees the back.
-boatGroup.rotation.y = Math.PI / 2;
+boatGroup.rotation.y = -Math.PI / 2;
 boatGroup.rotation.z = 0;
 boatGroup.rotation.x = 0;
         
