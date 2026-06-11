@@ -85,9 +85,16 @@ button {
   width: min(82px, 52vw);
   height: auto;
   display: block;
+
+  -webkit-filter:
+    drop-shadow(0 0 12px rgba(255,183,220,.45))
+    drop-shadow(0 0 24px rgba(201,183,255,.35));
+
   filter:
     drop-shadow(0 0 12px rgba(255,183,220,.45))
     drop-shadow(0 0 24px rgba(201,183,255,.35));
+
+  transform: translateZ(0);
 }
 
 .title {
