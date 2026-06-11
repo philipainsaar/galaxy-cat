@@ -19,8 +19,8 @@ const BOAT_WATERLINE_Y = -0.28;
 const CAT_GROUND_Y = -0.5;
 
 const LAUNCH_DURATION_SECONDS = 3;
-const LAUNCH_DISTANCE = 95;
-const LAUNCH_HEIGHT = 12;
+const LAUNCH_DISTANCE = 100;
+const LAUNCH_HEIGHT = 6;
 
 function improveModelQuality(root, renderer, pastelPalette) {
   const anisotropy = renderer.capabilities.getMaxAnisotropy();
@@ -933,13 +933,12 @@ export default function CosmicVoyage() {
         boatGroup.position.z =
           BOAT_DEPTH - easedLaunch * LAUNCH_DISTANCE;
 
-        boatGroup.rotation.y = easedLaunch * Math.PI;
-        boatGroup.rotation.z =
-          Math.sin(elapsed * 5.5) * 0.07 +
-          easedLaunch * 0.18;
-        boatGroup.rotation.x =
-          Math.cos(elapsed * 4.4) * 0.035 -
-          easedLaunch * 0.28;
+      // Keep the boat facing away during the whole flyaway.
+// Math.PI turns it 180 degrees so the viewer sees the back.
+boatGroup.rotation.y = Math.PI;
+boatGroup.rotation.z = 0;
+boatGroup.rotation.x = 0;
+        
       } else if (!state.launchComplete) {
         boatGroup.position.x = 0;
         boatGroup.position.y =
