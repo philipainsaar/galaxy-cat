@@ -1171,24 +1171,19 @@ if (state.landed) {
           <div className="termHeader">
             <span>COLLECTIONS</span>
             <button type="button" onClick={resetExperience}>
-              CLOSE
+              X
             </button>
           </div>
 
           <div className="popupWindow missionGalleryWindow">
               <div className="termHeader">
-                  <span>MISSION STATUS</span>
+                  <span>COLLECTIONS</span>
                       <button type="button" onClick={resetExperience}>
-                            CLOSE
+                            X
                                 </button>
                                   </div>
 
                                     <div className="missionGalleryIntro">
-                                        ALIEN CAT SUCCESSFULLY DOCKED.
-                                            <br />
-                                                SELECT A SIGNAL COVER TO OPEN THE PORTAL.
-                                                  </div>
-
                                                     <div className="missionImageGrid">
                                                         {MISSION_LINK_IMAGES.map((item) => (
                                                               <a
