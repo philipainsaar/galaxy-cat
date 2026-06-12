@@ -243,7 +243,7 @@ function createInfinityTriangleWater() {
      35.0, 0.0, 0.0,
 
     // Slightly longer infinity tip with soft fade-out.
-      0.0, 3.0, -1200.0,
+      0.0, 30.0, -600.0,
   ]);
 
   const uvs = new Float32Array([
