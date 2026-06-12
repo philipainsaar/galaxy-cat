@@ -158,6 +158,27 @@ function createUltraFastWater() {
     segments,
   );
 
+function createFlatPastelWaterLayer(z, y, opacity = 0.55) {
+  const geometry = new THREE.PlaneGeometry(120, 120, 64, 64);
+
+  const material = new THREE.MeshStandardMaterial({
+    color: 0xdff8ff,
+    roughness: 0.12,
+    metalness: 0,
+    transparent: true,
+    opacity,
+    side: THREE.DoubleSide,
+    depthWrite: false,
+  });
+
+  const water = new THREE.Mesh(geometry, material);
+  water.rotation.x = -Math.PI / 2;
+  water.position.set(0, y, z);
+  water.renderOrder = z > -2.2 ? 3 : 0;
+
+  return water;
+}
+
   const waterPositions = geometry.attributes.position;
   const basePositions = waterPositions.array.slice();
 
@@ -380,8 +401,14 @@ export default function CosmicVoyage() {
 
     // Smooth pastel water: no GLB and no textures, but enough geometry for real waves.
     // This avoids the hard texture cuts caused by separate flat highlight planes.
-    const pastelWater = createUltraFastWater();
-    scene.add(pastelWater.group);
+    const backPastelWater = createFlatPastelWaterLayer(-5.2, -1.32, 0.42);
+scene.add(backPastelWater);
+
+const pastelWater = createUltraFastWater();
+scene.add(pastelWater.group);
+
+const frontPastelWater = createFlatPastelWaterLayer(1.8, -1.18, 0.36);
+scene.add(frontPastelWater);
 
     // These groups preserve all of the original motion and drag behaviour.
     // The GLB scenes are inserted inside them after loading.
@@ -935,6 +962,22 @@ export default function CosmicVoyage() {
       colorAttr.needsUpdate = true;
       pastelWater.water.geometry.computeVertexNormals();
       pastelWater.water.rotation.z = Math.sin(elapsed * 0.8) * 0.006;
+
+        pastelWater.water.rotation.z = Math.sin(elapsed * 0.8) * 0.006;
+
+// NEW WATER ANIMATION
+
+backPastelWater.material.color.offsetHSL(
+  Math.sin(elapsed * 0.4) * 0.0008,
+  0,
+  Math.sin(elapsed * 0.8) * 0.0008,
+);
+
+frontPastelWater.material.color.offsetHSL(
+  Math.sin(elapsed * 0.5) * 0.0008,
+  0,
+  Math.sin(elapsed * 1.0) * 0.0008,
+);
 
       if (state.launching) {
         state.launchElapsed = Math.min(
