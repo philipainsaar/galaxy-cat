@@ -287,7 +287,7 @@ function createInfinityTriangleWater() {
         // Soft edge mask for the triangle sides.
         float leftEdge = smoothstep(0.0, 0.055, uv.x);
         float rightEdge = smoothstep(1.0, 0.945, uv.x);
-        float baseFade = smoothstep(0.0, 0.13, uv.y);
+        float baseFade = smoothstep(0.0, 0.0, uv.y);
         float shape = leftEdge * rightEdge * baseFade;
 
         if (shape < 0.01) discard;
