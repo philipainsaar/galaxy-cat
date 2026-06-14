@@ -48,6 +48,107 @@ button {
   font: inherit;
 }
 
+
+
+.stage {
+  position: relative;
+  overflow: hidden;
+}
+
+.spaceBg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+.movingSymbolLayer {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.canvas {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+}
+
+.ui {
+  position: relative;
+  z-index: 5;
+}
+
+.loadingOverlay,
+.popupWindow {
+  z-index: 20;
+}
+
+.movingBgSymbol {
+  position: absolute;
+  left: var(--x);
+  top: var(--y);
+  width: var(--size);
+  height: auto;
+  opacity: var(--opacity);
+
+  transform:
+    translate(-50%, -50%)
+    rotate(var(--rotate));
+
+  animation:
+    pastelSymbolFloat var(--duration) ease-in-out var(--delay) infinite alternate;
+
+  pointer-events: none;
+  user-select: none;
+  will-change: transform;
+
+  filter:
+    drop-shadow(0 0 8px rgba(255, 183, 220, 0.28))
+    drop-shadow(0 0 18px rgba(201, 183, 255, 0.18));
+}
+
+@keyframes pastelSymbolFloat {
+  0% {
+    transform:
+      translate(-50%, -50%)
+      translate3d(
+        calc(var(--drift-x) * -0.35),
+        calc(var(--drift-y) * -0.35),
+        0
+      )
+      rotate(var(--rotate))
+      scale(0.9);
+  }
+
+  50% {
+    transform:
+      translate(-50%, -50%)
+      translate3d(
+        calc(var(--drift-x) * 0.2),
+        calc(var(--drift-y) * -0.15),
+        0
+      )
+      rotate(calc(var(--rotate) + 8deg))
+      scale(1.04);
+  }
+
+  100% {
+    transform:
+      translate(-50%, -50%)
+      translate3d(
+        var(--drift-x),
+        var(--drift-y),
+        0
+      )
+      rotate(calc(var(--rotate) - 8deg))
+      scale(0.96);
+  }
+}
+
+
+
 .stage {
   position: fixed;
   inset: 0;
