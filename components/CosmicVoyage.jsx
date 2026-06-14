@@ -287,7 +287,7 @@ function createInfinityTriangleWater() {
         // Soft edge mask for the triangle sides.
         float leftEdge = smoothstep(0.0, 0.055, uv.x);
         float rightEdge = smoothstep(1.0, 0.945, uv.x);
-        float baseFade = smoothstep(0.0, 0.055, uv.y);
+        float baseFade = smoothstep(0.0, 0.15, uv.y);
         float shape = leftEdge * rightEdge * baseFade;
 
         if (shape < 0.01) discard;
@@ -500,9 +500,6 @@ export default function CosmicVoyage() {
     const infinityTriangleWater = createInfinityTriangleWater();
     scene.add(infinityTriangleWater);
 
-      const infinityTriangleWater = createInfinityTriangleWater();
-scene.add(infinityTriangleWater);
-
 // PNG at the triangle tip
 const tipTexture = new THREE.TextureLoader().load(
   '/images/heart.png'
@@ -520,11 +517,7 @@ tipImage.scale.set(80, 80, 1);
 tipImage.position.set(0, 30, -600);
 
 scene.add(tipImage);
-
-// Smooth pastel water
-const pastelWater = createUltraFastWater();
-scene.add(pastelWater.group);
-
+      
     // Smooth pastel water: no GLB and no textures, but enough geometry for real waves.
     // This avoids the hard texture cuts caused by separate flat highlight planes.
     const pastelWater = createUltraFastWater();
