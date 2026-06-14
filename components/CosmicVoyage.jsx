@@ -333,30 +333,6 @@ function createInfinityTriangleWater() {
   });
 
   const triangle = new THREE.Mesh(geometry, material);
-
-const tipTexture = new THREE.TextureLoader().load('/images/heart.png');
-tipTexture.colorSpace = THREE.SRGBColorSpace;
-
-const tipMaterial = new THREE.MeshBasicMaterial({
-  map: tipTexture,
-  transparent: true,
-  depthWrite: false,
-  depthTest: true,
-  side: THREE.DoubleSide,
-});
-
-const tipImage = new THREE.Mesh(
-  new THREE.PlaneGeometry(70, 70),
-  tipMaterial,
-);
-
-// match triangle tip position
-tipImage.position.set(0, 30, -600);
-tipImage.rotation.x = -Math.PI / 2;
-tipImage.renderOrder = -99999;
-tipImage.frustumCulled = false;
-
-triangle.add(tipImage);
     
   triangle.name = 'FlatStarWarsInfinityTriangleWaterZIndexMinus100000';
 
@@ -523,6 +499,31 @@ export default function CosmicVoyage() {
     // Old opaque waves, boat and cat render on top of it.
     const infinityTriangleWater = createInfinityTriangleWater();
     scene.add(infinityTriangleWater);
+
+      const infinityTriangleWater = createInfinityTriangleWater();
+scene.add(infinityTriangleWater);
+
+// PNG at the triangle tip
+const tipTexture = new THREE.TextureLoader().load(
+  '/images/heart.png'
+);
+
+const tipMaterial = new THREE.SpriteMaterial({
+  map: tipTexture,
+  transparent: true,
+  depthWrite: false,
+});
+
+const tipImage = new THREE.Sprite(tipMaterial);
+
+tipImage.scale.set(80, 80, 1);
+tipImage.position.set(0, 30, -600);
+
+scene.add(tipImage);
+
+// Smooth pastel water
+const pastelWater = createUltraFastWater();
+scene.add(pastelWater.group);
 
     // Smooth pastel water: no GLB and no textures, but enough geometry for real waves.
     // This avoids the hard texture cuts caused by separate flat highlight planes.
