@@ -317,13 +317,13 @@ function createInfinityTriangleWater() {
 
         // Ultra soft Star-Wars horizon fade at the top tip.
         float horizonFade = pow(
-          1.0 - smoothstep(
-            0.60,
-            1.0,
-            uv.y
-          ),
-          2.0
-        );
+  1.0 - smoothstep(
+    0.35,
+    1.0,
+    uv.y
+  ),
+  3.0
+);
 
         float alpha = shape * horizonFade * 0.92;
 
