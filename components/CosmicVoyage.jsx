@@ -333,6 +333,31 @@ function createInfinityTriangleWater() {
   });
 
   const triangle = new THREE.Mesh(geometry, material);
+
+const tipTexture = new THREE.TextureLoader().load('/images/heart.png');
+tipTexture.colorSpace = THREE.SRGBColorSpace;
+
+const tipMaterial = new THREE.MeshBasicMaterial({
+  map: tipTexture,
+  transparent: true,
+  depthWrite: false,
+  depthTest: true,
+  side: THREE.DoubleSide,
+});
+
+const tipImage = new THREE.Mesh(
+  new THREE.PlaneGeometry(70, 70),
+  tipMaterial,
+);
+
+// match triangle tip position
+tipImage.position.set(0, 30, -600);
+tipImage.rotation.x = -Math.PI / 2;
+tipImage.renderOrder = -99999;
+tipImage.frustumCulled = false;
+
+triangle.add(tipImage);
+    
   triangle.name = 'FlatStarWarsInfinityTriangleWaterZIndexMinus100000';
 
   // Same floor level as the water, but far behind the boat.
