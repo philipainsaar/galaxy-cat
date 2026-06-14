@@ -520,7 +520,7 @@ new THREE.TextureLoader().load(
     const aspect =
       texture.image.width / texture.image.height;
 
-    const height = 120;
+    const height = 60;
     const width = height * aspect;
 
     tipImage.scale.set(width, height, 1);
