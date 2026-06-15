@@ -439,6 +439,11 @@ function createUltraFastWater() {
 
   const material = new THREE.MeshStandardMaterial({
     color: 0xffffff,
+
+    // No texture by default.
+    // If /images/water-texture.jpg is missing, the water stays exactly like before.
+    map: null,
+
     vertexColors: true,
     roughness: 0.18,
     metalness: 0,
@@ -508,6 +513,11 @@ function createInfinityTriangleWater() {
     side: THREE.DoubleSide,
     uniforms: {
       uTime: { value: 0 },
+
+      // Optional texture. Starts inactive so missing texture keeps the original look.
+      uWaterTexture: { value: null },
+      uTextureStrength: { value: 0.0 },
+
       colorA: { value: new THREE.Color('#c8f7ff') },
       colorB: { value: new THREE.Color('#f7ddff') },
     },
@@ -521,6 +531,8 @@ function createInfinityTriangleWater() {
     `,
     fragmentShader: `
       uniform float uTime;
+      uniform sampler2D uWaterTexture;
+      uniform float uTextureStrength;
       uniform vec3 colorA;
       uniform vec3 colorB;
       varying vec2 vUv;
@@ -558,6 +570,18 @@ function createInfinityTriangleWater() {
 
         float gloss = smoothstep(0.74, 1.0, water) * (1.0 - uv.y * 0.38);
         color = mix(color, white, gloss * 0.18);
+
+        // Optional water texture.
+        // It only changes the triangle after /images/water-texture.jpg loads.
+        if (uTextureStrength > 0.001) {
+          vec2 textureUv = vec2(
+            uv.x * 4.0 + uTime * 0.025,
+            uv.y * 10.0 - uTime * 0.045
+          );
+
+          vec3 tex = texture2D(uWaterTexture, textureUv).rgb;
+          color = mix(color, tex, uTextureStrength);
+        }
 
         // Ultra soft Star-Wars horizon fade at the top tip.
         float horizonFade = pow(
@@ -824,6 +848,49 @@ loadBlurredSpriteTexture('/images/heart.png?v=10', 4.0)
     // This avoids the hard texture cuts caused by separate flat highlight planes.
     const pastelWater = createUltraFastWater();
     scene.add(pastelWater.group);
+
+    // Optional water texture for both the old/front water and the infinity triangle.
+    // Missing file = no texture added, so both waters stay exactly like before.
+    const waterTextureLoader = new THREE.TextureLoader();
+
+    waterTextureLoader.load(
+      '/images/water-texture.jpg?v=1',
+      (texture) => {
+        if (disposed) {
+          texture.dispose();
+          return;
+        }
+
+        texture.colorSpace = THREE.SRGBColorSpace;
+        texture.wrapS = THREE.RepeatWrapping;
+        texture.wrapT = THREE.RepeatWrapping;
+        texture.repeat.set(5, 5);
+        texture.magFilter = THREE.LinearFilter;
+        texture.minFilter = THREE.LinearMipmapLinearFilter;
+        texture.generateMipmaps = true;
+        texture.needsUpdate = true;
+
+        // Add texture to the old/front water only after the image exists.
+        if (pastelWater?.water?.material) {
+          pastelWater.water.material.map = texture;
+          pastelWater.water.material.roughness = 0.12;
+          pastelWater.water.material.needsUpdate = true;
+        }
+
+        // Add texture to the new/infinity triangle only after the image exists.
+        if (infinityTriangleWater?.material?.uniforms) {
+          infinityTriangleWater.material.uniforms.uWaterTexture.value = texture;
+          infinityTriangleWater.material.uniforms.uTextureStrength.value = 0.22;
+        }
+      },
+      undefined,
+      (error) => {
+        console.warn(
+          'No /images/water-texture.jpg found. Water stays original without texture.',
+          error,
+        );
+      },
+    );
 
     // These groups preserve all of the original motion and drag behaviour.
     // The GLB scenes are inserted inside them after loading.
@@ -1349,6 +1416,12 @@ loadBlurredSpriteTexture('/images/heart.png?v=10', 4.0)
       elapsed += delta;
 
       infinityTriangleWater.material.uniforms.uTime.value = elapsed;
+
+      // Animate the optional water texture only if it successfully loaded.
+      if (pastelWater?.water?.material?.map) {
+        pastelWater.water.material.map.offset.x = elapsed * 0.015;
+        pastelWater.water.material.map.offset.y = elapsed * 0.025;
+      }
 
       fluffClouds.forEach((cloud) => {
         const motion = cloud.userData.fluffMotion;
