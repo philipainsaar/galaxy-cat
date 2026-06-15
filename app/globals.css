@@ -97,7 +97,7 @@ button {
   height: 100%;
 
   transform: translate3d(0, 0, 0);
-  animation: pastelBackground360 120s linear infinite;
+  animation: pastelBackground360 100s linear infinite;
 
   will-change: transform;
   pointer-events: none;
