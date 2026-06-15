@@ -752,6 +752,17 @@ export default function CosmicVoyage() {
 const tipMaterial = new THREE.SpriteMaterial({
   transparent: true,
   depthWrite: false,
+  depthTest: true,
+
+  // Keeps the PNG bright instead of gray/dim.
+  toneMapped: false,
+
+  // Makes the sprite brighter.
+  color: new THREE.Color(2.2, 2.2, 2.2),
+  opacity: 1,
+
+  // Use this for glowing hearts.
+  blending: THREE.AdditiveBlending,
 });
 
 const tipImage = new THREE.Sprite(tipMaterial);
@@ -761,19 +772,24 @@ tipImage.position.set(0, 30, -600);
 scene.add(tipImage);
 
 new THREE.TextureLoader().load(
-  '/images/heart.png',
+  '/images/heart.png?v=3',
   (texture) => {
+    texture.colorSpace = THREE.SRGBColorSpace;
+    texture.magFilter = THREE.LinearFilter;
+    texture.minFilter = THREE.LinearFilter;
+    texture.generateMipmaps = false;
+    texture.needsUpdate = true;
+
     tipMaterial.map = texture;
     tipMaterial.needsUpdate = true;
 
-    const aspect =
-      texture.image.width / texture.image.height;
+    const aspect = texture.image.width / texture.image.height;
 
     const height = 60;
     const width = height * aspect;
 
     tipImage.scale.set(width, height, 1);
-  }
+  },
 );
       
     // Smooth pastel water: no GLB and no textures, but enough geometry for real waves.
