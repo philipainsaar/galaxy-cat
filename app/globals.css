@@ -81,7 +81,7 @@ button {
   left: 0;
   top: 0;
   width: 100%;
-  height: 45dvh; /* change this to control how far down the sky goes */
+  height: 50dvh; /* change this to control how far down the sky goes */
   overflow: hidden;
   z-index: 0;
   pointer-events: none;
@@ -97,7 +97,7 @@ button {
   height: 100%;
 
   transform: translate3d(0, 0, 0);
-  animation: pastelBackground360 100s linear infinite;
+  animation: pastelBackground360 120s linear infinite;
 
   will-change: transform;
   pointer-events: none;
@@ -134,23 +134,42 @@ button {
   height: auto;
   opacity: var(--opacity);
   transform: translate(-50%, -50%);
+  transform-origin: center;
   pointer-events: none;
   user-select: none;
   -webkit-user-drag: none;
-  will-change: transform;
-  animation: movingSymbolFloat 18s ease-in-out infinite alternate;
+  backface-visibility: hidden;
+  will-change: transform, filter;
+
+  /* Floating + glowing/shiny pulse. Keep transform in the float animation only. */
+  animation:
+    movingSymbolFloat 18s ease-in-out infinite alternate,
+    symbolGlowShine 4.2s ease-in-out infinite alternate;
+
   filter:
-    drop-shadow(0 0 8px rgba(255, 183, 220, 0.28))
-    drop-shadow(0 0 18px rgba(201, 183, 255, 0.18));
+    brightness(1.14)
+    saturate(1.28)
+    contrast(1.06)
+    drop-shadow(0 0 8px rgba(255, 255, 255, 0.55))
+    drop-shadow(0 0 14px rgba(255, 183, 220, 0.52))
+    drop-shadow(0 0 28px rgba(201, 183, 255, 0.34))
+    drop-shadow(0 0 42px rgba(174, 219, 255, 0.24));
 }
 
 .movingBgSymbol:nth-child(3n + 1) {
-  animation-duration: 22s;
+  animation-duration: 22s, 3.7s;
+  animation-delay: -4s, -1.2s;
 }
 
 .movingBgSymbol:nth-child(3n + 2) {
-  animation-duration: 26s;
-  animation-direction: alternate-reverse;
+  animation-duration: 26s, 4.9s;
+  animation-delay: -9s, -2.4s;
+  animation-direction: alternate-reverse, alternate;
+}
+
+.movingBgSymbol:nth-child(5n) {
+  animation-duration: 20s, 3.1s;
+  animation-delay: -7s, -0.7s;
 }
 
 .canvas {
@@ -563,6 +582,42 @@ select,
 
   100% {
     transform: translate(-50%, -50%) translate3d(0.8vw, 0.55dvh, 0) rotate(2deg) scale(1.03);
+  }
+}
+
+@keyframes symbolGlowShine {
+  0%,
+  100% {
+    filter:
+      brightness(1.10)
+      saturate(1.22)
+      contrast(1.04)
+      drop-shadow(0 0 6px rgba(255, 255, 255, 0.42))
+      drop-shadow(0 0 12px rgba(255, 183, 220, 0.45))
+      drop-shadow(0 0 24px rgba(201, 183, 255, 0.30))
+      drop-shadow(0 0 34px rgba(174, 219, 255, 0.20));
+  }
+
+  42% {
+    filter:
+      brightness(1.28)
+      saturate(1.42)
+      contrast(1.10)
+      drop-shadow(0 0 9px rgba(255, 255, 255, 0.62))
+      drop-shadow(0 0 18px rgba(255, 183, 220, 0.62))
+      drop-shadow(0 0 34px rgba(201, 183, 255, 0.42))
+      drop-shadow(0 0 52px rgba(174, 219, 255, 0.30));
+  }
+
+  50% {
+    filter:
+      brightness(1.58)
+      saturate(1.58)
+      contrast(1.16)
+      drop-shadow(0 0 12px rgba(255, 255, 255, 0.88))
+      drop-shadow(0 0 24px rgba(255, 183, 220, 0.76))
+      drop-shadow(0 0 46px rgba(201, 183, 255, 0.58))
+      drop-shadow(0 0 70px rgba(174, 219, 255, 0.42));
   }
 }
 
