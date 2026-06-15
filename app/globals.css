@@ -430,7 +430,7 @@ button {
   height: 34px;
   border: 2px solid var(--purple-deep);
   padding: 4px;
-  background: rgba(255, 255, 255, 0.55);
+  background: rgba(255, 255, 255, 0.65);
 }
 
 .loadingBarInner {
