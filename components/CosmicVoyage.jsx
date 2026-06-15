@@ -58,7 +58,7 @@ const TOTAL_MOVING_SYMBOLS = 30;
 
 function createMovingBackgroundSymbols() {
   const columns = 6;
-  const rows = 7;
+  const rows = 6;
 
   const slots = [];
 
