@@ -58,7 +58,7 @@ body::before {
     rgba(174, 219, 255, 0.025) 50%
   );
   background-size: 100% 4px;
-  opacity: 0.38;
+  opacity: 0.40;
 }
 
 button {
