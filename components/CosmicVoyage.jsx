@@ -1651,8 +1651,6 @@ if (state.landed) {
           <div className="loadingPopup" role="status">
             <div className="loadingWindowBar">
               <span />
-              <span>□</span>
-              <span>✕</span>
             </div>
 
             <div className="loadingTitle">LOADING...</div>
