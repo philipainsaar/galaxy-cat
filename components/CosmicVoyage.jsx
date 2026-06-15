@@ -1304,10 +1304,6 @@ new THREE.TextureLoader().load(
       const delta = Math.min(clock.getDelta(), 0.05);
       elapsed += delta;
 
-    if (tipTexture) {
-    tipTexture.needsUpdate = true;
-    }
-
       infinityTriangleWater.material.uniforms.uTime.value = elapsed;
 
       fluffClouds.forEach((cloud) => {
