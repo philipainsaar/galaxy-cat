@@ -761,7 +761,7 @@ tipImage.position.set(0, 30, -600);
 scene.add(tipImage);
 
 new THREE.TextureLoader().load(
-  '/images/heart.webp',
+  '/images/heart.webp?v=5',
   (texture) => {
     tipMaterial.map = texture;
     tipMaterial.needsUpdate = true;
@@ -1303,6 +1303,10 @@ new THREE.TextureLoader().load(
     renderer.setAnimationLoop(() => {
       const delta = Math.min(clock.getDelta(), 0.05);
       elapsed += delta;
+
+    if (tipTexture) {
+    tipTexture.needsUpdate = true;
+    }
 
       infinityTriangleWater.material.uniforms.uTime.value = elapsed;
 
