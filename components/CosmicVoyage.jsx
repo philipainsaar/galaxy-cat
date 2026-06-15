@@ -761,7 +761,7 @@ tipImage.position.set(0, 30, -600);
 scene.add(tipImage);
 
 new THREE.TextureLoader().load(
-  '/images/heart.gif',
+  '/images/heart.png',
   (texture) => {
     tipMaterial.map = texture;
     tipMaterial.needsUpdate = true;
