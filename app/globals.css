@@ -1,0 +1,780 @@
+@font-face {
+  font-family: "Murecho";
+  src: url("https://www.almostmadeinjapan.com/cdn/fonts/murecho/murecho_n4.48026a226f97b34dd378daf307ec4f9bcdf1dd4c.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Germania One";
+  src: url("https://www.almostmadeinjapan.com/cdn/fonts/germania_one/germaniaone_n4.e1e85c20bd47d01bf28222f79473f4acd1cac2b9.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --white: #ffffff;
+  --pink: #ffb7dc;
+  --pink-strong: #ff8fc9;
+  --purple: #cab8ff;
+  --purple-deep: #8269c7;
+  --blue: #aedbff;
+  --blue-deep: #649ddd;
+  --ink: #66548f;
+
+  --font-main: "Murecho", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-display: "Germania One", "Murecho", system-ui, sans-serif;
+}
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: var(--white);
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  font-family: var(--font-main);
+  font-weight: 400;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 50;
+  background: linear-gradient(
+    rgba(202, 184, 255, 0.025) 50%,
+    rgba(174, 219, 255, 0.025) 50%
+  );
+  background-size: 100% 4px;
+  opacity: 0.38;
+}
+
+button {
+  font: inherit;
+  font-family: var(--font-main);
+}
+
+.stage {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100dvh;
+  overflow: hidden;
+  background: var(--white);
+  isolation: isolate;
+}
+
+.pastelBackgroundViewport {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 50dvh; /* change this to control how far down the sky goes */
+  overflow: hidden;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.pastelBackgroundMotion {
+  position: absolute;
+  left: 0;
+  top: 0;
+
+  /* Extra width so it can move without showing empty white space */
+  width: 260vw;
+  height: 100%;
+
+  transform: translate3d(0, 0, 0);
+  animation: pastelBackground360 120s linear infinite;
+
+  will-change: transform;
+  pointer-events: none;
+}
+
+.spaceBg {
+  position: absolute;
+  inset: 0;
+
+  width: 100%;
+  height: 100%;
+
+  background-image: url("/images/pastel-sky.jpg");
+  background-repeat: repeat-x;
+  background-position: 0 50%;
+
+  /* Keeps the 21:9 image from stretching */
+  background-size: auto 100%;
+}
+
+.movingSymbolLayer {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  overflow: hidden;
+  pointer-events: none;
+  contain: paint;
+}
+
+/* Fast jewelry sparkle overlay.
+   The sparkle is mostly transform + opacity, so it stays smoother on mobile
+   than animating heavy filters on 30 separate PNGs. */
+.movingSymbolLayer::before,
+.movingSymbolLayer::after {
+  content: "";
+  position: absolute;
+  inset: -12%;
+  pointer-events: none;
+  z-index: 4;
+  opacity: 0.72;
+  transform: translate3d(0, 0, 0);
+  will-change: transform, opacity;
+}
+
+.movingSymbolLayer::before {
+  background-image:
+    radial-gradient(circle, rgba(255, 255, 255, 1) 0 1.25px, transparent 2.4px),
+    radial-gradient(circle, rgba(255, 255, 255, 0.96) 0 1px, transparent 2px),
+    radial-gradient(circle, rgba(255, 245, 253, 0.92) 0 1.4px, transparent 2.8px),
+    radial-gradient(circle, rgba(214, 247, 255, 0.84) 0 1.2px, transparent 2.5px),
+    radial-gradient(circle, rgba(238, 228, 255, 0.82) 0 1.1px, transparent 2.4px);
+  background-size:
+    48px 48px,
+    82px 82px,
+    127px 127px,
+    163px 163px,
+    211px 211px;
+  background-position:
+    12px 8px,
+    0 0,
+    28px 12px,
+    60px 36px,
+    94px 74px;
+  mix-blend-mode: screen;
+  animation: diamondSparkleDrift 0.54s steps(2, end) infinite;
+}
+
+.movingSymbolLayer::after {
+  opacity: 0.66;
+  background:
+    linear-gradient(
+      115deg,
+      transparent 0%,
+      transparent 42%,
+      rgba(255, 255, 255, 0.96) 48%,
+      rgba(255, 255, 255, 1) 50%,
+      rgba(214, 247, 255, 0.88) 52%,
+      transparent 58%,
+      transparent 100%
+    );
+  mix-blend-mode: screen;
+  animation: diamondShineSweep 0.92s linear infinite;
+}
+
+.movingBgSymbol {
+  --symbol-float-duration: 18s;
+  --symbol-flash-duration: 1.05s;
+  --symbol-flash-delay: 0s;
+
+  position: absolute;
+  left: var(--x);
+  top: var(--y);
+  width: var(--size);
+  height: auto;
+  opacity: var(--opacity);
+  transform: translate3d(-50%, -50%, 0);
+  transform-origin: center;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-drag: none;
+  backface-visibility: hidden;
+  will-change: transform, opacity;
+  contain: layout paint style;
+
+  /* Static shine only. The flashing uses opacity, not animated filter. */
+  filter:
+    brightness(1.24)
+    saturate(1.40)
+    contrast(1.10)
+    drop-shadow(0 0 7px rgba(255, 255, 255, 0.58))
+    drop-shadow(0 0 15px rgba(255, 183, 220, 0.34));
+
+  animation:
+    movingSymbolFloat var(--symbol-float-duration) ease-in-out infinite alternate,
+    symbolWhiteFlash var(--symbol-flash-duration) steps(2, end) var(--symbol-flash-delay) infinite;
+}
+
+.movingBgSymbol:nth-child(3n + 1) {
+  --symbol-float-duration: 22s;
+  --symbol-flash-duration: 0.86s;
+  --symbol-flash-delay: -0.18s;
+  filter:
+    brightness(1.28)
+    saturate(1.45)
+    contrast(1.12)
+    drop-shadow(0 0 7px rgba(255, 255, 255, 0.64))
+    drop-shadow(0 0 16px rgba(201, 183, 255, 0.36));
+}
+
+.movingBgSymbol:nth-child(3n + 2) {
+  --symbol-float-duration: 26s;
+  --symbol-flash-duration: 1.18s;
+  --symbol-flash-delay: -0.36s;
+  animation-direction: alternate-reverse, normal;
+  filter:
+    brightness(1.21)
+    saturate(1.38)
+    contrast(1.10)
+    drop-shadow(0 0 7px rgba(255, 255, 255, 0.58))
+    drop-shadow(0 0 16px rgba(174, 219, 255, 0.32));
+}
+
+.movingBgSymbol:nth-child(5n) {
+  --symbol-float-duration: 20s;
+  --symbol-flash-duration: 0.74s;
+  --symbol-flash-delay: -0.52s;
+}
+
+.canvas {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: block;
+  width: 100vw;
+  height: 100dvh;
+}
+
+.ui {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.logoContainer {
+  position: fixed;
+  top: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  pointer-events: none;
+}
+
+.logoImage {
+  width: min(82px, 52vw);
+  height: auto;
+  display: block;
+  filter:
+    drop-shadow(0 0 12px rgba(255, 183, 220, 0.45))
+    drop-shadow(0 0 24px rgba(201, 183, 255, 0.35));
+}
+
+.title {
+  position: absolute;
+  top: 3%;
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+  width: 92%;
+}
+
+.title h1 {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: clamp(1rem, 7vw, 2.3rem);
+  letter-spacing: 0.1em;
+  background: linear-gradient(
+    120deg,
+    var(--pink-strong) 4%,
+    var(--purple-deep) 48%,
+    var(--blue-deep) 96%
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: titleGlow 3s ease-in-out infinite alternate;
+}
+
+.title p {
+  color: var(--purple-deep);
+  font-size: clamp(0.65rem, 3vw, 0.9rem);
+  letter-spacing: 0.2em;
+  margin-top: 0.35em;
+  font-family: var(--font-main);
+  font-style: normal;
+}
+
+.hint {
+  position: absolute;
+  bottom: 14%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 90%;
+  text-align: center;
+  font-family: var(--font-main);
+  font-style: normal;
+  font-size: clamp(0.72rem, 3.4vw, 0.95rem);
+  color: var(--blue-deep);
+  letter-spacing: 0.12em;
+  text-shadow: 0 2px 12px rgba(174, 219, 255, 0.85);
+  animation: hintPulse 2.5s ease-in-out infinite;
+}
+
+.loadingOverlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  pointer-events: none;
+}
+
+.loadingPopup {
+  position: relative;
+  width: min(420px, 88vw);
+  background: linear-gradient(
+    135deg,
+    rgba(255, 183, 220, 0.35),
+    rgba(201, 183, 255, 0.35),
+    rgba(174, 219, 255, 0.35)
+  );
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow:
+    0 0 20px rgba(255, 183, 220, 0.30),
+    0 0 40px rgba(201, 183, 255, 0.20),
+    0 0 60px rgba(174, 219, 255, 0.15);
+  overflow: hidden;
+}
+
+.loadingPopup::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.18),
+    rgba(255, 255, 255, 0.02)
+  );
+  pointer-events: none;
+}
+
+.loadingPopup::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -150%;
+  width: 120%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.12),
+    transparent
+  );
+  transform: skewX(-20deg);
+  pointer-events: none;
+}
+
+.loadingWindowBar {
+  position: relative;
+  height: 28px;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 0.45rem;
+  color: var(--purple-deep);
+  border-bottom: 2px solid var(--pink);
+  margin: 0 -1rem 1.2rem;
+  padding: 0 0.5rem;
+  background: rgba(255, 255, 255, 0.42);
+}
+
+.loadingWindowBar span:first-child {
+  width: 34px;
+  height: 4px;
+  background: var(--blue-deep);
+  display: block;
+  margin-right: 0.15rem;
+}
+
+.loadingTitle {
+  position: relative;
+  font-family: var(--font-display);
+  font-size: clamp(2.2rem, 10vw, 4rem);
+  font-weight: 400;
+  color: var(--pink-strong);
+  letter-spacing: 0.08em;
+  margin-bottom: 1rem;
+  text-shadow: 3px 3px 0 rgba(174, 219, 255, 0.68);
+}
+
+.loadingBarOuter {
+  position: relative;
+  width: 100%;
+  height: 34px;
+  border: 2px solid var(--purple-deep);
+  padding: 4px;
+  background: rgba(255, 255, 255, 0.55);
+}
+
+.loadingBarInner {
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    var(--pink),
+    var(--purple),
+    var(--blue)
+  );
+  transition: width 0.08s linear;
+}
+
+.loadingPercent {
+  position: relative;
+  margin-top: 1rem;
+  font-family: var(--font-display);
+  font-size: clamp(1.5rem, 7vw, 2.2rem);
+  font-weight: 400;
+  text-align: center;
+  color: var(--purple-deep);
+}
+
+.popupWindow {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 60;
+  width: min(88vw, 440px);
+  padding: 1rem;
+  color: var(--ink);
+  background: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.98),
+    rgba(232, 221, 255, 0.98)
+  );
+  border: 3px solid var(--purple-deep);
+  box-shadow:
+    9px 10px 0 rgba(255, 183, 220, 0.75),
+    0 0 28px rgba(174, 219, 255, 0.65);
+}
+
+.missionGalleryWindow {
+  width: min(94vw, 820px);
+  max-height: min(86dvh, 780px);
+  overflow: auto;
+  border-color: rgba(130, 105, 199, 0.62);
+  background: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.82),
+    rgba(255, 232, 248, 0.78),
+    rgba(232, 221, 255, 0.82)
+  );
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
+.popupWindow > .popupWindow {
+  position: relative;
+  left: auto;
+  top: auto;
+  transform: none;
+  width: 100%;
+  max-height: none;
+  margin: 0;
+  box-shadow: none;
+}
+
+.termHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.8rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid var(--blue);
+  color: var(--purple-deep);
+  font-family: var(--font-display);
+  font-size: 0.9rem;
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.termHeader button {
+  border: 2px solid var(--pink-strong);
+  padding: 0.35rem 0.72rem;
+  color: var(--purple-deep);
+  background: var(--white);
+  cursor: pointer;
+  box-shadow: 3px 3px 0 var(--blue);
+  pointer-events: auto;
+}
+
+.termHeader button:hover,
+.termHeader button:focus-visible {
+  color: #ffffff;
+  background: var(--pink-strong);
+  outline: none;
+}
+
+.termText {
+  color: var(--ink);
+  font-size: 0.92rem;
+  line-height: 1.65;
+  text-shadow: 0 1px 8px rgba(174, 219, 255, 0.58);
+}
+
+.missionGalleryIntro {
+  height: 0;
+  margin: 0;
+}
+
+.missionImageGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.missionImageLink {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.58rem;
+  padding: 0.65rem;
+  color: var(--purple-deep);
+  text-decoration: none;
+  text-align: center;
+  border: 1px solid rgba(255, 255, 255, 0.65);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.38);
+  box-shadow:
+    0 0 18px rgba(255, 183, 220, 0.18),
+    inset 0 0 18px rgba(255, 255, 255, 0.28);
+  pointer-events: auto;
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease,
+    background 0.18s ease;
+}
+
+.missionImageLink:hover,
+.missionImageLink:focus-visible {
+  transform: translateY(-3px) scale(1.015);
+  background: rgba(255, 255, 255, 0.58);
+  box-shadow:
+    0 0 24px rgba(255, 183, 220, 0.35),
+    0 0 34px rgba(201, 183, 255, 0.26);
+  outline: none;
+}
+
+.missionImageLink img {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  border-radius: 14px;
+  display: block;
+}
+
+.missionImageLink span {
+  width: min(100%, 14ch);
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: clamp(0.85rem, 2.6vw, 1.05rem);
+  letter-spacing: 0.08em;
+  line-height: 1.05;
+}
+
+
+button,
+input,
+textarea,
+select,
+.stage,
+.ui,
+.hint,
+.loadingPopup,
+.popupWindow,
+.termText,
+.missionImageLink {
+  font-family: var(--font-main);
+}
+
+.title h1,
+.loadingTitle,
+.loadingPercent,
+.termHeader,
+.termHeader span,
+.termHeader button,
+.missionImageLink span {
+  font-family: var(--font-display);
+  font-weight: 400;
+}
+
+@keyframes pastelSkyInfinityX {
+  0% {
+    background-position: 0 50%;
+  }
+
+  100% {
+    /* One exact 21:9 texture width at viewport-height scale. */
+    background-position: -233.333dvh 50%;
+  }
+}
+
+@keyframes pastelBackground360 {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+
+  100% {
+    transform: translate3d(-130vw, 0, 0);
+  }
+}
+
+@keyframes movingSymbolFloat {
+  0% {
+    transform: translate(-50%, -50%) translate3d(-0.6vw, -0.4dvh, 0) rotate(-2deg) scale(0.98);
+  }
+
+  100% {
+    transform: translate(-50%, -50%) translate3d(0.8vw, 0.55dvh, 0) rotate(2deg) scale(1.03);
+  }
+}
+
+@keyframes symbolWhiteFlash {
+  0%,
+  100% {
+    opacity: calc(var(--opacity) * 0.88);
+  }
+
+  18% {
+    opacity: calc(var(--opacity) * 1.0);
+  }
+
+  36% {
+    opacity: calc(var(--opacity) * 0.78);
+  }
+
+  54% {
+    opacity: calc(var(--opacity) * 1.0);
+  }
+}
+
+@keyframes diamondSparkleDrift {
+  0% {
+    opacity: 0.28;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+
+  34% {
+    opacity: 0.96;
+    transform: translate3d(-6px, 5px, 0) scale(1.015);
+  }
+
+  68% {
+    opacity: 0.42;
+    transform: translate3d(7px, -4px, 0) scale(1);
+  }
+
+  100% {
+    opacity: 0.86;
+    transform: translate3d(11px, 6px, 0) scale(1.01);
+  }
+}
+
+@keyframes diamondShineSweep {
+  0% {
+    transform: translate3d(-115%, 0, 0);
+  }
+
+  100% {
+    transform: translate3d(115%, 0, 0);
+  }
+}
+
+@keyframes titleGlow {
+  0% {
+    filter: drop-shadow(0 0 7px rgba(255, 183, 220, 0.62));
+  }
+
+  100% {
+    filter: drop-shadow(0 0 18px rgba(174, 219, 255, 0.9));
+  }
+}
+
+@keyframes hintPulse {
+  0%,
+  100% {
+    opacity: 0.62;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  50% {
+    opacity: 1;
+    transform: translateX(-50%) translateY(-3px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .movingSymbolLayer::before,
+  .movingSymbolLayer::after {
+    animation-duration: 3s;
+  }
+
+  .movingBgSymbol {
+    --symbol-float-duration: 30s;
+    --symbol-flash-duration: 3s;
+  }
+}
+
+@media (max-width: 560px) {
+  .movingBgSymbol {
+    width: calc(var(--size) * 0.82);
+  }
+
+  .missionImageGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.72rem;
+  }
+
+  .missionGalleryWindow {
+    width: min(94vw, 520px);
+    max-height: 82dvh;
+    padding: 0.75rem;
+  }
+}
+
+@media (min-aspect-ratio: 1/1) {
+  .title h1 {
+    font-size: clamp(1rem, 3.2vw, 2.3rem);
+  }
+
+  .title p {
+    font-size: clamp(0.6rem, 1.4vw, 0.88rem);
+  }
+
+  .hint {
+    bottom: 7%;
+    width: auto;
+    white-space: nowrap;
+    font-size: clamp(0.6rem, 1.3vw, 0.82rem);
+  }
+}
