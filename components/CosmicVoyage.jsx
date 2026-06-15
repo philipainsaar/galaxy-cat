@@ -1673,11 +1673,7 @@ if (state.landed) {
 
       {popupOpen && (
         <div className="popupWindow">
-          <div className="termHeader">
-            <span>COLLECTIONS</span>
-            <button type="button" onClick={resetExperience}>
-              •
-            </button>
+          
           </div>
 
           <div className="popupWindow missionGalleryWindow">
