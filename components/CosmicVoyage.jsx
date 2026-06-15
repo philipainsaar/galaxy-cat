@@ -608,6 +608,47 @@ function disposeObject(root) {
   });
 }
 
+function loadBlurredSpriteTexture(url, blurPx = 1.2) {
+  return new Promise((resolve, reject) => {
+    const imageLoader = new THREE.ImageLoader();
+
+    imageLoader.load(
+      url,
+      (image) => {
+        const padding = Math.ceil(blurPx * 4);
+        const canvas = document.createElement('canvas');
+
+        canvas.width = image.width + padding * 2;
+        canvas.height = image.height + padding * 2;
+
+        const ctx = canvas.getContext('2d');
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // Draw blurred image first for smooth edges/glow.
+        ctx.filter = `blur(${blurPx}px)`;
+        ctx.drawImage(image, padding, padding);
+
+        // Draw sharp image on top so it stays detailed.
+        ctx.filter = 'none';
+        ctx.drawImage(image, padding, padding);
+
+        const texture = new THREE.CanvasTexture(canvas);
+
+        texture.colorSpace = THREE.SRGBColorSpace;
+        texture.magFilter = THREE.LinearFilter;
+        texture.minFilter = THREE.LinearFilter;
+        texture.generateMipmaps = false;
+        texture.needsUpdate = true;
+
+        resolve(texture);
+      },
+      undefined,
+      reject,
+    );
+  });
+}
+
 export default function CosmicVoyage() {
   const canvasRef = useRef(null);
   const stateRef = useRef(null);
@@ -749,48 +790,45 @@ export default function CosmicVoyage() {
     const infinityTriangleWater = createInfinityTriangleWater();
     scene.add(infinityTriangleWater);
 
-const tipMaterial = new THREE.SpriteMaterial({
+      const tipMaterial = new THREE.SpriteMaterial({
   transparent: true,
   depthWrite: false,
   depthTest: true,
 
-  // Keeps the PNG bright instead of gray/dim.
+  // Important: prevents ACES tone mapping from making the PNG look gray.
   toneMapped: false,
 
-  // Makes the sprite brighter.
-color: new THREE.Color(1.0, 1.0, 1.0),
+  // 1.0 keeps the original PNG color.
+  color: new THREE.Color(1.0, 1.0, 1.0),
   opacity: 1,
 
-  // Use this for glowing hearts.
+  // Normal keeps the PNG color more accurate than AdditiveBlending.
   blending: THREE.NormalBlending,
 });
 
 const tipImage = new THREE.Sprite(tipMaterial);
 
+// Change this to move the heart.
 tipImage.position.set(0, 30, -600);
 
 scene.add(tipImage);
 
-new THREE.TextureLoader().load(
-  '/images/heart.png?v=3',
-  (texture) => {
-    texture.colorSpace = THREE.SRGBColorSpace;
-    texture.magFilter = THREE.LinearFilter;
-    texture.minFilter = THREE.LinearFilter;
-    texture.generateMipmaps = false;
-    texture.needsUpdate = true;
-
+loadBlurredSpriteTexture('/images/heart.png?v=7', 1.2)
+  .then((texture) => {
     tipMaterial.map = texture;
     tipMaterial.needsUpdate = true;
 
     const aspect = texture.image.width / texture.image.height;
 
-    const height = 60;
-    const width = height * aspect;
+    // Change this to resize the heart.
+    const heartHeight = 60;
+    const heartWidth = heartHeight * aspect;
 
-    tipImage.scale.set(width, height, 1);
-  },
-);
+    tipImage.scale.set(heartWidth, heartHeight, 1);
+  })
+  .catch((error) => {
+    console.error('Could not load /images/heart.png:', error);
+  });
       
     // Smooth pastel water: no GLB and no textures, but enough geometry for real waves.
     // This avoids the hard texture cuts caused by separate flat highlight planes.
