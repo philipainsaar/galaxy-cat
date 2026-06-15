@@ -758,7 +758,7 @@ const tipMaterial = new THREE.SpriteMaterial({
   toneMapped: false,
 
   // Makes the sprite brighter.
-  color: new THREE.Color(2.2, 2.2, 2.2),
+color: new THREE.Color(1.45, 1.45, 1.45),
   opacity: 1,
 
   // Use this for glowing hearts.
