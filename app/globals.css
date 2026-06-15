@@ -99,16 +99,6 @@ button {
   background-size: auto 100%;
 }
 
-.spaceBg::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background:
-    radial-gradient(circle at 50% 7%, rgba(255, 255, 255, 0.42), transparent 34%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 183, 220, 0.08));
-  pointer-events: none;
-}
-
 .movingSymbolLayer {
   position: absolute;
   inset: 0;
