@@ -57,8 +57,8 @@ const MOVING_BG_SYMBOLS = [
 const TOTAL_MOVING_SYMBOLS = 30;
 
 function createMovingBackgroundSymbols() {
-  const columns = 5;
-  const rows = 6;
+  const columns = 6;
+  const rows = 3;
 
   const slots = [];
 
@@ -761,7 +761,7 @@ tipImage.position.set(0, 30, -600);
 scene.add(tipImage);
 
 new THREE.TextureLoader().load(
-  '/images/heart.png',
+  '/images/heart.webp',
   (texture) => {
     tipMaterial.map = texture;
     tipMaterial.needsUpdate = true;
