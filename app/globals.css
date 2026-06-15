@@ -81,7 +81,7 @@ button {
   left: 0;
   top: 0;
   width: 100%;
-  height: 30dvh; /* change this to control how far down the sky goes */
+  height: 33dvh; /* change this to control how far down the sky goes */
   overflow: hidden;
   z-index: 0;
   pointer-events: none;
