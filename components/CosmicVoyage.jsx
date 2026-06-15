@@ -1671,9 +1671,6 @@ if (state.landed) {
 
       {popupOpen && (
         <div className="popupWindow">
-          
-          </div>
-
           <div className="popupWindow missionGalleryWindow">
               <div className="termHeader">
                   <span>COLLECTIONS</span>
