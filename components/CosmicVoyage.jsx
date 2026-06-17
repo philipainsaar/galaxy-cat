@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 
@@ -671,6 +671,373 @@ function loadBlurredSpriteTexture(url, blurPx = 3.0) {
 }
 
 
+
+function ShoppingIntroSplash({ onFinished }) {
+  const bubbleCanvasRef = useRef(null);
+  const catCanvasRef = useRef(null);
+  const textCardRef = useRef(null);
+  const [isFading, setIsFading] = useState(false);
+
+  useEffect(() => {
+    const bubbleCanvas = bubbleCanvasRef.current;
+    const catCanvas = catCanvasRef.current;
+
+    if (!bubbleCanvas || !catCanvas) return undefined;
+
+    let disposed = false;
+    let animationFrame = 0;
+    let lastTime = performance.now();
+    let elapsed = 0;
+    let width = window.innerWidth;
+    let height = window.innerHeight;
+    let viewportWidth = 10;
+    const viewportHeight = 10;
+
+    const INTRO_BUBBLE_COUNT = 120;
+    const INTRO_VISIBLE_SECONDS = 3.6;
+    const INTRO_FADE_SECONDS = 0.78;
+    const INTRO_FADE_START_SECONDS = INTRO_VISIBLE_SECONDS;
+    const CAT_GROUND_IN_INTRO = -0.44;
+
+    const bubbleContext = bubbleCanvas.getContext('2d');
+
+    if (!bubbleContext) return undefined;
+
+    const rand = (min, max) => min + Math.random() * (max - min);
+    const clamp01 = (value) => Math.max(0, Math.min(1, value));
+    const smoothstep = (edge0, edge1, value) => {
+      const t = clamp01((value - edge0) / (edge1 - edge0));
+      return t * t * (3 - 2 * t);
+    };
+    const easeOutQuart = (value) => 1 - Math.pow(1 - value, 4);
+    const lerp = (from, to, amount) => from + (to - from) * amount;
+
+    const makeBubbleTexture = () => {
+      const size = 320;
+      const canvas = document.createElement('canvas');
+      canvas.width = size;
+      canvas.height = size;
+
+      const ctx = canvas.getContext('2d');
+      const cx = size / 2;
+      const cy = size / 2;
+      const r = size * 0.4;
+
+      ctx.clearRect(0, 0, size, size);
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+
+      ctx.save();
+      ctx.shadowColor = 'rgba(255,255,255,0.62)';
+      ctx.shadowBlur = 28;
+      const glow = ctx.createRadialGradient(cx, cy, r * 0.55, cx, cy, r * 1.18);
+      glow.addColorStop(0.0, 'rgba(255,255,255,0.00)');
+      glow.addColorStop(0.60, 'rgba(255,255,255,0.16)');
+      glow.addColorStop(0.82, 'rgba(255,255,255,0.34)');
+      glow.addColorStop(1.0, 'rgba(255,255,255,0.00)');
+      ctx.beginPath();
+      ctx.arc(cx, cy, r * 1.05, 0, Math.PI * 2);
+      ctx.fillStyle = glow;
+      ctx.fill();
+      ctx.restore();
+
+      const body = ctx.createRadialGradient(cx, cy, r * 0.15, cx, cy, r);
+      body.addColorStop(0.0, 'rgba(255,255,255,0.065)');
+      body.addColorStop(0.45, 'rgba(255,255,255,0.075)');
+      body.addColorStop(0.82, 'rgba(255,255,255,0.050)');
+      body.addColorStop(1.0, 'rgba(255,255,255,0.00)');
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, 0, Math.PI * 2);
+      ctx.fillStyle = body;
+      ctx.fill();
+
+      ctx.save();
+      ctx.shadowColor = 'rgba(255,255,255,0.25)';
+      ctx.shadowBlur = 8;
+      ctx.lineWidth = 11;
+      ctx.strokeStyle = 'rgba(255,255,255,0.62)';
+      ctx.beginPath();
+      ctx.arc(cx, cy, r * 0.93, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+
+      ctx.save();
+      ctx.shadowColor = 'rgba(255,255,255,0.20)';
+      ctx.shadowBlur = 8;
+      ctx.lineWidth = 18;
+      ctx.strokeStyle = 'rgba(255,255,255,0.94)';
+      ctx.beginPath();
+      ctx.arc(cx, cy, r * 0.79, Math.PI * 0.66, Math.PI * 1.44);
+      ctx.stroke();
+      ctx.restore();
+
+      ctx.save();
+      ctx.shadowColor = 'rgba(255,255,255,0.34)';
+      ctx.shadowBlur = 6;
+      ctx.lineWidth = 8;
+      ctx.strokeStyle = 'rgba(255,255,255,0.40)';
+      ctx.beginPath();
+      ctx.arc(cx, cy, r * 0.77, -Math.PI * 0.18, Math.PI * 0.12);
+      ctx.stroke();
+      ctx.restore();
+
+      ctx.save();
+      ctx.shadowColor = 'rgba(255,255,255,0.18)';
+      ctx.shadowBlur = 8;
+      ctx.fillStyle = 'rgba(255,255,255,0.52)';
+      ctx.beginPath();
+      ctx.ellipse(cx - r * 0.28, cy - r * 0.26, r * 0.11, r * 0.07, -0.6, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+
+      return canvas;
+    };
+
+    const bubbleTexture = makeBubbleTexture();
+    const bubbles = Array.from({ length: INTRO_BUBBLE_COUNT }, () => ({}));
+
+    const setupBubble = (bubble) => {
+      const unit = height / viewportHeight;
+      const roll = Math.random();
+      const sizeUnit = roll < 0.15
+        ? rand(1.0, 1.55)
+        : roll < 0.55
+          ? rand(0.55, 1.05)
+          : rand(0.20, 0.60);
+      const verticalBias = Math.pow(Math.random(), 2.4);
+
+      bubble.sizeUnit = sizeUnit;
+      bubble.x = rand(-width * 0.05, width * 1.05);
+      bubble.y = height - verticalBias * (height * 1.02);
+      bubble.vx = rand(-0.18, 0.18) * unit;
+      bubble.vy = -rand(0.75, 1.95) * unit;
+      bubble.wobbleAmp = rand(0.03, 0.11) * unit;
+      bubble.wobbleSpeed = rand(1.8, 4.4);
+      bubble.wobblePhase = rand(0, Math.PI * 2);
+      bubble.baseOpacity = rand(0.72, 0.86);
+    };
+
+    const resizeBubbleCanvas = () => {
+      width = window.innerWidth;
+      height = window.innerHeight;
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+      bubbleCanvas.width = Math.round(width * dpr);
+      bubbleCanvas.height = Math.round(height * dpr);
+      bubbleCanvas.style.width = `${width}px`;
+      bubbleCanvas.style.height = `${height}px`;
+      bubbleContext.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+      bubbles.forEach(setupBubble);
+    };
+
+    const renderer = new THREE.WebGLRenderer({
+      canvas: catCanvas,
+      alpha: true,
+      antialias: true,
+      powerPreference: 'high-performance',
+    });
+    renderer.setClearColor(0x000000, 0);
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.06;
+
+    const introScene = new THREE.Scene();
+    const introCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 100);
+    introCamera.position.z = 10;
+
+    introScene.add(new THREE.HemisphereLight(0xe9e4ff, 0xffe8f5, 2.65));
+
+    const introKeyLight = new THREE.DirectionalLight(0xffffff, 3.4);
+    introKeyLight.position.set(4, 8, 7);
+    introScene.add(introKeyLight);
+
+    const introPinkLight = new THREE.PointLight(0xffb7dc, 2.4, 24);
+    introPinkLight.position.set(4, 2.5, 4);
+    introScene.add(introPinkLight);
+
+    const introBlueLight = new THREE.PointLight(0xaedbff, 2.4, 24);
+    introBlueLight.position.set(-4, 2.2, 4);
+    introScene.add(introBlueLight);
+
+    const introCatGroup = new THREE.Group();
+    introCatGroup.visible = false;
+    introScene.add(introCatGroup);
+
+    let introCatLoadedAt = 0;
+    const introMixers = [];
+    const loader = new GLTFLoader();
+
+    loader.loadAsync(CAT_MODEL_URL)
+      .then((gltf) => {
+        if (disposed) {
+          disposeObject(gltf.scene);
+          return;
+        }
+
+        const catModel = gltf.scene;
+        catModel.name = 'ShoppingIntroAlienCat';
+        improveModelQuality(catModel, renderer, [
+          new THREE.Color(0xffb7dc),
+          new THREE.Color(0xcab8ff),
+          new THREE.Color(0xaedbff),
+        ]);
+        fitModel(catModel, 2.35, CAT_GROUND_IN_INTRO, CAT_MODEL_ROTATION_Y, 'max');
+        introCatGroup.add(catModel);
+        createMixer(catModel, gltf.animations, introMixers);
+        introCatLoadedAt = elapsed;
+        introCatGroup.visible = true;
+      })
+      .catch((error) => {
+        console.error('Could not load intro alien-cat.glb:', error);
+      });
+
+    const resizeCatCanvas = () => {
+      width = window.innerWidth;
+      height = window.innerHeight;
+      const aspect = width / height;
+      viewportWidth = viewportHeight * aspect;
+
+      introCamera.left = -viewportWidth / 2;
+      introCamera.right = viewportWidth / 2;
+      introCamera.top = viewportHeight / 2;
+      introCamera.bottom = -viewportHeight / 2;
+      introCamera.updateProjectionMatrix();
+
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+      renderer.setSize(width, height, false);
+    };
+
+    const getIntroCatTargetY = () => {
+      const card = textCardRef.current;
+      const cardTopPx = card
+        ? card.getBoundingClientRect().top
+        : height * 0.62;
+      const cardTopWorld = introCamera.top - (cardTopPx / height) * viewportHeight;
+
+      // The cat model is fit with its feet at CAT_GROUND_IN_INTRO,
+      // so this places its feet right on the top lip of the text card.
+      return cardTopWorld - CAT_GROUND_IN_INTRO + 0.03;
+    };
+
+    const drawBubbles = (dt) => {
+      if (!bubbleContext) return;
+
+      const vanish = smoothstep(2.95, INTRO_VISIBLE_SECONDS, elapsed);
+
+      bubbleContext.clearRect(0, 0, width, height);
+
+      bubbles.forEach((bubble) => {
+        const wobble = Math.sin(elapsed * bubble.wobbleSpeed + bubble.wobblePhase) * bubble.wobbleAmp;
+        bubble.x += (bubble.vx + wobble * 0.9) * dt;
+        bubble.y += bubble.vy * dt;
+
+        const grow = 1.0 + (elapsed / INTRO_VISIBLE_SECONDS) * 0.10 + vanish * 0.12;
+        const sizePx = bubble.sizeUnit * (height / viewportHeight) * grow;
+
+        bubbleContext.globalAlpha = bubble.baseOpacity * (1.0 - vanish);
+        bubbleContext.drawImage(
+          bubbleTexture,
+          bubble.x - sizePx / 2,
+          bubble.y - sizePx / 2,
+          sizePx,
+          sizePx,
+        );
+      });
+
+      bubbleContext.globalAlpha = 1;
+    };
+
+    const animate = (now) => {
+      if (disposed) return;
+
+      const dt = Math.min((now - lastTime) / 1000, 0.05);
+      lastTime = now;
+      elapsed += dt;
+
+      drawBubbles(dt);
+
+      const catFallElapsed = introCatGroup.visible
+        ? Math.max(0, elapsed - introCatLoadedAt)
+        : 0;
+      const fallProgress = clamp01((catFallElapsed - 0.05) / 0.62);
+      const easedFall = easeOutQuart(fallProgress);
+      const startY = introCamera.top + 3.35;
+      const targetY = getIntroCatTargetY();
+      const bounce = fallProgress >= 1
+        ? Math.sin((catFallElapsed - 0.67) * 20) * Math.exp(-(catFallElapsed - 0.67) * 5) * 0.10
+        : 0;
+
+      introCatGroup.position.set(
+        0,
+        lerp(startY, targetY, easedFall) + bounce,
+        0,
+      );
+      introCatGroup.rotation.x = Math.sin(elapsed * 6.5) * 0.045;
+      introCatGroup.rotation.y = Math.sin(elapsed * 4.7) * 0.16;
+      introCatGroup.rotation.z = (1 - easedFall) * -0.28 + Math.sin(elapsed * 9) * 0.035;
+      introCatGroup.scale.setScalar(1 + Math.max(0, bounce) * 0.18);
+
+      introMixers.forEach((mixer) => mixer.update(dt));
+      renderer.render(introScene, introCamera);
+
+      if (elapsed >= INTRO_FADE_START_SECONDS && !disposed) {
+        setIsFading(true);
+      }
+
+      if (elapsed >= INTRO_FADE_START_SECONDS + INTRO_FADE_SECONDS && !disposed) {
+        onFinished?.();
+        return;
+      }
+
+      animationFrame = requestAnimationFrame(animate);
+    };
+
+    const handleResize = () => {
+      resizeBubbleCanvas();
+      resizeCatCanvas();
+    };
+
+    handleResize();
+    animationFrame = requestAnimationFrame(animate);
+    window.addEventListener('resize', handleResize);
+
+    return () => {
+      disposed = true;
+      cancelAnimationFrame(animationFrame);
+      window.removeEventListener('resize', handleResize);
+      introMixers.forEach((mixer) => mixer.stopAllAction());
+      disposeObject(introScene);
+      renderer.dispose();
+    };
+  }, [onFinished]);
+
+  return (
+    <div className={`shoppingIntroSplash${isFading ? ' isFading' : ''}`}>
+      <canvas
+        ref={bubbleCanvasRef}
+        className="shoppingIntroBubbleCanvas"
+        aria-hidden="true"
+      />
+
+      <canvas
+        ref={catCanvasRef}
+        className="shoppingIntroCatCanvas"
+        aria-hidden="true"
+      />
+
+      <div className="shoppingIntroPreviewText">
+        <div ref={textCardRef} className="shoppingIntroTextCard">
+          <h1 className="shoppingIntroText">
+            AN ALIEN CAT CAME
+            <span>TO COLLECT YOU FOR SHOPPING</span>
+          </h1>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function CosmicVoyage() {
   const canvasRef = useRef(null);
   const stateRef = useRef(null);
@@ -681,6 +1048,8 @@ export default function CosmicVoyage() {
   const [landedUI, setLandedUI] = useState(false);
   const [modelError, setModelError] = useState('');
   const [movingBgSymbols, setMovingBgSymbols] = useState([]);
+  const [introFinished, setIntroFinished] = useState(false);
+  const finishIntro = useCallback(() => setIntroFinished(true), []);
 
   const resetExperience = () => {
     const state = stateRef.current;
@@ -1677,6 +2046,9 @@ if (state.landed) {
 
   return (
     <main className="stage">
+      {!introFinished && (
+        <ShoppingIntroSplash onFinished={finishIntro} />
+      )}
       <div className="pastelBackgroundViewport" aria-hidden="true">
         <div className="pastelBackgroundMotion">
           <div className="spaceBg" />
