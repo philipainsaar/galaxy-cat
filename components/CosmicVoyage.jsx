@@ -3,9 +3,44 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { clone as cloneSkeleton } from 'three/examples/jsm/utils/SkeletonUtils.js';
 
 const CAT_MODEL_URL = '/models/alien-cat.glb';
 const BOAT_MODEL_URL = '/models/cosmic-boat.glb';
+
+const CORE_MODEL_PRELOAD_URLS = [
+  CAT_MODEL_URL,
+  BOAT_MODEL_URL,
+];
+
+// These are all the GLB files currently shipped in /public/models.
+// Cat + boat are highest priority because the main scene needs them first.
+const ALL_PUBLIC_GLB_PRELOAD_URLS = [
+  CAT_MODEL_URL,
+  BOAT_MODEL_URL,
+  '/models/float-ring.glb',
+  '/models/floatring.glb',
+  '/models/galaxy-bag.glb',
+  '/models/pastel-looping-animated-water.glb',
+];
+
+const PUBLIC_IMAGE_PRELOAD_URLS = [
+  '/images/pastel-sky.jpg',
+  '/images/pastel-sky.png',
+  '/images/water-texture.jpg',
+  '/images/heart.png',
+  '/images/heart.gif',
+  '/images/almostmadeinjapan.png',
+  '/images/covers/dreamy.jpg',
+  '/images/covers/emo.jpg',
+  '/images/covers/nature.jpg',
+  '/images/covers/cyber.jpg',
+  '/images/symbols/pink-star-brooch.png',
+  '/images/symbols/pearl-planet.png',
+  '/images/symbols/fluffy-purple-star.png',
+  '/images/symbols/opal-star.png',
+  '/images/symbols/kawaii-planet.png',
+];
 
 // Change either value to Math.PI if a model faces backward after export.
 const CAT_MODEL_ROTATION_Y = 0;
@@ -390,6 +425,142 @@ function createMixer(root, clips, mixers) {
   mixers.push(mixer);
 }
 
+function createPreloadStore() {
+  return {
+    gltfLoader: null,
+    textureLoader: null,
+    models: new Map(),
+    modelPromises: new Map(),
+    modelErrors: new Map(),
+    images: new Map(),
+    imagePromises: new Map(),
+    imageErrors: new Map(),
+  };
+}
+
+function getPreloadGLTFLoader(store) {
+  if (!store.gltfLoader) {
+    store.gltfLoader = new GLTFLoader();
+  }
+
+  return store.gltfLoader;
+}
+
+function getPreloadTextureLoader(store) {
+  if (!store.textureLoader) {
+    store.textureLoader = new THREE.TextureLoader();
+  }
+
+  return store.textureLoader;
+}
+
+function preloadGLB(store, url) {
+  THREE.Cache.enabled = true;
+
+  if (!store || !url) return Promise.reject(new Error('Missing preload store or GLB url.'));
+  if (store.models.has(url)) return Promise.resolve(store.models.get(url));
+  if (store.modelPromises.has(url)) return store.modelPromises.get(url);
+
+  const promise = getPreloadGLTFLoader(store)
+    .loadAsync(url)
+    .then((gltf) => {
+      store.models.set(url, gltf);
+      store.modelErrors.delete(url);
+      return gltf;
+    })
+    .catch((error) => {
+      store.modelErrors.set(url, error);
+      throw error;
+    });
+
+  store.modelPromises.set(url, promise);
+  return promise;
+}
+
+function preloadTexture(store, url) {
+  THREE.Cache.enabled = true;
+
+  if (!store || !url) return Promise.resolve(null);
+  if (store.images.has(url)) return Promise.resolve(store.images.get(url));
+  if (store.imagePromises.has(url)) return store.imagePromises.get(url);
+
+  const promise = getPreloadTextureLoader(store)
+    .loadAsync(url)
+    .then((texture) => {
+      texture.colorSpace = THREE.SRGBColorSpace;
+      texture.needsUpdate = true;
+      store.images.set(url, texture);
+      store.imageErrors.delete(url);
+      return texture;
+    })
+    .catch((error) => {
+      store.imageErrors.set(url, error);
+      return null;
+    });
+
+  store.imagePromises.set(url, promise);
+  return promise;
+}
+
+function cloneMaterialsForScene(root) {
+  const clonedMaterials = new Map();
+
+  root.traverse((object) => {
+    if (!object.isMesh || !object.material) return;
+
+    if (Array.isArray(object.material)) {
+      object.material = object.material.map((material) => {
+        if (!material) return material;
+        if (!clonedMaterials.has(material)) {
+          clonedMaterials.set(material, material.clone());
+        }
+        return clonedMaterials.get(material);
+      });
+    } else {
+      const material = object.material;
+      if (!clonedMaterials.has(material)) {
+        clonedMaterials.set(material, material.clone());
+      }
+      object.material = clonedMaterials.get(material);
+    }
+  });
+}
+
+function clonePreloadedGLTF(gltf) {
+  if (!gltf?.scene) return null;
+
+  const scene = cloneSkeleton(gltf.scene);
+  cloneMaterialsForScene(scene);
+
+  return {
+    scene,
+    animations: gltf.animations || [],
+  };
+}
+
+async function loadSceneGLTF(store, url) {
+  const cached = store?.models?.get(url);
+
+  if (cached) {
+    return clonePreloadedGLTF(cached);
+  }
+
+  const gltf = await preloadGLB(store, url);
+  return clonePreloadedGLTF(gltf);
+}
+
+function runSoonWhenIdle(callback, timeout = 350) {
+  if (typeof window === 'undefined') return null;
+
+  if ('requestIdleCallback' in window) {
+    const id = window.requestIdleCallback(callback, { timeout: 1800 });
+    return () => window.cancelIdleCallback?.(id);
+  }
+
+  const id = window.setTimeout(callback, timeout);
+  return () => window.clearTimeout(id);
+}
+
 function createUltraFastWater() {
   // Smooth, high pastel waves for mobile:
   // one water mesh, no flat overlay planes, no GLB, no texture slicing.
@@ -672,11 +843,16 @@ function loadBlurredSpriteTexture(url, blurPx = 3.0) {
 
 
 
-function ShoppingIntroSplash({ onFinished }) {
+function ShoppingIntroSplash({ onFinished, preloadStore, coreModelsReady }) {
   const bubbleCanvasRef = useRef(null);
   const catCanvasRef = useRef(null);
   const textCardRef = useRef(null);
+  const coreModelsReadyRef = useRef(coreModelsReady);
   const [isFading, setIsFading] = useState(false);
+
+  useEffect(() => {
+    coreModelsReadyRef.current = coreModelsReady;
+  }, [coreModelsReady]);
 
   useEffect(() => {
     const bubbleCanvas = bubbleCanvasRef.current;
@@ -868,10 +1044,11 @@ function ShoppingIntroSplash({ onFinished }) {
 
     let introCatLoadedAt = 0;
     const introMixers = [];
-    const loader = new GLTFLoader();
 
-    loader.loadAsync(CAT_MODEL_URL)
+    loadSceneGLTF(preloadStore, CAT_MODEL_URL)
       .then((gltf) => {
+        if (!gltf?.scene) return;
+
         if (disposed) {
           disposeObject(gltf.scene);
           return;
@@ -884,7 +1061,7 @@ function ShoppingIntroSplash({ onFinished }) {
           new THREE.Color(0xcab8ff),
           new THREE.Color(0xaedbff),
         ]);
-        fitModel(catModel, 3.25, CAT_GROUND_IN_INTRO, CAT_MODEL_ROTATION_Y, 'max');
+        fitModel(catModel, 3.55, CAT_GROUND_IN_INTRO, CAT_MODEL_ROTATION_Y, 'max');
         introCatGroup.add(catModel);
         createMixer(catModel, gltf.animations, introMixers);
         introCatLoadedAt = elapsed;
@@ -951,6 +1128,8 @@ function ShoppingIntroSplash({ onFinished }) {
       bubbleContext.globalAlpha = 1;
     };
 
+    let fadeStartedAt = 0;
+
     const animate = (now) => {
       if (disposed) return;
 
@@ -984,11 +1163,17 @@ function ShoppingIntroSplash({ onFinished }) {
       introMixers.forEach((mixer) => mixer.update(dt));
       renderer.render(introScene, introCamera);
 
-      if (elapsed >= INTRO_FADE_START_SECONDS && !disposed) {
+      const preloadWaitTimedOut = elapsed >= INTRO_VISIBLE_SECONDS + 1.35;
+      const canFadeToMain =
+        elapsed >= INTRO_FADE_START_SECONDS &&
+        (coreModelsReadyRef.current || preloadWaitTimedOut);
+
+      if (canFadeToMain && !fadeStartedAt) {
+        fadeStartedAt = elapsed;
         setIsFading(true);
       }
 
-      if (elapsed >= INTRO_FADE_START_SECONDS + INTRO_FADE_SECONDS && !disposed) {
+      if (fadeStartedAt && elapsed >= fadeStartedAt + INTRO_FADE_SECONDS && !disposed) {
         onFinished?.();
         return;
       }
@@ -1013,7 +1198,7 @@ function ShoppingIntroSplash({ onFinished }) {
       disposeObject(introScene);
       renderer.dispose();
     };
-  }, [onFinished]);
+  }, [onFinished, preloadStore]);
 
   return (
     <div className={`shoppingIntroSplash${isFading ? ' isFading' : ''}`}>
@@ -1044,6 +1229,11 @@ function ShoppingIntroSplash({ onFinished }) {
 export default function CosmicVoyage() {
   const canvasRef = useRef(null);
   const stateRef = useRef(null);
+  const preloadStoreRef = useRef(null);
+
+  if (!preloadStoreRef.current) {
+    preloadStoreRef.current = createPreloadStore();
+  }
 
   const [loading, setLoading] = useState(false);
   const [loadingPercent, setLoadingPercent] = useState(0);
@@ -1052,6 +1242,7 @@ export default function CosmicVoyage() {
   const [modelError, setModelError] = useState('');
   const [movingBgSymbols, setMovingBgSymbols] = useState([]);
   const [introFinished, setIntroFinished] = useState(false);
+  const [coreModelsReady, setCoreModelsReady] = useState(false);
   const finishIntro = useCallback(() => setIntroFinished(true), []);
 
   const resetExperience = () => {
@@ -1088,6 +1279,52 @@ export default function CosmicVoyage() {
     setPopupOpen(false);
     setLandedUI(false);
   };
+
+
+  useEffect(() => {
+    const preloadStore = preloadStoreRef.current;
+    let cancelled = false;
+
+    THREE.Cache.enabled = true;
+
+    // Start the two models needed for first paint immediately.
+    Promise.allSettled(
+      CORE_MODEL_PRELOAD_URLS.map((url) => preloadGLB(preloadStore, url)),
+    ).then((results) => {
+      results.forEach((result, index) => {
+        if (result.status === 'rejected') {
+          console.error(
+            `Could not preload core model ${CORE_MODEL_PRELOAD_URLS[index]}:`,
+            result.reason,
+          );
+        }
+      });
+
+      if (!cancelled) {
+        setCoreModelsReady(true);
+      }
+    });
+
+    // Warm the rest of /public in idle time so the intro stays smooth.
+    const cancelIdleWork = runSoonWhenIdle(() => {
+      ALL_PUBLIC_GLB_PRELOAD_URLS
+        .filter((url) => !CORE_MODEL_PRELOAD_URLS.includes(url))
+        .forEach((url) => {
+          preloadGLB(preloadStore, url).catch((error) => {
+            console.warn(`Optional model preload skipped ${url}:`, error);
+          });
+        });
+
+      PUBLIC_IMAGE_PRELOAD_URLS.forEach((url) => {
+        preloadTexture(preloadStore, url).catch(() => null);
+      });
+    });
+
+    return () => {
+      cancelled = true;
+      cancelIdleWork?.();
+    };
+  }, []);
 
   useEffect(() => {
     if (!introFinished) return;
@@ -1327,12 +1564,14 @@ loadBlurredSpriteTexture('/images/heart.png?v=10', 4.0)
     catPinkGlow.position.set(0, 0.9, 0);
     catGroup.add(catPinkGlow);
 
-    // Load the boat and cat GLB models. Water is generated as cheap geometry above.
-    const loader = new GLTFLoader();
+    // Load the boat and cat from the intro preload cache when possible.
+    // If the intro finished before a preload completed, this waits on the same Promise
+    // instead of starting a duplicate network request.
+    const preloadStore = preloadStoreRef.current;
 
     Promise.all([
-      loader.loadAsync(BOAT_MODEL_URL),
-      loader.loadAsync(CAT_MODEL_URL),
+      loadSceneGLTF(preloadStore, BOAT_MODEL_URL),
+      loadSceneGLTF(preloadStore, CAT_MODEL_URL),
     ])
       .then(([boatGLTF, catGLTF]) => {
         if (disposed) {
@@ -2053,9 +2292,13 @@ if (state.landed) {
   return (
     <main className="stage">
       {!introFinished ? (
-        <ShoppingIntroSplash onFinished={finishIntro} />
+        <ShoppingIntroSplash
+          onFinished={finishIntro}
+          preloadStore={preloadStoreRef.current}
+          coreModelsReady={coreModelsReady}
+        />
       ) : (
-        <>
+        <div className="mainExperienceFadeIn">
           <div className="pastelBackgroundViewport" aria-hidden="true">
         <div className="pastelBackgroundMotion">
           <div className="spaceBg" />
@@ -2179,7 +2422,7 @@ if (state.landed) {
           </div>
         </div>
           )}
-        </>
+        </div>
       )}
     </main>
   );
