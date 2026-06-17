@@ -58,15 +58,14 @@ const CAT_GROUND_Y = -0.5;
 
 // Floating ring placement is screen-anchored so mobile does not drift it onto the cat.
 // x: 0 = left edge, 1 = right edge. y: 0 = top, 1 = bottom.
-// This places the ring in the exact lower-left circled spot from the phone screenshot.
-// x/y are normalized screen coordinates measured from the marked circle center.
-const FLOAT_RING_SCREEN_ANCHOR = { x: 0.284, y: 0.653 };
+// This keeps the ring in the lower-left water area from the reference screenshot.
+const FLOAT_RING_SCREEN_ANCHOR = { x: 0.245, y: 0.565 };
 const FLOAT_RING_SURFACE_Y = -1.03;
-const FLOAT_RING_TARGET_SIZE = 2.05;
+const FLOAT_RING_TARGET_SIZE = 1.34;
 const FLOAT_RING_MODEL_TILT_X = -Math.PI / 2;
-const FLOAT_RING_LOCAL_WATERLINE_Y = -0.08;
+const FLOAT_RING_LOCAL_WATERLINE_Y = -0.18;
 const FLOAT_RING_WATER_BOB_MULTIPLIER = 0.72;
-const FLOAT_RING_FALLBACK_POSITION = new THREE.Vector3(-3.75, FLOAT_RING_SURFACE_Y, 5.85);
+const FLOAT_RING_FALLBACK_POSITION = new THREE.Vector3(-4.1, FLOAT_RING_SURFACE_Y, 4.9);
 
 const clampNumber = (value, min, max) => Math.max(min, Math.min(max, value));
 
@@ -74,34 +73,18 @@ const LAUNCH_DURATION_SECONDS = 3;
 const LAUNCH_DISTANCE = 120;
 const LAUNCH_HEIGHT = 6;
 
-const RING_TERMINAL_MESSAGE = [
-  "> FLOAT-RING SIGNAL FOUND",
-  "> CHANNEL: PASTEL WATER / FRONT CAT SIDE",
-  "> STATUS: BUBBLE-LINK OPEN",
-  "",
-  "/**",
-  " *       ___   __               __         ",
-  " *      / _ | / /_ _  ___  ___ / /_        ",
-  " *     / __ |/ /  ' \\/ _ \\(_-</ __/        ",
-  " *    /_/_|_/_/_/_/_/\\___/___/\\__/__       ",
-  " *      /  |/  /__ ____/ /__   /  _/__     ",
-  " *     / /|_/ / _ `/ _  / -_) _/ // _ \\    ",
-  " *    /_/  /_/\\_,_/\\_,_/\\__/ /___/_//_/    ",
-  " *     __ / /__ ____  ___ ____             ",
-  " *    / // / _ `/ _ \\/ _ `/ _ \\            ",
-  " *    \\___/\\_,_/ .__/\\_,_/_//_/            ",
-  " *            /_/                          ",
-  " */",
-  "",
-  "hello tiny shopper.",
-  "this floating ring is a soft portal buoy floating on the lower-left water.",
-  "when the water starts glowing, follow the bubbles,",
-  "keep the alien cat close,",
-  "and do not let the boat forget the way home.",
-  "",
-  "> MESSAGE COMPLETE",
-  "> TAP OUTSIDE THIS BOX TO CLOSE"
-].join('\n');
+const RING_TERMINAL_MESSAGE = `> FLOAT-RING SIGNAL FOUND
+> CHANNEL: PASTEL WATER / FRONT CAT SIDE
+> STATUS: BUBBLE-LINK OPEN
+
+hello tiny shopper.
+this floating ring is a soft portal buoy floating on the lower-left water.
+when the water starts glowing, follow the bubbles,
+keep the alien cat close,
+and do not let the boat forget the way home.
+
+> MESSAGE COMPLETE
+> TAP OUTSIDE THIS BOX TO CLOSE`;
 
 const RING_CHAT_BUBBLES = [
   { x: 8, y: 10, size: 74, delay: 0.0, speed: 7.2 },
@@ -1743,33 +1726,33 @@ loadBlurredSpriteTexture('/images/heart.png?v=10', 4.0)
     });
 
     const floatRingHitbox = new THREE.Mesh(
-      new THREE.SphereGeometry(1.55, 32, 16),
+      new THREE.SphereGeometry(1.05, 32, 16),
       floatRingHitMaterial,
     );
     floatRingHitbox.name = 'FloatingRingClickTarget';
     floatRingHitbox.userData.isFloatingRing = true;
     floatRingGroup.add(floatRingHitbox);
 
-    const floatRingGlow = new THREE.PointLight(0xffd7f4, 2.15, 5.6);
-    floatRingGlow.position.set(0, 0.36, 0);
+    const floatRingGlow = new THREE.PointLight(0xffd7f4, 1.8, 4.5);
+    floatRingGlow.position.set(0, 0.28, 0);
     floatRingGroup.add(floatRingGlow);
 
     const floatRingWaterPatchMaterial = new THREE.MeshBasicMaterial({
       color: 0xaedbff,
       transparent: true,
-      opacity: 0.18,
+      opacity: 0.34,
       depthWrite: false,
       depthTest: true,
       side: THREE.DoubleSide,
     });
     const floatRingWaterPatch = new THREE.Mesh(
-      new THREE.CircleGeometry(0.72, 72),
+      new THREE.CircleGeometry(0.86, 72),
       floatRingWaterPatchMaterial,
     );
     floatRingWaterPatch.name = 'FloatingRingWaterSurfacePatch';
     floatRingWaterPatch.rotation.x = -Math.PI / 2;
-    floatRingWaterPatch.scale.set(1.12, 0.44, 1);
-    floatRingWaterPatch.position.set(0, -0.015, 0);
+    floatRingWaterPatch.scale.set(1.42, 0.62, 1);
+    floatRingWaterPatch.position.set(0, 0.01, 0);
     floatRingWaterPatch.renderOrder = 12;
     floatRingGroup.add(floatRingWaterPatch);
 
