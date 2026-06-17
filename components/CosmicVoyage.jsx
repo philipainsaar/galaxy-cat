@@ -693,7 +693,8 @@ function ShoppingIntroSplash({ onFinished }) {
     let viewportWidth = 10;
     const viewportHeight = 10;
 
-    const INTRO_BUBBLE_COUNT = 120;
+    const isMobileIntro = width < 700 || window.matchMedia?.('(pointer: coarse)').matches;
+    const INTRO_BUBBLE_COUNT = isMobileIntro ? 64 : 92;
     const INTRO_VISIBLE_SECONDS = 3.6;
     const INTRO_FADE_SECONDS = 0.78;
     const INTRO_FADE_START_SECONDS = INTRO_VISIBLE_SECONDS;
@@ -820,7 +821,8 @@ function ShoppingIntroSplash({ onFinished }) {
     const resizeBubbleCanvas = () => {
       width = window.innerWidth;
       height = window.innerHeight;
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const dprLimit = width < 700 ? 1.25 : 1.6;
+      const dpr = Math.min(window.devicePixelRatio || 1, dprLimit);
 
       bubbleCanvas.width = Math.round(width * dpr);
       bubbleCanvas.height = Math.round(height * dpr);
@@ -834,7 +836,7 @@ function ShoppingIntroSplash({ onFinished }) {
     const renderer = new THREE.WebGLRenderer({
       canvas: catCanvas,
       alpha: true,
-      antialias: true,
+      antialias: false,
       powerPreference: 'high-performance',
     });
     renderer.setClearColor(0x000000, 0);
@@ -882,7 +884,7 @@ function ShoppingIntroSplash({ onFinished }) {
           new THREE.Color(0xcab8ff),
           new THREE.Color(0xaedbff),
         ]);
-        fitModel(catModel, 2.35, CAT_GROUND_IN_INTRO, CAT_MODEL_ROTATION_Y, 'max');
+        fitModel(catModel, 3.25, CAT_GROUND_IN_INTRO, CAT_MODEL_ROTATION_Y, 'max');
         introCatGroup.add(catModel);
         createMixer(catModel, gltf.animations, introMixers);
         introCatLoadedAt = elapsed;
@@ -904,7 +906,8 @@ function ShoppingIntroSplash({ onFinished }) {
       introCamera.bottom = -viewportHeight / 2;
       introCamera.updateProjectionMatrix();
 
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+      const dprLimit = width < 700 ? 1.25 : 1.5;
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, dprLimit));
       renderer.setSize(width, height, false);
     };
 
@@ -1087,10 +1090,13 @@ export default function CosmicVoyage() {
   };
 
   useEffect(() => {
+    if (!introFinished) return;
     setMovingBgSymbols(createMovingBackgroundSymbols());
-  }, []);
+  }, [introFinished]);
 
   useEffect(() => {
+    if (!introFinished) return undefined;
+
     const canvas = canvasRef.current;
     if (!canvas) return undefined;
 
@@ -2037,7 +2043,7 @@ if (state.landed) {
       disposeObject(scene);
       renderer.dispose();
     };
-  }, []);
+  }, [introFinished]);
 
   const loadingBarStyle = useMemo(
     () => ({ width: `${loadingPercent}%` }),
@@ -2046,10 +2052,11 @@ if (state.landed) {
 
   return (
     <main className="stage">
-      {!introFinished && (
+      {!introFinished ? (
         <ShoppingIntroSplash onFinished={finishIntro} />
-      )}
-      <div className="pastelBackgroundViewport" aria-hidden="true">
+      ) : (
+        <>
+          <div className="pastelBackgroundViewport" aria-hidden="true">
         <div className="pastelBackgroundMotion">
           <div className="spaceBg" />
 
@@ -2150,8 +2157,8 @@ if (state.landed) {
         </div>
       )}
 
-      {modelError && (
-        <div className="popupWindow">
+          {modelError && (
+            <div className="popupWindow">
           <div className="termHeader">
             <span>MODEL LOAD ERROR</span>
             <button
@@ -2171,6 +2178,8 @@ if (state.landed) {
             Open the browser console for the exact error.
           </div>
         </div>
+          )}
+        </>
       )}
     </main>
   );
