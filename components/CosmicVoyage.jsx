@@ -58,14 +58,15 @@ const CAT_GROUND_Y = -0.5;
 
 // Floating ring placement is screen-anchored so mobile does not drift it onto the cat.
 // x: 0 = left edge, 1 = right edge. y: 0 = top, 1 = bottom.
-// This keeps the ring in the lower-left water area from the reference screenshot.
-const FLOAT_RING_SCREEN_ANCHOR = { x: 0.245, y: 0.565 };
+// This places the ring in the exact lower-left circled spot from the phone screenshot.
+// x/y are normalized screen coordinates measured from the marked circle center.
+const FLOAT_RING_SCREEN_ANCHOR = { x: 0.284, y: 0.653 };
 const FLOAT_RING_SURFACE_Y = -1.03;
 const FLOAT_RING_TARGET_SIZE = 2.05;
 const FLOAT_RING_MODEL_TILT_X = -Math.PI / 2;
 const FLOAT_RING_LOCAL_WATERLINE_Y = -0.08;
 const FLOAT_RING_WATER_BOB_MULTIPLIER = 0.72;
-const FLOAT_RING_FALLBACK_POSITION = new THREE.Vector3(-4.1, FLOAT_RING_SURFACE_Y, 4.9);
+const FLOAT_RING_FALLBACK_POSITION = new THREE.Vector3(-3.75, FLOAT_RING_SURFACE_Y, 5.85);
 
 const clampNumber = (value, min, max) => Math.max(min, Math.min(max, value));
 
