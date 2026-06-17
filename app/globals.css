@@ -923,19 +923,14 @@ select,
   position: fixed;
   inset: 0;
   z-index: 15000;
-  display: grid;
-  place-items: center;
-  padding: clamp(18px, 5vw, 54px);
   overflow: hidden;
   cursor: pointer;
   background:
-    radial-gradient(circle at 18% 24%, rgba(255, 205, 241, 0.24), transparent 32%),
-    radial-gradient(circle at 82% 18%, rgba(185, 226, 255, 0.24), transparent 30%),
-    radial-gradient(circle at 50% 90%, rgba(214, 194, 255, 0.18), transparent 34%),
-    rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(2px);
-  -webkit-backdrop-filter: blur(2px);
-  animation: ringChatOverlayIn 0.26s ease both;
+    radial-gradient(circle at 18% 24%, rgba(255, 205, 241, 0.20), transparent 32%),
+    radial-gradient(circle at 82% 18%, rgba(185, 226, 255, 0.20), transparent 30%),
+    radial-gradient(circle at 48% 90%, rgba(214, 194, 255, 0.16), transparent 34%),
+    rgba(255, 255, 255, 0.04);
+  animation: ringChatOverlayIn 0.22s ease both;
 }
 
 .ringChatBubbleLayer {
@@ -953,7 +948,7 @@ select,
   width: var(--bubble-size);
   height: var(--bubble-size);
   border-radius: 50%;
-  opacity: 0.72;
+  opacity: 0.70;
   transform: translate3d(-50%, -50%, 0) scale(0.92);
   background:
     radial-gradient(circle at 32% 28%, rgba(255, 255, 255, 0.88) 0 6%, transparent 7%),
@@ -993,53 +988,72 @@ select,
 }
 
 .ringChatBox {
-  position: relative;
+  position: absolute;
   z-index: 2;
-  width: min(760px, 92vw);
-  max-height: min(74dvh, 620px);
-  padding: clamp(12px, 2.6vw, 20px);
+  left: var(--ring-chat-left, 72px);
+  top: var(--ring-chat-top, 180px);
+  width: min(360px, 78vw);
+  max-height: min(48dvh, 360px);
+  padding: 10px;
   cursor: default;
   color: rgba(46, 32, 78, 0.92);
-  border-radius: clamp(24px, 5vw, 44px);
-  border: 1px solid rgba(255, 255, 255, 0.64);
+  border-radius: 24px 24px 24px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.66);
   background:
     linear-gradient(
       135deg,
-      rgba(255, 255, 255, 0.46),
-      rgba(255, 235, 251, 0.34) 42%,
-      rgba(226, 244, 255, 0.34)
+      rgba(255, 255, 255, 0.54),
+      rgba(255, 235, 251, 0.42) 42%,
+      rgba(226, 244, 255, 0.42)
     );
   box-shadow:
-    0 26px 90px rgba(120, 96, 182, 0.24),
-    0 0 46px rgba(255, 216, 247, 0.24),
-    inset 0 1px 0 rgba(255, 255, 255, 0.76),
+    0 18px 58px rgba(120, 96, 182, 0.22),
+    0 0 34px rgba(255, 216, 247, 0.24),
+    inset 0 1px 0 rgba(255, 255, 255, 0.80),
     inset 0 -1px 0 rgba(182, 213, 255, 0.26);
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
-  animation: ringChatBoxIn 0.34s cubic-bezier(0.2, 0.9, 0.2, 1.15) both;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  animation: ringChatBoxIn 0.30s cubic-bezier(0.2, 0.9, 0.2, 1.12) both;
+}
+
+.ringChatBox::after {
+  content: "";
+  position: absolute;
+  left: var(--ring-chat-arrow-left, 58px);
+  bottom: -18px;
+  width: 0;
+  height: 0;
+  border-left: 16px solid transparent;
+  border-right: 7px solid transparent;
+  border-top: 20px solid rgba(255, 245, 253, 0.72);
+  filter:
+    drop-shadow(0 8px 10px rgba(120, 96, 182, 0.14))
+    drop-shadow(0 0 10px rgba(255, 216, 247, 0.22));
+  transform: translateX(-50%) rotate(7deg);
+  pointer-events: none;
 }
 
 .ringChatHeader {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.8rem;
-  margin-bottom: 0.82rem;
-  padding: 0.58rem 0.72rem;
+  gap: 0.6rem;
+  margin-bottom: 0.52rem;
+  padding: 0.46rem 0.58rem;
   border-radius: 999px;
   border: 1px solid rgba(255, 255, 255, 0.58);
   background: rgba(255, 255, 255, 0.34);
   color: rgba(82, 61, 126, 0.86);
-  font-size: clamp(0.7rem, 1.8vw, 0.88rem);
-  letter-spacing: 0.18em;
+  font-size: clamp(0.62rem, 1.65vw, 0.78rem);
+  letter-spacing: 0.13em;
   text-transform: uppercase;
   text-shadow: 0 1px 0 rgba(255, 255, 255, 0.7);
 }
 
 .ringChatHeader button {
   flex: 0 0 auto;
-  width: 34px;
-  height: 34px;
+  width: 28px;
+  height: 28px;
   border: 0;
   border-radius: 50%;
   display: grid;
@@ -1055,14 +1069,14 @@ select,
 }
 
 .ringTerminalText {
-  min-height: min(42dvh, 330px);
-  max-height: min(52dvh, 430px);
+  min-height: 138px;
+  max-height: min(29dvh, 218px);
   overflow-y: auto;
   overscroll-behavior: contain;
   white-space: pre-wrap;
   margin: 0;
-  padding: clamp(16px, 3vw, 26px);
-  border-radius: clamp(18px, 4vw, 32px);
+  padding: 13px 14px;
+  border-radius: 16px 16px 16px 8px;
   border: 1px solid rgba(255, 255, 255, 0.48);
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.31), rgba(255, 245, 253, 0.19)),
@@ -1071,9 +1085,9 @@ select,
     inset 0 1px 0 rgba(255, 255, 255, 0.64),
     inset 0 0 30px rgba(205, 230, 255, 0.16);
   color: rgba(42, 28, 70, 0.90);
-  font-size: clamp(0.86rem, 2.8vw, 1.08rem);
-  line-height: 1.52;
-  letter-spacing: 0.05em;
+  font-size: clamp(0.76rem, 2.35vw, 0.94rem);
+  line-height: 1.46;
+  letter-spacing: 0.04em;
   text-shadow:
     0 1px 0 rgba(255, 255, 255, 0.68),
     0 0 18px rgba(255, 255, 255, 0.46);
@@ -1180,28 +1194,29 @@ select,
 
 
 @media (max-width: 520px) {
-  .ringChatOverlay {
-    padding: 14px;
-    place-items: center;
-  }
-
   .ringChatBox {
-    width: min(94vw, 460px);
-    max-height: 72dvh;
-    padding: 12px;
+    width: min(330px, 78vw);
+    max-height: 46dvh;
+    padding: 9px;
+    border-radius: 22px 22px 22px 9px;
   }
 
   .ringChatHeader {
-    font-size: 0.64rem;
-    letter-spacing: 0.12em;
-    padding: 0.5rem 0.58rem;
+    font-size: 0.56rem;
+    letter-spacing: 0.09em;
+    padding: 0.42rem 0.48rem;
+  }
+
+  .ringChatHeader button {
+    width: 26px;
+    height: 26px;
   }
 
   .ringTerminalText {
-    min-height: 42dvh;
-    max-height: 50dvh;
-    padding: 15px;
-    font-size: 0.82rem;
-    line-height: 1.5;
+    min-height: 126px;
+    max-height: 27dvh;
+    padding: 12px;
+    font-size: 0.74rem;
+    line-height: 1.45;
   }
 }
