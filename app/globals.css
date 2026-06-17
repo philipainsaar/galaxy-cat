@@ -987,6 +987,10 @@ select,
   transform: rotate(18deg);
 }
 
+.ringChatBubbleCloud {
+  display: none !important;
+}
+
 .ringChatBox {
   position: absolute;
   z-index: 2;
