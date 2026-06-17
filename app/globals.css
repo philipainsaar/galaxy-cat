@@ -76,6 +76,27 @@ button {
   isolation: isolate;
 }
 
+
+.mainExperienceFadeIn {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  animation: mainExperienceFadeIn 0.52s ease forwards;
+  will-change: opacity;
+}
+
+@keyframes mainExperienceFadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
 .pastelBackgroundViewport {
   position: absolute;
   left: 0;
