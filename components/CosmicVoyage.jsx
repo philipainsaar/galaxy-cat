@@ -56,9 +56,11 @@ const BOAT_DEPTH = -8.2;
 const BOAT_WATERLINE_Y = -0.28;
 const CAT_GROUND_Y = -0.5;
 
-const FLOAT_RING_POSITION = new THREE.Vector3(-3.15, -0.86, 2.95);
+const FLOAT_RING_POSITION = new THREE.Vector3(-1.18, -0.28, 2.95);
 const FLOAT_RING_TARGET_SIZE = 1.68;
 const FLOAT_RING_MODEL_TILT_X = -Math.PI / 2;
+
+const clampNumber = (value, min, max) => Math.max(min, Math.min(max, value));
 
 const LAUNCH_DURATION_SECONDS = 3;
 const LAUNCH_DISTANCE = 120;
@@ -1277,6 +1279,11 @@ export default function CosmicVoyage() {
   const [loadingPercent, setLoadingPercent] = useState(0);
   const [popupOpen, setPopupOpen] = useState(false);
   const [ringPopupOpen, setRingPopupOpen] = useState(false);
+  const [ringPopupPlacement, setRingPopupPlacement] = useState({
+    left: 72,
+    top: 180,
+    arrowLeft: 58,
+  });
   const [ringTerminalText, setRingTerminalText] = useState('');
   const ringTerminalRef = useRef(null);
   const [landedUI, setLandedUI] = useState(false);
@@ -1286,6 +1293,33 @@ export default function CosmicVoyage() {
   const [coreModelsReady, setCoreModelsReady] = useState(false);
   const finishIntro = useCallback(() => setIntroFinished(true), []);
   const closeRingPopup = useCallback(() => setRingPopupOpen(false), []);
+
+  const placeRingPopupFromPointer = useCallback((clientX, clientY) => {
+    const viewportWidth = window.innerWidth || 390;
+    const viewportHeight = window.innerHeight || 844;
+    const chatWidth = Math.min(360, viewportWidth * 0.78);
+    const estimatedChatHeight = Math.min(300, viewportHeight * 0.36);
+
+    const left = clampNumber(
+      clientX - chatWidth * 0.32,
+      14,
+      Math.max(14, viewportWidth - chatWidth - 14),
+    );
+
+    const top = clampNumber(
+      clientY - estimatedChatHeight - 44,
+      82,
+      Math.max(82, viewportHeight - estimatedChatHeight - 24),
+    );
+
+    const arrowLeft = clampNumber(clientX - left, 34, chatWidth - 44);
+
+    setRingPopupPlacement({
+      left: Math.round(left),
+      top: Math.round(top),
+      arrowLeft: Math.round(arrowLeft),
+    });
+  }, []);
 
   useEffect(() => {
     if (!ringPopupOpen) {
@@ -1932,6 +1966,7 @@ loadBlurredSpriteTexture('/images/heart.png?v=10', 4.0)
       const ringIntersections = raycaster.intersectObject(floatRingGroup, true);
 
       if (ringIntersections.length > 0) {
+        placeRingPopupFromPointer(clientX, clientY);
         setRingPopupOpen(true);
         document.body.style.cursor = '';
         return true;
@@ -2197,16 +2232,18 @@ loadBlurredSpriteTexture('/images/heart.png?v=10', 4.0)
       }
 
 
-      const ringBob = Math.sin(elapsed * 2.05) * 0.085 + Math.cos(elapsed * 1.25) * 0.035;
+      const ringBob =
+        Math.sin(elapsed * 2.45) * 0.17 +
+        Math.cos(elapsed * 1.65) * 0.08;
       floatRingGroup.position.set(
         FLOAT_RING_POSITION.x,
         FLOAT_RING_POSITION.y + ringBob,
         FLOAT_RING_POSITION.z,
       );
-      floatRingGroup.rotation.x = Math.cos(elapsed * 1.45) * 0.045;
-      floatRingGroup.rotation.y = Math.sin(elapsed * 0.85) * 0.10;
-      floatRingGroup.rotation.z = Math.sin(elapsed * 1.75) * 0.065;
-      floatRingGlow.intensity = 1.45 + Math.sin(elapsed * 3.2) * 0.28;
+      floatRingGroup.rotation.x = Math.cos(elapsed * 1.8) * 0.028;
+      floatRingGroup.rotation.y = Math.sin(elapsed * 1.2) * 0.045;
+      floatRingGroup.rotation.z = Math.sin(elapsed * 2.1) * 0.055;
+      floatRingGlow.intensity = 1.55 + Math.sin(elapsed * 3.2) * 0.28;
 
       fluffClouds.forEach((cloud) => {
         const motion = cloud.userData.fluffMotion;
@@ -2453,7 +2490,7 @@ if (state.landed) {
       disposeObject(scene);
       renderer.dispose();
     };
-  }, [introFinished]);
+  }, [introFinished, placeRingPopupFromPointer]);
 
   const loadingBarStyle = useMemo(
     () => ({ width: `${loadingPercent}%` }),
@@ -2599,6 +2636,11 @@ if (state.landed) {
             role="dialog"
             aria-modal="true"
             aria-label="Floating ring message"
+            style={{
+              '--ring-chat-left': `${ringPopupPlacement.left}px`,
+              '--ring-chat-top': `${ringPopupPlacement.top}px`,
+              '--ring-chat-arrow-left': `${ringPopupPlacement.arrowLeft}px`,
+            }}
             onPointerDown={(event) => event.stopPropagation()}
           >
             <div className="ringChatHeader">
