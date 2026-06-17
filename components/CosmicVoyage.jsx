@@ -56,7 +56,9 @@ const BOAT_DEPTH = -8.2;
 const BOAT_WATERLINE_Y = -0.28;
 const CAT_GROUND_Y = -0.5;
 
-const FLOAT_RING_POSITION = new THREE.Vector3(-1.18, -0.28, 2.95);
+// Foreground position: next to the alien cat and sunk slightly into the water.
+// x = left/right, y = water height/submerge, z = front/back.
+const FLOAT_RING_POSITION = new THREE.Vector3(1.02, BOAT_WATERLINE_Y - 0.36, 4.72);
 const FLOAT_RING_TARGET_SIZE = 1.68;
 const FLOAT_RING_MODEL_TILT_X = -Math.PI / 2;
 
@@ -67,11 +69,11 @@ const LAUNCH_DISTANCE = 120;
 const LAUNCH_HEIGHT = 6;
 
 const RING_TERMINAL_MESSAGE = `> FLOAT-RING SIGNAL FOUND
-> CHANNEL: PASTEL WATER / LEFT SIDE
+> CHANNEL: PASTEL WATER / FRONT CAT SIDE
 > STATUS: BUBBLE-LINK OPEN
 
 hello tiny shopper.
-this floating ring is a soft portal buoy.
+this floating ring is a soft portal buoy near the alien cat.
 when the water starts glowing, follow the bubbles,
 keep the alien cat close,
 and do not let the boat forget the way home.
