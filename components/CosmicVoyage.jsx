@@ -56,11 +56,16 @@ const BOAT_DEPTH = -8.2;
 const BOAT_WATERLINE_Y = -0.28;
 const CAT_GROUND_Y = -0.5;
 
-// Foreground position: next to the alien cat and sunk slightly into the water.
-// x = left/right, y = water height/submerge, z = front/back.
-const FLOAT_RING_POSITION = new THREE.Vector3(1.02, BOAT_WATERLINE_Y - 0.36, 4.72);
-const FLOAT_RING_TARGET_SIZE = 1.68;
+// Floating ring placement is screen-anchored so mobile does not drift it onto the cat.
+// x: 0 = left edge, 1 = right edge. y: 0 = top, 1 = bottom.
+// This keeps the ring in the lower-left water area from the reference screenshot.
+const FLOAT_RING_SCREEN_ANCHOR = { x: 0.245, y: 0.565 };
+const FLOAT_RING_SURFACE_Y = -1.03;
+const FLOAT_RING_TARGET_SIZE = 1.34;
 const FLOAT_RING_MODEL_TILT_X = -Math.PI / 2;
+const FLOAT_RING_LOCAL_WATERLINE_Y = -0.18;
+const FLOAT_RING_WATER_BOB_MULTIPLIER = 0.72;
+const FLOAT_RING_FALLBACK_POSITION = new THREE.Vector3(-4.1, FLOAT_RING_SURFACE_Y, 4.9);
 
 const clampNumber = (value, min, max) => Math.max(min, Math.min(max, value));
 
@@ -73,7 +78,7 @@ const RING_TERMINAL_MESSAGE = `> FLOAT-RING SIGNAL FOUND
 > STATUS: BUBBLE-LINK OPEN
 
 hello tiny shopper.
-this floating ring is a soft portal buoy near the alien cat.
+this floating ring is a soft portal buoy floating on the lower-left water.
 when the water starts glowing, follow the bubbles,
 keep the alien cat close,
 and do not let the boat forget the way home.
@@ -454,6 +459,45 @@ function fitModel(root, targetSize, groundY, rotationY, scaleMode = 'max') {
   root.updateMatrixWorld(true);
 
   return new THREE.Box3().setFromObject(root);
+}
+
+function alignModelCenterToLocalWaterline(root, localWaterlineY) {
+  root.updateMatrixWorld(true);
+
+  const box = new THREE.Box3().setFromObject(root);
+  const centerY = (box.min.y + box.max.y) * 0.5;
+
+  if (!Number.isFinite(centerY)) return;
+
+  // After rotating the buoy flat, put the model center slightly below the waterline.
+  // This makes the ring visibly touch the water instead of hovering like a halo.
+  root.position.y += localWaterlineY - centerY;
+  root.updateMatrixWorld(true);
+}
+
+function setFloatingRingFromScreenAnchor(floatRingGroup, camera) {
+  const ndc = new THREE.Vector2(
+    FLOAT_RING_SCREEN_ANCHOR.x * 2 - 1,
+    1 - FLOAT_RING_SCREEN_ANCHOR.y * 2,
+  );
+
+  const raycaster = new THREE.Raycaster();
+  const waterPlane = new THREE.Plane(
+    new THREE.Vector3(0, 1, 0),
+    -FLOAT_RING_SURFACE_Y,
+  );
+  const point = new THREE.Vector3();
+
+  raycaster.setFromCamera(ndc, camera);
+
+  if (raycaster.ray.intersectPlane(waterPlane, point)) {
+    floatRingGroup.userData.basePosition = point.clone();
+    floatRingGroup.position.copy(point);
+    return;
+  }
+
+  floatRingGroup.userData.basePosition = FLOAT_RING_FALLBACK_POSITION.clone();
+  floatRingGroup.position.copy(FLOAT_RING_FALLBACK_POSITION);
 }
 
 function createMixer(root, clips, mixers) {
@@ -1619,7 +1663,8 @@ loadBlurredSpriteTexture('/images/heart.png?v=10', 4.0)
 
     const floatRingGroup = new THREE.Group();
     floatRingGroup.name = 'ClickableFloatingRing';
-    floatRingGroup.position.copy(FLOAT_RING_POSITION);
+    floatRingGroup.userData.basePosition = FLOAT_RING_FALLBACK_POSITION.clone();
+    setFloatingRingFromScreenAnchor(floatRingGroup, camera);
     scene.add(floatRingGroup);
 
     const seatPosition = DEFAULT_SEAT.clone();
@@ -1692,6 +1737,25 @@ loadBlurredSpriteTexture('/images/heart.png?v=10', 4.0)
     floatRingGlow.position.set(0, 0.28, 0);
     floatRingGroup.add(floatRingGlow);
 
+    const floatRingWaterPatchMaterial = new THREE.MeshBasicMaterial({
+      color: 0xaedbff,
+      transparent: true,
+      opacity: 0.34,
+      depthWrite: false,
+      depthTest: true,
+      side: THREE.DoubleSide,
+    });
+    const floatRingWaterPatch = new THREE.Mesh(
+      new THREE.CircleGeometry(0.86, 72),
+      floatRingWaterPatchMaterial,
+    );
+    floatRingWaterPatch.name = 'FloatingRingWaterSurfacePatch';
+    floatRingWaterPatch.rotation.x = -Math.PI / 2;
+    floatRingWaterPatch.scale.set(1.42, 0.62, 1);
+    floatRingWaterPatch.position.set(0, 0.01, 0);
+    floatRingWaterPatch.renderOrder = 12;
+    floatRingGroup.add(floatRingWaterPatch);
+
     // Load the boat and cat from the intro preload cache when possible.
     // If the intro finished before a preload completed, this waits on the same Promise
     // instead of starting a duplicate network request.
@@ -1729,8 +1793,13 @@ loadBlurredSpriteTexture('/images/heart.png?v=10', 4.0)
         // If the ring appears upright in your exported GLB, change this constant to 0.
         floatRingModel.rotation.x = FLOAT_RING_MODEL_TILT_X;
         floatRingModel.rotation.z = 0.14;
+        alignModelCenterToLocalWaterline(
+          floatRingModel,
+          FLOAT_RING_LOCAL_WATERLINE_Y,
+        );
         floatRingModel.traverse((object) => {
           object.userData.isFloatingRing = true;
+          object.renderOrder = 10;
         });
 
         floatRingGroup.add(floatRingModel);
@@ -2208,6 +2277,8 @@ loadBlurredSpriteTexture('/images/heart.png?v=10', 4.0)
       );
       camera.lookAt(0, 0, 0);
       camera.updateProjectionMatrix();
+
+      setFloatingRingFromScreenAnchor(floatRingGroup, camera);
     };
 
     window.addEventListener('resize', onResize);
@@ -2234,13 +2305,17 @@ loadBlurredSpriteTexture('/images/heart.png?v=10', 4.0)
       }
 
 
-      const ringBob =
-        Math.sin(elapsed * 2.45) * 0.17 +
-        Math.cos(elapsed * 1.65) * 0.08;
+      // Float in the anchored water spot, away from the cat, with the same bob rhythm as the boat.
+      const ringBasePosition =
+        floatRingGroup.userData.basePosition || FLOAT_RING_FALLBACK_POSITION;
+      const ringWaterBob =
+        (Math.sin(elapsed * 2.45) * 0.17 +
+          Math.cos(elapsed * 1.65) * 0.08) *
+        FLOAT_RING_WATER_BOB_MULTIPLIER;
       floatRingGroup.position.set(
-        FLOAT_RING_POSITION.x,
-        FLOAT_RING_POSITION.y + ringBob,
-        FLOAT_RING_POSITION.z,
+        ringBasePosition.x,
+        ringBasePosition.y + ringWaterBob,
+        ringBasePosition.z,
       );
       floatRingGroup.rotation.x = Math.cos(elapsed * 1.8) * 0.028;
       floatRingGroup.rotation.y = Math.sin(elapsed * 1.2) * 0.045;
