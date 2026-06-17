@@ -7,10 +7,13 @@ import { clone as cloneSkeleton } from 'three/examples/jsm/utils/SkeletonUtils.j
 
 const CAT_MODEL_URL = '/models/alien-cat.glb';
 const BOAT_MODEL_URL = '/models/cosmic-boat.glb';
+const FLOAT_RING_MODEL_URL = '/models/float-ring.glb';
+const FLOAT_RING_FALLBACK_MODEL_URL = '/models/floatring.glb';
 
 const CORE_MODEL_PRELOAD_URLS = [
   CAT_MODEL_URL,
   BOAT_MODEL_URL,
+  FLOAT_RING_MODEL_URL,
 ];
 
 // These are all the GLB files currently shipped in /public/models.
@@ -18,8 +21,8 @@ const CORE_MODEL_PRELOAD_URLS = [
 const ALL_PUBLIC_GLB_PRELOAD_URLS = [
   CAT_MODEL_URL,
   BOAT_MODEL_URL,
-  '/models/float-ring.glb',
-  '/models/floatring.glb',
+  FLOAT_RING_MODEL_URL,
+  FLOAT_RING_FALLBACK_MODEL_URL,
   '/models/galaxy-bag.glb',
   '/models/pastel-looping-animated-water.glb',
 ];
@@ -53,9 +56,41 @@ const BOAT_DEPTH = -8.2;
 const BOAT_WATERLINE_Y = -0.28;
 const CAT_GROUND_Y = -0.5;
 
+const FLOAT_RING_POSITION = new THREE.Vector3(-3.15, -0.86, 2.95);
+const FLOAT_RING_TARGET_SIZE = 1.68;
+const FLOAT_RING_MODEL_TILT_X = -Math.PI / 2;
+
 const LAUNCH_DURATION_SECONDS = 3;
 const LAUNCH_DISTANCE = 120;
 const LAUNCH_HEIGHT = 6;
+
+const RING_TERMINAL_MESSAGE = `> FLOAT-RING SIGNAL FOUND
+> CHANNEL: PASTEL WATER / LEFT SIDE
+> STATUS: BUBBLE-LINK OPEN
+
+hello tiny shopper.
+this floating ring is a soft portal buoy.
+when the water starts glowing, follow the bubbles,
+keep the alien cat close,
+and do not let the boat forget the way home.
+
+> MESSAGE COMPLETE
+> TAP OUTSIDE THIS BOX TO CLOSE`;
+
+const RING_CHAT_BUBBLES = [
+  { x: 8, y: 10, size: 74, delay: 0.0, speed: 7.2 },
+  { x: 19, y: 76, size: 52, delay: -1.4, speed: 6.3 },
+  { x: 31, y: 18, size: 42, delay: -2.7, speed: 5.8 },
+  { x: 42, y: 84, size: 86, delay: -0.8, speed: 7.9 },
+  { x: 56, y: 9, size: 58, delay: -3.1, speed: 6.5 },
+  { x: 69, y: 68, size: 44, delay: -1.9, speed: 5.9 },
+  { x: 82, y: 20, size: 96, delay: -2.2, speed: 8.2 },
+  { x: 91, y: 82, size: 62, delay: -0.6, speed: 6.7 },
+  { x: 14, y: 49, size: 38, delay: -3.6, speed: 5.5 },
+  { x: 74, y: 43, size: 70, delay: -4.0, speed: 7.1 },
+  { x: 50, y: 54, size: 50, delay: -2.8, speed: 6.0 },
+  { x: 6, y: 88, size: 110, delay: -1.1, speed: 8.5 },
+];
 
 const MISSION_LINK_IMAGES = [
     {
@@ -1241,12 +1276,40 @@ export default function CosmicVoyage() {
   const [loading, setLoading] = useState(false);
   const [loadingPercent, setLoadingPercent] = useState(0);
   const [popupOpen, setPopupOpen] = useState(false);
+  const [ringPopupOpen, setRingPopupOpen] = useState(false);
+  const [ringTerminalText, setRingTerminalText] = useState('');
+  const ringTerminalRef = useRef(null);
   const [landedUI, setLandedUI] = useState(false);
   const [modelError, setModelError] = useState('');
   const [movingBgSymbols, setMovingBgSymbols] = useState([]);
   const [introFinished, setIntroFinished] = useState(false);
   const [coreModelsReady, setCoreModelsReady] = useState(false);
   const finishIntro = useCallback(() => setIntroFinished(true), []);
+  const closeRingPopup = useCallback(() => setRingPopupOpen(false), []);
+
+  useEffect(() => {
+    if (!ringPopupOpen) {
+      setRingTerminalText('');
+      return undefined;
+    }
+
+    let index = 0;
+    const timer = window.setInterval(() => {
+      index = Math.min(index + 2, RING_TERMINAL_MESSAGE.length);
+      setRingTerminalText(RING_TERMINAL_MESSAGE.slice(0, index));
+
+      if (index >= RING_TERMINAL_MESSAGE.length) {
+        window.clearInterval(timer);
+      }
+    }, 24);
+
+    return () => window.clearInterval(timer);
+  }, [ringPopupOpen]);
+
+  useEffect(() => {
+    if (!ringTerminalRef.current) return;
+    ringTerminalRef.current.scrollTop = ringTerminalRef.current.scrollHeight;
+  }, [ringTerminalText]);
 
   const resetExperience = () => {
     const state = stateRef.current;
@@ -1280,6 +1343,7 @@ export default function CosmicVoyage() {
     setLoading(false);
     setLoadingPercent(0);
     setPopupOpen(false);
+    setRingPopupOpen(false);
     setLandedUI(false);
   };
 
@@ -1517,6 +1581,11 @@ loadBlurredSpriteTexture('/images/heart.png?v=10', 4.0)
     catGroup.position.copy(START);
     scene.add(catGroup);
 
+    const floatRingGroup = new THREE.Group();
+    floatRingGroup.name = 'ClickableFloatingRing';
+    floatRingGroup.position.copy(FLOAT_RING_POSITION);
+    scene.add(floatRingGroup);
+
     const seatPosition = DEFAULT_SEAT.clone();
     const mixers = [];
     const fluffTexture = createFluffSpriteTexture();
@@ -1567,10 +1636,72 @@ loadBlurredSpriteTexture('/images/heart.png?v=10', 4.0)
     catPinkGlow.position.set(0, 0.9, 0);
     catGroup.add(catPinkGlow);
 
+    const floatRingHitMaterial = new THREE.MeshBasicMaterial({
+      transparent: true,
+      opacity: 0,
+      depthWrite: false,
+      depthTest: false,
+      colorWrite: false,
+    });
+
+    const floatRingHitbox = new THREE.Mesh(
+      new THREE.SphereGeometry(1.05, 32, 16),
+      floatRingHitMaterial,
+    );
+    floatRingHitbox.name = 'FloatingRingClickTarget';
+    floatRingHitbox.userData.isFloatingRing = true;
+    floatRingGroup.add(floatRingHitbox);
+
+    const floatRingGlow = new THREE.PointLight(0xffd7f4, 1.8, 4.5);
+    floatRingGlow.position.set(0, 0.28, 0);
+    floatRingGroup.add(floatRingGlow);
+
     // Load the boat and cat from the intro preload cache when possible.
     // If the intro finished before a preload completed, this waits on the same Promise
     // instead of starting a duplicate network request.
     const preloadStore = preloadStoreRef.current;
+
+
+    loadSceneGLTF(preloadStore, FLOAT_RING_MODEL_URL)
+      .catch((primaryError) => {
+        console.warn('Could not load /models/float-ring.glb, trying /models/floatring.glb:', primaryError);
+        return loadSceneGLTF(preloadStore, FLOAT_RING_FALLBACK_MODEL_URL);
+      })
+      .then((ringGLTF) => {
+        if (disposed) {
+          disposeObject(ringGLTF.scene);
+          return;
+        }
+
+        const floatRingModel = ringGLTF.scene;
+        floatRingModel.name = 'FloatingRingModel';
+        improveModelQuality(floatRingModel, renderer, [
+          new THREE.Color(0xffb7dc),
+          new THREE.Color(0xcab8ff),
+          new THREE.Color(0xaedbff),
+          new THREE.Color(0xffffff),
+        ]);
+
+        fitModel(
+          floatRingModel,
+          FLOAT_RING_TARGET_SIZE,
+          -0.16,
+          0,
+          'max',
+        );
+
+        // If the ring appears upright in your exported GLB, change this constant to 0.
+        floatRingModel.rotation.x = FLOAT_RING_MODEL_TILT_X;
+        floatRingModel.rotation.z = 0.14;
+        floatRingModel.traverse((object) => {
+          object.userData.isFloatingRing = true;
+        });
+
+        floatRingGroup.add(floatRingModel);
+      })
+      .catch((error) => {
+        console.warn('Floating ring model could not be loaded:', error);
+      });
 
     Promise.all([
       loadSceneGLTF(preloadStore, BOAT_MODEL_URL),
@@ -1766,6 +1897,7 @@ loadBlurredSpriteTexture('/images/heart.png?v=10', 4.0)
       tgt: targetPosition,
       boatGroup,
       catGroup,
+      floatRingGroup,
       particleMaterial,
       burstT: -1,
     };
@@ -1790,6 +1922,22 @@ loadBlurredSpriteTexture('/images/heart.png?v=10', 4.0)
         temporaryWorldPosition,
       );
       return temporaryWorldPosition;
+    };
+
+
+    const tryOpenFloatingRing = (clientX, clientY) => {
+      if (state.isDragging || state.launching) return false;
+
+      setPointerRay(clientX, clientY);
+      const ringIntersections = raycaster.intersectObject(floatRingGroup, true);
+
+      if (ringIntersections.length > 0) {
+        setRingPopupOpen(true);
+        document.body.style.cursor = '';
+        return true;
+      }
+
+      return false;
     };
 
     const tryDrag = (clientX, clientY) => {
@@ -1949,11 +2097,18 @@ loadBlurredSpriteTexture('/images/heart.png?v=10', 4.0)
     };
 
     const onMouseDown = (event) => {
+      if (tryOpenFloatingRing(event.clientX, event.clientY)) return;
       tryDrag(event.clientX, event.clientY);
     };
 
     const onMouseMove = (event) => {
       moveDraggedCat(event.clientX, event.clientY);
+
+      if (!state.isDragging && !state.landed && !state.launching) {
+        setPointerRay(event.clientX, event.clientY);
+        const hoveringRing = raycaster.intersectObject(floatRingGroup, true).length > 0;
+        document.body.style.cursor = hoveringRing ? 'pointer' : '';
+      }
     };
 
     const onMouseUp = (event) => {
@@ -1965,6 +2120,7 @@ loadBlurredSpriteTexture('/images/heart.png?v=10', 4.0)
       const touch = event.touches[0];
 
       if (touch) {
+        if (tryOpenFloatingRing(touch.clientX, touch.clientY)) return;
         tryDrag(touch.clientX, touch.clientY);
       }
     };
@@ -2039,6 +2195,18 @@ loadBlurredSpriteTexture('/images/heart.png?v=10', 4.0)
         pastelWater.water.material.map.offset.x = elapsed * 0.015;
         pastelWater.water.material.map.offset.y = elapsed * 0.025;
       }
+
+
+      const ringBob = Math.sin(elapsed * 2.05) * 0.085 + Math.cos(elapsed * 1.25) * 0.035;
+      floatRingGroup.position.set(
+        FLOAT_RING_POSITION.x,
+        FLOAT_RING_POSITION.y + ringBob,
+        FLOAT_RING_POSITION.z,
+      );
+      floatRingGroup.rotation.x = Math.cos(elapsed * 1.45) * 0.045;
+      floatRingGroup.rotation.y = Math.sin(elapsed * 0.85) * 0.10;
+      floatRingGroup.rotation.z = Math.sin(elapsed * 1.75) * 0.065;
+      floatRingGlow.intensity = 1.45 + Math.sin(elapsed * 3.2) * 0.28;
 
       fluffClouds.forEach((cloud) => {
         const motion = cloud.userData.fluffMotion;
@@ -2400,6 +2568,51 @@ if (state.landed) {
                                                                                                                                                                                     ))}
                                                                                                                                                                                       </div>
                                                                                                                                                                                       </div>
+        </div>
+      )}
+
+
+      {ringPopupOpen && (
+        <div
+          className="ringChatOverlay"
+          role="presentation"
+          onPointerDown={closeRingPopup}
+        >
+          <div className="ringChatBubbleLayer" aria-hidden="true">
+            {RING_CHAT_BUBBLES.map((bubble, index) => (
+              <span
+                key={`ring-bubble-${index}`}
+                className="ringChatBubble"
+                style={{
+                  '--bubble-x': `${bubble.x}%`,
+                  '--bubble-y': `${bubble.y}%`,
+                  '--bubble-size': `${bubble.size}px`,
+                  '--bubble-delay': `${bubble.delay}s`,
+                  '--bubble-speed': `${bubble.speed}s`,
+                }}
+              />
+            ))}
+          </div>
+
+          <div
+            className="ringChatBox"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Floating ring message"
+            onPointerDown={(event) => event.stopPropagation()}
+          >
+            <div className="ringChatHeader">
+              <span>FLOATING RING TERMINAL</span>
+              <button type="button" onClick={closeRingPopup} aria-label="Close floating ring message">
+                •
+              </button>
+            </div>
+
+            <pre ref={ringTerminalRef} className="ringTerminalText">
+              {ringTerminalText}
+              <span className="ringTerminalCursor">▌</span>
+            </pre>
+          </div>
         </div>
       )}
 
