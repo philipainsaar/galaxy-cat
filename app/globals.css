@@ -846,6 +846,23 @@ select,
   pointer-events: none;
 }
 
+.shoppingIntroLogo {
+  position: absolute;
+  left: 50%;
+  top: 18px;
+  z-index: 1000;
+  width: min(82px, 52vw);
+  height: auto;
+  display: block;
+  transform: translateX(-50%);
+  object-fit: contain;
+  user-select: none;
+  -webkit-user-drag: none;
+  filter:
+    drop-shadow(0 0 12px rgba(255, 183, 220, 0.45))
+    drop-shadow(0 0 24px rgba(201, 183, 255, 0.35));
+}
+
 .shoppingIntroCatCanvas {
   z-index: 5;
 }
@@ -922,6 +939,11 @@ select,
 }
 
 @media (max-width: 520px) {
+  .shoppingIntroLogo {
+    top: 18px;
+    width: min(82px, 52vw);
+  }
+
   .shoppingIntroTextCard {
     width: 92vw;
     transform: translate(-50%, 10vh);
