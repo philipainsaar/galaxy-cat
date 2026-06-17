@@ -59,7 +59,7 @@ const CAT_GROUND_Y = -0.5;
 // Foreground water position: left of the alien cat and partly under the water.
 // x = left/right, y = water height/submerge, z = front/back.
 // More negative x moves it left. More negative y sinks it deeper into the water.
-const FLOAT_RING_POSITION = new THREE.Vector3(-1.65, BOAT_WATERLINE_Y - 0.92, 4.88);
+const FLOAT_RING_POSITION = new THREE.Vector3(-1.30, BOAT_WATERLINE_Y - 0.92, 4.88);
 const FLOAT_RING_TARGET_SIZE = 1.68;
 const FLOAT_RING_MODEL_TILT_X = -Math.PI / 2;
 
@@ -2647,12 +2647,7 @@ if (state.landed) {
             }}
             onPointerDown={(event) => event.stopPropagation()}
           >
-            <div className="ringChatHeader">
-              <span>FLOATING RING TERMINAL</span>
-              <button type="button" onClick={closeRingPopup} aria-label="Close floating ring message">
-                •
-              </button>
-            </div>
+    
 
             <pre ref={ringTerminalRef} className="ringTerminalText">
               {ringTerminalText}
