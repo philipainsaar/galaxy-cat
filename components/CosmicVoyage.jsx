@@ -455,8 +455,6 @@ function getPreloadTextureLoader(store) {
 }
 
 function preloadGLB(store, url) {
-  THREE.Cache.enabled = true;
-
   if (!store || !url) return Promise.reject(new Error('Missing preload store or GLB url.'));
   if (store.models.has(url)) return Promise.resolve(store.models.get(url));
   if (store.modelPromises.has(url)) return store.modelPromises.get(url);
@@ -478,8 +476,6 @@ function preloadGLB(store, url) {
 }
 
 function preloadTexture(store, url) {
-  THREE.Cache.enabled = true;
-
   if (!store || !url) return Promise.resolve(null);
   if (store.images.has(url)) return Promise.resolve(store.images.get(url));
   if (store.imagePromises.has(url)) return store.imagePromises.get(url);
@@ -1215,6 +1211,13 @@ function ShoppingIntroSplash({ onFinished, preloadStore, coreModelsReady }) {
       />
 
       <div className="shoppingIntroPreviewText">
+        <img
+          src="/images/almostmadeinjapan.png"
+          alt="Almost Made in Japan"
+          className="shoppingIntroLogo"
+          draggable="false"
+        />
+
         <div ref={textCardRef} className="shoppingIntroTextCard">
           <h1 className="shoppingIntroText">
             AN ALIEN CAT CAME
