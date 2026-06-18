@@ -876,8 +876,11 @@ function ShoppingIntroSplash({ onFinished, preloadStore, coreModelsReady }) {
   const bubbleCanvasRef = useRef(null);
   const catCanvasRef = useRef(null);
   const textCardRef = useRef(null);
+
   const coreModelsReadyRef = useRef(coreModelsReady);
-  const [isFading, setIsFading] = useState(false);
+const requestIntroExitRef = useRef(null);
+const [isFading, setIsFading] = useState(false);
+const [introExitRequested, setIntroExitRequested] = useState(false);
 
   useEffect(() => {
     coreModelsReadyRef.current = coreModelsReady;
@@ -895,15 +898,31 @@ function ShoppingIntroSplash({ onFinished, preloadStore, coreModelsReady }) {
     let elapsed = 0;
     let width = window.innerWidth;
     let height = window.innerHeight;
+    let introExitRequestedAt = null;
     let viewportWidth = 10;
     const viewportHeight = 10;
 
     const isMobileIntro = width < 700 || window.matchMedia?.('(pointer: coarse)').matches;
-    const INTRO_BUBBLE_COUNT = isMobileIntro ? 64 : 92;
-    const INTRO_VISIBLE_SECONDS = 3.6;
-    const INTRO_FADE_SECONDS = 0.78;
-    const INTRO_FADE_START_SECONDS = INTRO_VISIBLE_SECONDS;
-    const CAT_GROUND_IN_INTRO = -0.44;
+   const INTRO_BUBBLE_COUNT = isMobileIntro ? 64 : 92;
+const INTRO_VISIBLE_SECONDS = 3.6;
+const INTRO_FADE_SECONDS = 0.78;
+const CAT_GROUND_IN_INTRO = -0.44;
+
+const requestIntroExit = () => {
+  if (introExitRequestedAt !== null || disposed) return;
+  introExitRequestedAt = elapsed;
+  setIntroExitRequested(true);
+};
+
+requestIntroExitRef.current = requestIntroExit;
+
+const handleIntroKeyDown = (event) => {
+  if (event.key !== 'Enter') return;
+  event.preventDefault();
+  requestIntroExit();
+};
+
+window.addEventListener('keydown', handleIntroKeyDown);
 
     const bubbleContext = bubbleCanvas.getContext('2d');
 
@@ -1129,33 +1148,62 @@ function ShoppingIntroSplash({ onFinished, preloadStore, coreModelsReady }) {
       return cardTopWorld - CAT_GROUND_IN_INTRO + 0.03;
     };
 
-    const drawBubbles = (dt) => {
-      if (!bubbleContext) return;
+const drawBubbles = (dt) => {
+  if (!bubbleContext) return;
 
-      const vanish = smoothstep(2.95, INTRO_VISIBLE_SECONDS, elapsed);
+  const exitElapsed =
+    introExitRequestedAt === null ? 0 : elapsed - introExitRequestedAt;
 
-      bubbleContext.clearRect(0, 0, width, height);
+  const vanish =
+    introExitRequestedAt === null
+      ? 0
+      : smoothstep(0, INTRO_FADE_SECONDS, exitElapsed);
 
-      bubbles.forEach((bubble) => {
-        const wobble = Math.sin(elapsed * bubble.wobbleSpeed + bubble.wobblePhase) * bubble.wobbleAmp;
-        bubble.x += (bubble.vx + wobble * 0.9) * dt;
-        bubble.y += bubble.vy * dt;
+  const growElapsed = Math.min(elapsed, INTRO_VISIBLE_SECONDS);
 
-        const grow = 1.0 + (elapsed / INTRO_VISIBLE_SECONDS) * 0.10 + vanish * 0.12;
-        const sizePx = bubble.sizeUnit * (height / viewportHeight) * grow;
+  bubbleContext.clearRect(0, 0, width, height);
 
-        bubbleContext.globalAlpha = bubble.baseOpacity * (1.0 - vanish);
-        bubbleContext.drawImage(
-          bubbleTexture,
-          bubble.x - sizePx / 2,
-          bubble.y - sizePx / 2,
-          sizePx,
-          sizePx,
-        );
-      });
+  bubbles.forEach((bubble) => {
+    const wobble =
+      Math.sin(elapsed * bubble.wobbleSpeed + bubble.wobblePhase) *
+      bubble.wobbleAmp;
 
-      bubbleContext.globalAlpha = 1;
-    };
+    bubble.x += (bubble.vx + wobble * 0.9) * dt;
+    bubble.y += bubble.vy * dt;
+
+    const grow =
+      1.0 +
+      (growElapsed / INTRO_VISIBLE_SECONDS) * 0.10 +
+      vanish * 0.12;
+
+    const sizePx = bubble.sizeUnit * (height / viewportHeight) * grow;
+    const recyclePadding = sizePx * 1.35;
+
+    if (
+      introExitRequestedAt === null &&
+      (
+        bubble.y < -recyclePadding ||
+        bubble.x < -recyclePadding ||
+        bubble.x > width + recyclePadding
+      )
+    ) {
+      setupBubble(bubble);
+      bubble.y = height + recyclePadding * rand(0.2, 1.1);
+      return;
+    }
+
+    bubbleContext.globalAlpha = bubble.baseOpacity * (1.0 - vanish);
+    bubbleContext.drawImage(
+      bubbleTexture,
+      bubble.x - sizePx / 2,
+      bubble.y - sizePx / 2,
+      sizePx,
+      sizePx,
+    );
+  });
+
+  bubbleContext.globalAlpha = 1;
+};
 
     let fadeStartedAt = 0;
 
@@ -1192,10 +1240,15 @@ function ShoppingIntroSplash({ onFinished, preloadStore, coreModelsReady }) {
       introMixers.forEach((mixer) => mixer.update(dt));
       renderer.render(introScene, introCamera);
 
-      const preloadWaitTimedOut = elapsed >= INTRO_VISIBLE_SECONDS + 1.35;
-      const canFadeToMain =
-        elapsed >= INTRO_FADE_START_SECONDS &&
-        (coreModelsReadyRef.current || preloadWaitTimedOut);
+const exitElapsed =
+  introExitRequestedAt === null ? 0 : elapsed - introExitRequestedAt;
+
+const preloadWaitTimedOut =
+  introExitRequestedAt !== null && exitElapsed >= 1.35;
+
+const canFadeToMain =
+  introExitRequestedAt !== null &&
+  (coreModelsReadyRef.current || preloadWaitTimedOut);
 
       if (canFadeToMain && !fadeStartedAt) {
         fadeStartedAt = elapsed;
@@ -1257,6 +1310,17 @@ function ShoppingIntroSplash({ onFinished, preloadStore, coreModelsReady }) {
             <span>TO COLLECT YOU FOR SHOPPING</span>
           </h1>
         </div>
+        
+<button
+  type="button"
+  className="shoppingIntroEnterButton"
+  onClick={() => requestIntroExitRef.current?.()}
+  disabled={introExitRequested}
+  aria-label="Enter the website"
+>
+  {introExitRequested ? 'ENTERING...' : 'ENTER THE PORTAL?'}
+</button>
+
       </div>
     </div>
   );
