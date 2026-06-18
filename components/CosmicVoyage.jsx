@@ -1416,6 +1416,88 @@ const canFadeToMain =
   );
 }
 
+function CollectionMiniGlobe() {
+  const canvasRef = useRef(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return undefined;
+
+    let disposed = false;
+    let frame = 0;
+
+    const scene = new THREE.Scene();
+
+    const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 20);
+    camera.position.set(0, 0, 5.2);
+
+    const renderer = new THREE.WebGLRenderer({
+      canvas,
+      alpha: true,
+      antialias: true,
+      powerPreference: 'high-performance',
+    });
+
+    renderer.setClearColor(0x000000, 0);
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+    const globe = createPinkWireframeGlobe();
+
+    // Reset the big water-scene placement so the same globe becomes tiny here.
+    globe.position.set(0, 0, 0);
+    globe.scale.setScalar(0.92);
+    globe.rotation.set(-0.18, 0, 0.08);
+
+    globe.traverse((child) => {
+      child.renderOrder = 1000;
+      child.frustumCulled = false;
+    });
+
+    scene.add(globe);
+
+    const resize = () => {
+      const size = Math.max(1, canvas.clientWidth || 110);
+      const dpr = Math.min(window.devicePixelRatio || 1, 1.6);
+
+      renderer.setPixelRatio(dpr);
+      renderer.setSize(size, size, false);
+
+      camera.aspect = 1;
+      camera.updateProjectionMatrix();
+    };
+
+    const clock = new THREE.Clock();
+
+    const animate = () => {
+      if (disposed) return;
+
+      const delta = Math.min(clock.getDelta(), 0.05);
+
+      globe.rotation.y += delta * 0.72;
+      globe.rotation.x = -0.18 + Math.sin(clock.elapsedTime * 0.5) * 0.035;
+      globe.rotation.z = 0.08 + Math.cos(clock.elapsedTime * 0.42) * 0.025;
+
+      renderer.render(scene, camera);
+      frame = requestAnimationFrame(animate);
+    };
+
+    resize();
+    animate();
+
+    window.addEventListener('resize', resize);
+
+    return () => {
+      disposed = true;
+      cancelAnimationFrame(frame);
+      window.removeEventListener('resize', resize);
+      disposeObject(scene);
+      renderer.dispose();
+    };
+  }, []);
+
+  return <canvas className="collectionMiniGlobeCanvas" ref={canvasRef} />;
+}
+
 export default function CosmicVoyage() {
   const canvasRef = useRef(null);
   const stateRef = useRef(null);
@@ -2711,13 +2793,8 @@ if (state.landed) {
                                     <div className="missionGalleryIntro">
 </div>
 
-<div className="collectionGlobeOverlay" aria-hidden="true">
-  <div className="collectionWireGlobe">
-    <span className="collectionWireGlobeEquator" />
-    <span className="collectionWireGlobeMeridian collectionWireGlobeMeridianA" />
-    <span className="collectionWireGlobeMeridian collectionWireGlobeMeridianB" />
-    <span className="collectionWireGlobeMeridian collectionWireGlobeMeridianC" />
-  </div>
+<div className="collectionMiniGlobeOverlay" aria-hidden="true">
+  <CollectionMiniGlobe />
 </div>
 
                                                     <div className="missionImageGrid">

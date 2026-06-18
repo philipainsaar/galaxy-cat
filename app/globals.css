@@ -519,114 +519,45 @@ button {
   -webkit-backdrop-filter: blur(18px);
 }
 
-.collectionGlobeOverlay {
+.collectionMiniGlobeOverlay {
   position: absolute;
-  inset: 0;
-  z-index: 1;
-  display: grid;
-  place-items: center;
+  left: 50%;
+  top: 50%;
+  z-index: 999;
+  width: min(118px, 28vw);
+  height: min(118px, 28vw);
+  transform: translate(-50%, -50%);
   pointer-events: none;
-  overflow: hidden;
-}
-
-.collectionWireGlobe {
-  position: relative;
-  width: min(330px, 62vw);
-  aspect-ratio: 1;
-  border-radius: 50%;
-  opacity: 0.48;
-  transform-style: preserve-3d;
-  animation: collectionGlobeRotate 8.5s linear infinite;
+  display: block;
+  opacity: 0.72;
   filter:
-    drop-shadow(0 0 12px rgba(255, 158, 219, 0.50))
-    drop-shadow(0 0 30px rgba(255, 199, 234, 0.38));
+    drop-shadow(0 0 12px rgba(255, 158, 219, 0.48))
+    drop-shadow(0 0 26px rgba(255, 199, 234, 0.36));
 }
 
-.collectionWireGlobe::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  border: 3px solid rgba(255, 120, 205, 0.56);
-  background:
-    repeating-radial-gradient(
-      circle at 50% 50%,
-      transparent 0 18px,
-      rgba(255, 145, 216, 0.50) 19px 21px,
-      transparent 22px 39px
-    ),
-    repeating-conic-gradient(
-      from 0deg,
-      transparent 0deg 8deg,
-      rgba(255, 145, 216, 0.56) 8.5deg 10deg,
-      transparent 10.5deg 18deg
-    );
-  box-shadow:
-    inset 0 0 28px rgba(255, 210, 242, 0.28),
-    0 0 42px rgba(255, 170, 226, 0.28);
+.collectionMiniGlobeCanvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+  pointer-events: none;
 }
 
-.collectionWireGlobe::after {
-  content: "";
-  position: absolute;
-  inset: 13%;
-  border-radius: 50%;
-  border: 2px solid rgba(255, 216, 244, 0.55);
-  transform: rotateX(68deg);
-}
-
-.collectionWireGlobeEquator,
-.collectionWireGlobeMeridian {
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  border: 2px solid rgba(255, 132, 210, 0.52);
-}
-
-.collectionWireGlobeEquator {
-  transform: rotateX(72deg);
-}
-
-.collectionWireGlobeMeridianA {
-  transform: rotateY(62deg);
-}
-
-.collectionWireGlobeMeridianB {
-  transform: rotateY(-62deg);
-}
-
-.collectionWireGlobeMeridianC {
-  transform: rotateY(90deg);
-  opacity: 0.55;
+.missionImageGrid,
+.missionImageLink {
+  position: relative;
 }
 
 .missionImageGrid {
-  position: relative;
   z-index: 3;
 }
 
 .missionImageLink {
-  position: relative;
   z-index: 4;
 }
 
 .termHeader {
   position: relative;
   z-index: 5;
-}
-
-@keyframes collectionGlobeRotate {
-  0% {
-    transform: rotateX(10deg) rotateZ(0deg) scale(1);
-  }
-
-  50% {
-    transform: rotateX(10deg) rotateZ(180deg) scale(1.035);
-  }
-
-  100% {
-    transform: rotateX(10deg) rotateZ(360deg) scale(1);
-  }
 }
 
 .popupWindow > .popupWindow {
