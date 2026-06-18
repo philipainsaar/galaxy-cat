@@ -2709,7 +2709,16 @@ if (state.landed) {
                                   </div>
 
                                     <div className="missionGalleryIntro">
-                                                  </div>
+</div>
+
+<div className="collectionGlobeOverlay" aria-hidden="true">
+  <div className="collectionWireGlobe">
+    <span className="collectionWireGlobeEquator" />
+    <span className="collectionWireGlobeMeridian collectionWireGlobeMeridianA" />
+    <span className="collectionWireGlobeMeridian collectionWireGlobeMeridianB" />
+    <span className="collectionWireGlobeMeridian collectionWireGlobeMeridianC" />
+  </div>
+</div>
 
                                                     <div className="missionImageGrid">
                                                         {MISSION_LINK_IMAGES.map((item) => (
