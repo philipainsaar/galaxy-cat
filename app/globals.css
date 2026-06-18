@@ -309,10 +309,12 @@ button {
 }
 
 .ringTerminalTopImage {
-  display: inline-block;
-  width: min(86px, 28vw);
+  display: block;
+  width: 100%;
+  max-width: none;
   height: auto;
   object-fit: contain;
+  margin: 0 0 12px 0;
   pointer-events: none;
   user-select: none;
   -webkit-user-drag: none;
@@ -320,6 +322,7 @@ button {
     drop-shadow(0 0 10px rgba(255, 183, 220, 0.55))
     drop-shadow(0 0 22px rgba(201, 183, 255, 0.38));
 }
+
 
 .title {
   position: absolute;
