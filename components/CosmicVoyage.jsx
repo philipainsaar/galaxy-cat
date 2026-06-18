@@ -2777,28 +2777,34 @@ if (state.landed) {
         )}
       </div>
 
-      {loading && (
-        <div className="loadingOverlay">
-          <div className="loadingPopup" role="status">
-            <div className="loadingWindowBar">
-              <span />
-            </div>
+      
+{loading && (
+  <div className="loadingOverlay">
+    <div className="loadingNetworkTicker" aria-hidden="true">
+      <span>Connecting to the CYBER-NETWORK...</span>
+    </div>
 
-            <div className="loadingTitle">LOADING...</div>
+    <div className="loadingPopup" role="status">
+      <div className="loadingWindowBar">
+        <span />
+      </div>
 
-            <div className="loadingBarOuter">
-              <div
-                className="loadingBarInner"
-                style={loadingBarStyle}
-              />
-            </div>
+      <div className="loadingTitle">LOADING...</div>
 
-            <div className="loadingPercent">
-              {loadingPercent}%
-            </div>
-          </div>
-        </div>
-      )}
+      <div className="loadingBarOuter">
+        <div
+          className="loadingBarInner"
+          style={loadingBarStyle}
+        />
+      </div>
+
+      <div className="loadingPercent">
+        {loadingPercent}%
+      </div>
+    </div>
+  </div>
+)}
+          
 
       {popupOpen && (
         <div className="popupWindow">
