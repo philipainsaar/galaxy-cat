@@ -1393,6 +1393,19 @@ const canFadeToMain =
           draggable="false"
         />
 
+        <button
+  type="button"
+  className="shoppingIntroTranslateButton"
+  aria-label="Translate"
+>
+  <img
+    src="/images/translate-icon.png"
+    alt=""
+    aria-hidden="true"
+    draggable="false"
+  />
+</button>
+
         <div ref={textCardRef} className="shoppingIntroTextCard">
           <h1 className="shoppingIntroText">
             AN ALIEN CAT CAME
