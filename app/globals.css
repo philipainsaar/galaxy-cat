@@ -304,7 +304,7 @@ button {
 .ringTerminalImageLine {
   display: block;
   width: 100%;
-  text-align: center;
+  text-align: left;
   margin: 0 0 12px;
 }
 
