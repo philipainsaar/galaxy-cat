@@ -1238,10 +1238,13 @@ select,
   }
 
   .ringTerminalText {
-    min-height: 126px;
-    max-height: 27dvh;
-    padding: 12px;
-    font-size: 0.74rem;
-    line-height: 1.45;
-  }
+  font-family: "Germania One", Georgia, serif !important;
+  font-size: clamp(15px, 3.3vw, 20px);
+  line-height: 1.08;
+  letter-spacing: 0.025em;
+}
+
+.ringTerminalCursor {
+  font-family: "Germania One", Georgia, serif !important;
+}
 }
