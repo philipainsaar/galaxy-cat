@@ -1099,7 +1099,7 @@ select,
     inset 0 1px 0 rgba(255, 255, 255, 0.64),
     inset 0 0 30px rgba(205, 230, 255, 0.16);
   color: rgba(42, 28, 70, 0.90);
-  font-size: clamp(1.5rem, 2.5vw, 4rem);
+  font-size: clamp(0.90rem, 2.5vw, 1.0rem);
   line-height: 1.46;
   letter-spacing: 0.04em;
   text-shadow:
