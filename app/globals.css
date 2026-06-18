@@ -1176,7 +1176,7 @@ select,
 .ringChatBox,
 .ringChatHeader,
 .ringTerminalText {
-  font-family: var(--font-main);
+  font-family: var(--font-display);
 }
 
 .shoppingIntroText,
