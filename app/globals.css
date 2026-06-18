@@ -364,7 +364,7 @@ button {
 .loadingNetworkTicker {
   position: absolute;
   left: 50%;
-  top: calc(50% - 132px);
+  top: calc(45% - 132px);
   z-index: 10000;
 
   width: min(420px, 88vw);
@@ -376,7 +376,7 @@ button {
   align-items: center;
 
   border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.46);
+  border: 0px solid rgba(255, 255, 255, 0.46);
 
   background:
     linear-gradient(
@@ -400,7 +400,7 @@ button {
   display: inline-block;
   white-space: nowrap;
 
-  font-family: "Germania One", Georgia, serif;
+  font-family: var(--font-display);
   font-size: clamp(15px, 3.8vw, 22px);
   line-height: 1;
   letter-spacing: 0.045em;
