@@ -2455,10 +2455,12 @@ scene.add(pinkWireframeGlobe);
       const delta = Math.min(clock.getDelta(), 0.05);
       elapsed += delta;
 
-      pinkWireframeGlobe.rotation.y += delta * 0.42;
-pinkWireframeGlobe.rotation.x = -0.18 + Math.sin(elapsed * 0.34) * 0.025;
-pinkWireframeGlobe.rotation.z = 0.08 + Math.cos(elapsed * 0.28) * 0.018;
-
+pinkWireframeGlobe.rotation.y += delta * 0.42;
+pinkWireframeGlobe.rotation.x =
+  -0.18 + Math.sin(elapsed * 0.34) * 0.025;
+pinkWireframeGlobe.rotation.z =
+  0.08 + Math.cos(elapsed * 0.28) * 0.018;
+      
       infinityTriangleWater.material.uniforms.uTime.value = elapsed;
 
       // Animate the optional water texture only if it successfully loaded.
