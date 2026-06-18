@@ -947,7 +947,7 @@ select,
   letter-spacing: 0.055em;
   text-transform: uppercase;
 
-  color: var(--deep-purple);
+  color: var(--purple-deep);
   background:
     linear-gradient(
       135deg,
