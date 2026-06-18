@@ -960,7 +960,7 @@ select,
   pointer-events: none;
   user-select: none;
   -webkit-user-drag: none;
-  filter:
+  filter: brightness(0) saturate(100%) invert(77%) sepia(35%) saturate(749%) hue-rotate(288deg) 
     drop-shadow(0 0 8px rgba(255, 255, 255, 0.72))
     drop-shadow(0 0 14px rgba(255, 183, 220, 0.42));
 }
