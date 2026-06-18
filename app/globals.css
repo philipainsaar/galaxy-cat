@@ -354,8 +354,8 @@ button {
   text-align: center;
   font-family: var(--font-display);
   font-style: normal;
-  font-size: clamp(1.5rem, 2.5vw, 4rem);
-  color: var(--pink-strong);
+  font-size: clamp(2.5rem, 2.5vw, 6rem);
+  color: var(--purple-deep);
   letter-spacing: 0.12em;
   text-shadow: 0 2px 12px rgba(174, 219, 255, 0.85);
   animation: hintPulse 2.5s ease-in-out infinite;
