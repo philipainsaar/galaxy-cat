@@ -70,16 +70,18 @@ const LAUNCH_DISTANCE = 120;
 const LAUNCH_HEIGHT = 6;
 
 const RING_TERMINAL_MESSAGE = `> FLOAT-RING SIGNAL FOUND
-> CHANNEL: PASTEL WATER / FRONT CAT SIDE
 > STATUS: BUBBLE-LINK OPEN
 
-hello tiny shopper.
-this floating ring is a soft portal buoy floating left of the alien cat.
-when the water starts glowing, follow the bubbles,
-keep the alien cat close,
-and do not let the boat forget the way home.
+Modeling: £50 an hour.
 
-> MESSAGE COMPLETE
+Make-up: £50
+
+Styling: £50
+
+Video editing: £15 per video.
+
+Art Director: £150
+
 > TAP OUTSIDE THIS BOX TO CLOSE`;
 
 const RING_CHAT_BUBBLES = [
