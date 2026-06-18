@@ -364,7 +364,7 @@ button {
 .loadingNetworkTicker {
   position: absolute;
   left: 50%;
-  top: calc(50% - 146px);
+  top: calc(50% - 176px);
   z-index: 10000;
 
   width: min(420px, 88vw);
