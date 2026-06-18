@@ -940,14 +940,14 @@ select,
   border-radius: 999px;
   border: 1px solid rgba(255, 255, 255, 0.62);
 
-  font-family: "Germania One", Georgia, serif;
+  font-family: var(--font-display);
   font-size: clamp(26px, 7vw, 48px);
   font-weight: 400;
   line-height: 1;
   letter-spacing: 0.055em;
   text-transform: uppercase;
 
-  color: rgba(34, 20, 52, 0.88);
+  color: var(--deep-purple);
   background:
     linear-gradient(
       135deg,
