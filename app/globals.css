@@ -364,19 +364,20 @@ button {
 .loadingNetworkTicker {
   position: absolute;
   left: 50%;
-  top: calc(45% - 132px);
+  top: calc(50% - 132px);
   z-index: 10000;
 
   width: min(420px, 88vw);
-  height: 32px;
+  height: 36px;
   overflow: hidden;
   pointer-events: none;
 
   display: flex;
   align-items: center;
+  justify-content: center;
 
   border-radius: 999px;
-  border: 0px solid rgba(255, 255, 255, 0.46);
+  border: 1px solid rgba(255, 255, 255, 0.46);
 
   background:
     linear-gradient(
@@ -398,6 +399,9 @@ button {
 
 .loadingNetworkTicker span {
   display: inline-block;
+  width: 0;
+  max-width: 34ch;
+  overflow: hidden;
   white-space: nowrap;
 
   font-family: var(--font-display);
@@ -412,26 +416,52 @@ button {
     0 0 12px rgba(255, 183, 220, 0.52),
     0 0 22px rgba(174, 219, 255, 0.34);
 
-  animation: loadingNetworkTickerScroll 1.15s ease-in-out infinite alternate;
+  border-right: 2px solid rgba(255, 120, 205, 0.82);
+
+  animation:
+    loadingCyberType 2.25s steps(34, end) infinite,
+    loadingCyberCursor 0.54s steps(1, end) infinite;
 }
 
-@keyframes loadingNetworkTickerScroll {
+@keyframes loadingCyberType {
   0% {
-    transform: translateX(12px);
+    width: 0;
+  }
+
+  82% {
+    width: 34ch;
   }
 
   100% {
-    transform: translateX(calc(min(420px, 88vw) - 100% - 12px));
+    width: 34ch;
+  }
+}
+
+@keyframes loadingCyberCursor {
+  0%,
+  48% {
+    border-right-color: rgba(255, 120, 205, 0.82);
+  }
+
+  49%,
+  100% {
+    border-right-color: transparent;
   }
 }
 
 @media (max-width: 520px) {
   .loadingNetworkTicker {
     top: calc(50% - 120px);
-    height: 30px;
+    height: 32px;
+  }
+
+  .loadingNetworkTicker span {
+    font-size: clamp(13px, 3.55vw, 18px);
   }
 }
 
+
+  
 .loadingOverlay {
   position: fixed;
   inset: 0;
