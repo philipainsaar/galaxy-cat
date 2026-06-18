@@ -522,7 +522,7 @@ button {
 .collectionMiniGlobeOverlay {
   position: absolute;
   left: 50%;
-  top: 50%;
+  top: 54%;
   z-index: 999;
   width: min(118px, 28vw);
   height: min(118px, 28vw);
