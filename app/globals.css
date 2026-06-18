@@ -364,7 +364,7 @@ button {
 .loadingNetworkTicker {
   position: absolute;
   left: 50%;
-  top: calc(50% - 176px);
+  top: calc(45% - 176px);
   z-index: 10000;
 
   width: min(420px, 88vw);
@@ -410,7 +410,7 @@ button {
   letter-spacing: 0.045em;
   text-transform: uppercase;
 
-  color: rgba(42, 28, 64, 0.86);
+  color: var(--purple-deep);
   text-shadow:
     0 1px 0 rgba(255, 255, 255, 0.70),
     0 0 12px rgba(255, 183, 220, 0.52),
