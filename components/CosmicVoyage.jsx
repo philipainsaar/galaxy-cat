@@ -69,8 +69,7 @@ const LAUNCH_DURATION_SECONDS = 3;
 const LAUNCH_DISTANCE = 120;
 const LAUNCH_HEIGHT = 6;
 
-const RING_TERMINAL_MESSAGE = `
-Modeling: £50 an hour.
+const RING_TERMINAL_MESSAGE = `Modeling: £50 an hour.
 Make-up: £50
 Styling: £50
 Video editing: £15 per video.
