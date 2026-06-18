@@ -31,8 +31,6 @@ const PUBLIC_IMAGE_PRELOAD_URLS = [
   '/images/pastel-sky.jpg',
   '/images/pastel-sky.png',
   '/images/water-texture.jpg',
-  '/images/heart.png',
-  '/images/heart.gif',
   '/images/almostmadeinjapan.png',
   '/images/covers/dreamy.jpg',
   '/images/covers/emo.jpg',
@@ -677,6 +675,94 @@ function createUltraFastWater() {
     lavender,
     whiteFoam,
   };
+}
+
+function createPinkWireframeGlobe() {
+  const globe = new THREE.Group();
+  globe.name = 'PinkWireframeGlobeBehindTriangleWater';
+
+  const radius = 1.35;
+  const tube = 0.009;
+
+  const lineMaterial = new THREE.MeshBasicMaterial({
+    color: 0xff9edb,
+    transparent: true,
+    opacity: 0.88,
+    depthWrite: false,
+    depthTest: true,
+    toneMapped: false,
+  });
+
+  const bodyMaterial = new THREE.MeshBasicMaterial({
+    color: 0xffc7ea,
+    transparent: true,
+    opacity: 0.055,
+    depthWrite: false,
+    depthTest: true,
+    toneMapped: false,
+  });
+
+  const body = new THREE.Mesh(
+    new THREE.SphereGeometry(radius * 0.995, 18, 10),
+    bodyMaterial,
+  );
+
+  body.renderOrder = -100001;
+  globe.add(body);
+
+  const latitudeCount = 9;
+
+  for (let i = 1; i < latitudeCount; i += 1) {
+    const t = i / latitudeCount;
+    const y = Math.cos(t * Math.PI) * radius;
+    const ringRadius = Math.sin(t * Math.PI) * radius;
+
+    const ring = new THREE.Mesh(
+      new THREE.TorusGeometry(ringRadius, tube, 6, 72),
+      lineMaterial,
+    );
+
+    ring.rotation.x = Math.PI / 2;
+    ring.position.y = y;
+    ring.renderOrder = -100001;
+    globe.add(ring);
+  }
+
+  const longitudeCount = 16;
+
+  for (let i = 0; i < longitudeCount; i += 1) {
+    const ring = new THREE.Mesh(
+      new THREE.TorusGeometry(radius, tube, 6, 84),
+      lineMaterial,
+    );
+
+    ring.rotation.y = (i / longitudeCount) * Math.PI;
+    ring.renderOrder = -100001;
+    globe.add(ring);
+  }
+
+  const outerRing = new THREE.Mesh(
+    new THREE.TorusGeometry(radius * 1.01, tube * 1.75, 6, 96),
+    lineMaterial,
+  );
+
+  outerRing.rotation.x = Math.PI / 2;
+  outerRing.renderOrder = -100001;
+  globe.add(outerRing);
+
+  globe.position.set(0, 29.0, -620);
+  globe.scale.setScalar(22);
+  globe.rotation.x = -0.18;
+  globe.rotation.z = 0.08;
+  globe.renderOrder = -100001;
+  globe.frustumCulled = false;
+
+  globe.traverse((child) => {
+    child.renderOrder = -100001;
+    child.frustumCulled = false;
+  });
+
+  return globe;
 }
 
 function createInfinityTriangleWater() {
@@ -1589,37 +1675,8 @@ export default function CosmicVoyage() {
     const infinityTriangleWater = createInfinityTriangleWater();
     scene.add(infinityTriangleWater);
 
-const tipMaterial = new THREE.SpriteMaterial({
-  transparent: true,
-  depthWrite: false,
-  depthTest: true,
-  toneMapped: false,
-  color: new THREE.Color(1.0, 1.0, 1.0),
-  opacity: 1,
-  blending: THREE.NormalBlending,
-});
-
-const tipImage = new THREE.Sprite(tipMaterial);
-
-tipImage.position.set(0, 30, -600);
-
-scene.add(tipImage);
-
-loadBlurredSpriteTexture('/images/heart.png?v=10', 4.0)
-  .then((texture) => {
-    tipMaterial.map = texture;
-    tipMaterial.needsUpdate = true;
-
-    const aspect = texture.image.width / texture.image.height;
-
-    const heartHeight = 60;
-    const heartWidth = heartHeight * aspect;
-
-    tipImage.scale.set(heartWidth, heartHeight, 1);
-  })
-  .catch((error) => {
-    console.error('Could not load blurred /images/heart.png:', error);
-  });
+const pinkWireframeGlobe = createPinkWireframeGlobe();
+scene.add(pinkWireframeGlobe);
       
     // Smooth pastel water: no GLB and no textures, but enough geometry for real waves.
     // This avoids the hard texture cuts caused by separate flat highlight planes.
@@ -2286,6 +2343,10 @@ loadBlurredSpriteTexture('/images/heart.png?v=10', 4.0)
     renderer.setAnimationLoop(() => {
       const delta = Math.min(clock.getDelta(), 0.05);
       elapsed += delta;
+
+      pinkWireframeGlobe.rotation.y += delta * 0.42;
+pinkWireframeGlobe.rotation.x = -0.18 + Math.sin(elapsed * 0.34) * 0.025;
+pinkWireframeGlobe.rotation.z = 0.08 + Math.cos(elapsed * 0.28) * 0.018;
 
       infinityTriangleWater.material.uniforms.uTime.value = elapsed;
 
