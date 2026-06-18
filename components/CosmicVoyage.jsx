@@ -874,8 +874,9 @@ function loadBlurredSpriteTexture(url, blurPx = 3.0) {
 
 function ShoppingIntroSplash({ onFinished, preloadStore, coreModelsReady }) {
   const bubbleCanvasRef = useRef(null);
-  const catCanvasRef = useRef(null);
-  const textCardRef = useRef(null);
+const catCanvasRef = useRef(null);
+const textCardRef = useRef(null);
+const enterButtonRef = useRef(null);
 
   const coreModelsReadyRef = useRef(coreModelsReady);
 const requestIntroExitRef = useRef(null);
@@ -1136,17 +1137,19 @@ window.addEventListener('keydown', handleIntroKeyDown);
       renderer.setSize(width, height, false);
     };
 
-    const getIntroCatTargetY = () => {
-      const card = textCardRef.current;
-      const cardTopPx = card
-        ? card.getBoundingClientRect().top
-        : height * 0.62;
-      const cardTopWorld = introCamera.top - (cardTopPx / height) * viewportHeight;
+const getIntroCatTargetY = () => {
+  const enterButton = enterButtonRef.current;
+  const buttonTopPx = enterButton
+    ? enterButton.getBoundingClientRect().top
+    : height * 0.82;
 
-      // The cat model is fit with its feet at CAT_GROUND_IN_INTRO,
-      // so this places its feet right on the top lip of the text card.
-      return cardTopWorld - CAT_GROUND_IN_INTRO + 0.03;
-    };
+  const buttonTopWorld =
+    introCamera.top - (buttonTopPx / height) * viewportHeight;
+
+  // Feet land on the top edge of the ENTER button.
+  // Change -0.02 to -0.08 if you want the cat to sink into the button more.
+  return buttonTopWorld - CAT_GROUND_IN_INTRO - 0.02;
+};
 
 const drawBubbles = (dt) => {
   if (!bubbleContext) return;
@@ -1312,6 +1315,7 @@ const canFadeToMain =
         </div>
         
 <button
+  ref={enterButtonRef}
   type="button"
   className="shoppingIntroEnterButton"
   onClick={() => requestIntroExitRef.current?.()}

@@ -874,7 +874,7 @@ select,
 }
 
 .shoppingIntroCatCanvas {
-  z-index: 5;
+  z-index: 9;
 }
 
 .shoppingIntroTextCard {
