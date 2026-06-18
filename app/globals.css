@@ -364,7 +364,7 @@ button {
 .loadingNetworkTicker {
   position: absolute;
   left: 50%;
-  top: calc(45% - 176px);
+  top: calc(50% - 150px);
   z-index: 10000;
 
   width: min(420px, 88vw);
@@ -451,7 +451,7 @@ button {
 
 @media (max-width: 520px) {
   .loadingNetworkTicker {
-    top: calc(50% - 120px);
+    top: calc(50% - 150px);
     height: 32px;
   }
 
