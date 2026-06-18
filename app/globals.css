@@ -880,25 +880,25 @@ select,
 .shoppingIntroTextCard {
   position: absolute;
   left: 50%;
-  top: 50%;
-  transform: translate(-50%, 12vh);
-  width: min(920px, 90vw);
+  top: 112px;
+  transform: translateX(-50%);
+  width: min(430px, 84vw);
   margin: 0;
-  padding: clamp(18px, 4vw, 34px) clamp(18px, 5vw, 48px);
-  border-radius: clamp(22px, 4vw, 42px);
+  padding: 12px 18px 14px;
+  border-radius: 22px;
   text-align: center;
   box-sizing: border-box;
   background:
     linear-gradient(
       135deg,
-      rgba(255, 255, 255, 0.24),
-      rgba(255, 236, 252, 0.18) 40%,
-      rgba(225, 242, 255, 0.18)
+      rgba(255, 255, 255, 0.28),
+      rgba(255, 236, 252, 0.20) 40%,
+      rgba(225, 242, 255, 0.20)
     );
-  border: 1px solid rgba(255, 255, 255, 0.44);
+  border: 1px solid rgba(255, 255, 255, 0.46);
   box-shadow:
-    0 24px 80px rgba(145, 116, 205, 0.18),
-    inset 0 1px 0 rgba(255, 255, 255, 0.64),
+    0 16px 46px rgba(145, 116, 205, 0.16),
+    inset 0 1px 0 rgba(255, 255, 255, 0.66),
     inset 0 -1px 0 rgba(180, 210, 255, 0.20);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
@@ -907,24 +907,43 @@ select,
 .shoppingIntroText {
   margin: 0;
   font-family: var(--font-display);
-  font-size: clamp(34px, 8vw, 92px);
+  font-size: clamp(18px, 4.8vw, 36px);
   font-weight: 400;
-  line-height: 0.88;
-  letter-spacing: 0.015em;
+  line-height: 0.92;
+  letter-spacing: 0.018em;
   text-transform: uppercase;
   color: var(--pink);
   text-shadow:
     0 2px 0 rgba(255, 255, 255, 0.65),
-    0 0 18px rgba(255, 255, 255, 0.72),
-    0 0 34px rgba(186, 213, 255, 0.42);
+    0 0 14px rgba(255, 255, 255, 0.68),
+    0 0 26px rgba(186, 213, 255, 0.38);
 }
 
 .shoppingIntroText span {
   display: block;
-  margin-top: 0.14em;
-  font-size: 0.58em;
-  letter-spacing: 0.035em;
+  margin-top: 0.16em;
+  font-size: 0.54em;
+  line-height: 1.02;
+  letter-spacing: 0.04em;
   color: rgba(48, 36, 72, 0.82);
+}
+
+@media (max-width: 520px) {
+  .shoppingIntroTextCard {
+    top: 104px;
+    width: min(330px, 82vw);
+    padding: 10px 14px 12px;
+    border-radius: 18px;
+  }
+
+  .shoppingIntroText {
+    font-size: clamp(17px, 6vw, 28px);
+  }
+
+  .shoppingIntroText span {
+    font-size: 0.52em;
+    line-height: 1.04;
+  }
 }
 
 .shoppingIntroEnterButton {
