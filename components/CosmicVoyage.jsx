@@ -677,41 +677,39 @@ function createUltraFastWater() {
   };
 }
 
-
 function createPinkWireframeGlobe() {
   const globe = new THREE.Group();
   globe.name = 'PinkWireframeGlobeBehindTriangleWater';
 
   const radius = 1.35;
-  const tube = 0.0045;
+  const tube = 0.009;
 
   const lineMaterial = new THREE.MeshBasicMaterial({
     color: 0xff9edb,
     transparent: true,
-    opacity: 0.78,
+    opacity: 0.88,
     depthWrite: false,
-    depthTest: false,
+    depthTest: true,
     toneMapped: false,
   });
 
   const bodyMaterial = new THREE.MeshBasicMaterial({
     color: 0xffc7ea,
     transparent: true,
-    opacity: 0.035,
+    opacity: 0.055,
     depthWrite: false,
-    depthTest: false,
+    depthTest: true,
     toneMapped: false,
   });
 
   const body = new THREE.Mesh(
-    new THREE.SphereGeometry(radius * 0.995, 28, 16),
+    new THREE.SphereGeometry(radius * 0.995, 18, 10),
     bodyMaterial,
   );
 
   body.renderOrder = -100001;
   globe.add(body);
 
-  // Latitude rings
   const latitudeCount = 9;
 
   for (let i = 1; i < latitudeCount; i += 1) {
@@ -720,7 +718,7 @@ function createPinkWireframeGlobe() {
     const ringRadius = Math.sin(t * Math.PI) * radius;
 
     const ring = new THREE.Mesh(
-      new THREE.TorusGeometry(ringRadius, tube, 10, 160),
+      new THREE.TorusGeometry(ringRadius, tube, 6, 72),
       lineMaterial,
     );
 
@@ -730,12 +728,11 @@ function createPinkWireframeGlobe() {
     globe.add(ring);
   }
 
-  // Longitude rings
   const longitudeCount = 16;
 
   for (let i = 0; i < longitudeCount; i += 1) {
     const ring = new THREE.Mesh(
-      new THREE.TorusGeometry(radius, tube, 10, 180),
+      new THREE.TorusGeometry(radius, tube, 6, 84),
       lineMaterial,
     );
 
@@ -744,9 +741,8 @@ function createPinkWireframeGlobe() {
     globe.add(ring);
   }
 
-  // Outer clean rim
   const outerRing = new THREE.Mesh(
-    new THREE.TorusGeometry(radius * 1.01, tube * 1.5, 10, 200),
+    new THREE.TorusGeometry(radius * 1.01, tube * 1.75, 6, 96),
     lineMaterial,
   );
 
@@ -754,27 +750,16 @@ function createPinkWireframeGlobe() {
   outerRing.renderOrder = -100001;
   globe.add(outerRing);
 
-  // Big globe position near the triangle water
   globe.position.set(0, 29.0, -620);
   globe.scale.setScalar(22);
-
   globe.rotation.x = -0.18;
-  globe.rotation.y = 0;
   globe.rotation.z = 0.08;
-
-  // Lower than triangle water, so triangle stays on top
   globe.renderOrder = -100001;
   globe.frustumCulled = false;
 
   globe.traverse((child) => {
     child.renderOrder = -100001;
     child.frustumCulled = false;
-
-    if (child.material) {
-      child.material.depthWrite = false;
-      child.material.depthTest = false;
-      child.material.needsUpdate = true;
-    }
   });
 
   return globe;
