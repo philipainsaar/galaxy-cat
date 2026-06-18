@@ -1,18 +1,4 @@
-@font-face {
-  font-family: "Murecho";
-  src: url("https://www.almostmadeinjapan.com/cdn/fonts/murecho/murecho_n4.48026a226f97b34dd378daf307ec4f9bcdf1dd4c.woff2") format("woff2");
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: "Germania One";
-  src: url("https://www.almostmadeinjapan.com/cdn/fonts/germania_one/germaniaone_n4.e1e85c20bd47d01bf28222f79473f4acd1cac2b9.woff2") format("woff2");
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-}
+@import url("https://fonts.googleapis.com/css2?family=Germania+One&family=Murecho:wght@400;500;600;700&display=swap");
 
 * {
   box-sizing: border-box;
