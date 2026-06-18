@@ -2650,6 +2650,16 @@ if (state.landed) {
     
 
             <pre ref={ringTerminalRef} className="ringTerminalText">
+
+              <span className="ringTerminalImageLine">
+    <img
+      className="ringTerminalTopImage"
+      src="/images/ascii-logo.png"
+      alt=""
+      aria-hidden="true"
+    />
+  </span>
+              
               {ringTerminalText}
               <span className="ringTerminalCursor">▌</span>
             </pre>
