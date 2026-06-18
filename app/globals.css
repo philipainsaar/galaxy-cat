@@ -522,27 +522,7 @@ button {
   pointer-events: none;
 }
 
-.loadingWindowBar {
-  position: relative;
-  height: 28px;
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  gap: 0.45rem;
-  color: var(--purple-deep);
-  border-bottom: 2px solid var(--pink);
-  margin: 0 -1rem 1.2rem;
-  padding: 0 0.5rem;
-  background: rgba(255, 255, 255, 0.42);
-}
 
-.loadingWindowBar span:first-child {
-  width: 34px;
-  height: 4px;
-  background: var(--blue-deep);
-  display: block;
-  margin-right: 0.15rem;
-}
 
 .loadingTitle {
   position: relative;
