@@ -301,6 +301,26 @@ button {
     drop-shadow(0 0 24px rgba(201, 183, 255, 0.35));
 }
 
+.ringTerminalImageLine {
+  display: block;
+  width: 100%;
+  text-align: center;
+  margin: 0 0 12px;
+}
+
+.ringTerminalTopImage {
+  display: inline-block;
+  width: min(86px, 28vw);
+  height: auto;
+  object-fit: contain;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-drag: none;
+  filter:
+    drop-shadow(0 0 10px rgba(255, 183, 220, 0.55))
+    drop-shadow(0 0 22px rgba(201, 183, 255, 0.38));
+}
+
 .title {
   position: absolute;
   top: 3%;
