@@ -355,7 +355,7 @@ button {
   font-family: var(--font-display);
   font-style: normal;
   font-size: clamp(0.72rem, 3.4vw, 0.95rem);
-  color: var(--purple-deep);
+  color: var(--pink-strong);
   letter-spacing: 0.12em;
   text-shadow: 0 2px 12px rgba(174, 219, 255, 0.85);
   animation: hintPulse 2.5s ease-in-out infinite;
