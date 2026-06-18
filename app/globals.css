@@ -310,7 +310,7 @@ button {
 
 .ringTerminalTopImage {
   display: block;
-  width: 100%;
+  width: 60%;
   max-width: none;
   height: auto;
   object-fit: contain;
