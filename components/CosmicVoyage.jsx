@@ -1889,8 +1889,10 @@ const canFadeToMain =
                       selectedTranslateLanguageCode === language.code ? ' isActive' : ''
                     }`}
                     style={{
-                      left: `${50 + Math.cos(angle) * 39}%`,
-                      top: `${50 + Math.sin(angle) * 39}%`,
+                      // 48% pushes the flag buttons almost all the way to the popup border.
+                      // Lower this to 39% for the previous smaller circle.
+                      left: `${50 + Math.cos(angle) * 48}%`,
+                      top: `${50 + Math.sin(angle) * 48}%`,
                     }}
                     aria-label={`Translate to ${language.name}`}
                     aria-pressed={selectedTranslateLanguageCode === language.code}
