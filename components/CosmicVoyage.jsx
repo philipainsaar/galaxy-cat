@@ -1517,10 +1517,12 @@ roughness: 0.18,
         flatShading: false,
         transparent: true,
 
-// Change these numbers:
-opacity: looksLikeGem ? 0.95 : 0.88,
-
-depthWrite: false,
+// Fully solid SparkleHeart, no opacity/transparency
+transparent: false,
+opacity: 1,
+alphaTest: 0,
+depthWrite: true,
+depthTest: true,
 side: source.side ?? THREE.FrontSide,
       });
 
