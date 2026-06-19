@@ -1063,13 +1063,17 @@ select,
 
 
 
+/* Translate modal vertical tuning:
+   - Backdrop uses end center so the full popup sits lower on the intro page.
+   - Header and Choose Language text are tied to the circle center/radius.
+   - Change the 49% values together to move the ring cluster up/down inside the card. */
 .shoppingIntroTranslateModalBackdrop {
   position: fixed;
   inset: 0;
   z-index: 80;
   display: grid;
-  place-items: center;
-  padding: max(18px, env(safe-area-inset-top)) 18px max(18px, env(safe-area-inset-bottom));
+  place-items: end center;
+  padding: max(18px, env(safe-area-inset-top)) 18px max(34px, env(safe-area-inset-bottom));
   background:
     radial-gradient(circle at 20% 18%, rgba(255, 190, 225, 0.38), transparent 38%),
     radial-gradient(circle at 82% 20%, rgba(195, 223, 255, 0.36), transparent 38%),
@@ -1083,10 +1087,10 @@ select,
 .shoppingIntroTranslateModalCard {
   position: relative;
   width: min(94vw, 620px);
-  height: min(84dvh, 760px);
+  height: min(72dvh, 660px);
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.76);
-  border-radius: 36px;
+  border-radius: 34px;
   background:
     radial-gradient(circle at 28% 22%, rgba(255, 200, 232, 0.46), transparent 38%),
     radial-gradient(circle at 76% 20%, rgba(197, 225, 255, 0.48), transparent 40%),
@@ -1124,7 +1128,7 @@ select,
   content: "";
   position: absolute;
   left: 50%;
-  top: 52%;
+  top: 49%;
   z-index: 2;
   width: min(74%, 430px);
   aspect-ratio: 1;
@@ -1149,12 +1153,15 @@ select,
 
 .shoppingIntroTranslateModalHeader {
   position: absolute;
-  inset: 14px 14px auto 14px;
+  left: 50%;
+  top: calc(49% - min(36vw, 190px) - 28px);
   z-index: 7;
+  width: min(72%, 420px);
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+  transform: translateX(-50%);
   pointer-events: none;
 }
 
@@ -1221,7 +1228,7 @@ select,
 .shoppingIntroTranslateGlbLoading {
   position: absolute;
   left: 50%;
-  bottom: 22px;
+  top: calc(49% + min(36vw, 190px) + 12px);
   z-index: 6;
   max-width: 78%;
   transform: translateX(-50%);
@@ -1240,9 +1247,9 @@ select,
 .shoppingIntroTranslateLanguageOrbit {
   position: absolute;
   left: 50%;
-  top: 52%;
+  top: 49%;
   z-index: 5;
-  width: min(78%, 470px);
+  width: min(72%, 420px);
   aspect-ratio: 1;
   transform: translate(-50%, -50%);
   pointer-events: none;
@@ -1329,12 +1336,13 @@ select,
 
   .shoppingIntroTranslateModalCard {
     width: 94vw;
-    height: 76dvh;
+    height: 68dvh;
     border-radius: 24px;
   }
 
   .shoppingIntroTranslateModalHeader {
-    inset: 10px 10px auto 10px;
+    top: calc(49% - min(38vw, 166px) - 22px);
+    width: 76%;
   }
 
   .shoppingIntroTranslateModalTitle {
@@ -1344,7 +1352,7 @@ select,
   }
 
   .shoppingIntroTranslateLanguageOrbit {
-    width: 82%;
+    width: 76%;
   }
 
   .shoppingIntroTranslateFlagButton {
