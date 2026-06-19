@@ -1072,8 +1072,8 @@ select,
   inset: 0;
   z-index: 80;
   display: grid;
-  place-items: end center;
-  padding: max(18px, env(safe-area-inset-top)) 18px max(34px, env(safe-area-inset-bottom));
+  place-items: center;
+  padding: max(12px, env(safe-area-inset-top)) 12px max(12px, env(safe-area-inset-bottom));
   background:
     radial-gradient(circle at 20% 18%, rgba(255, 190, 225, 0.38), transparent 38%),
     radial-gradient(circle at 82% 20%, rgba(195, 223, 255, 0.36), transparent 38%),
@@ -1086,11 +1086,11 @@ select,
 
 .shoppingIntroTranslateModalCard {
   position: relative;
-  width: min(94vw, 620px);
-  height: min(72dvh, 660px);
+  width: min(92vw, 560px);
+  height: min(62dvh, 560px);
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.76);
-  border-radius: 34px;
+  border-radius: 30px;
   background:
     radial-gradient(circle at 28% 22%, rgba(255, 200, 232, 0.46), transparent 38%),
     radial-gradient(circle at 76% 20%, rgba(197, 225, 255, 0.48), transparent 40%),
@@ -1128,9 +1128,9 @@ select,
   content: "";
   position: absolute;
   left: 50%;
-  top: 49%;
+  top: 50%;
   z-index: 2;
-  width: min(74%, 430px);
+  width: min(66%, 360px);
   aspect-ratio: 1;
   border: 1px solid rgba(255, 255, 255, 0.66);
   border-radius: 999px;
@@ -1154,9 +1154,9 @@ select,
 .shoppingIntroTranslateModalHeader {
   position: absolute;
   left: 50%;
-  top: calc(49% - min(36vw, 190px) - 28px);
+  top: calc(50% - min(32vw, 168px) - 22px);
   z-index: 7;
-  width: min(72%, 420px);
+  width: min(66%, 360px);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1228,7 +1228,7 @@ select,
 .shoppingIntroTranslateGlbLoading {
   position: absolute;
   left: 50%;
-  top: calc(49% + min(36vw, 190px) + 12px);
+  top: calc(50% + min(32vw, 168px) + 10px);
   z-index: 6;
   max-width: 78%;
   transform: translateX(-50%);
@@ -1247,9 +1247,9 @@ select,
 .shoppingIntroTranslateLanguageOrbit {
   position: absolute;
   left: 50%;
-  top: 49%;
+  top: 50%;
   z-index: 5;
-  width: min(72%, 420px);
+  width: min(66%, 360px);
   aspect-ratio: 1;
   transform: translate(-50%, -50%);
   pointer-events: none;
@@ -1335,14 +1335,14 @@ select,
   }
 
   .shoppingIntroTranslateModalCard {
-    width: 94vw;
-    height: 68dvh;
+    width: 92vw;
+    height: 58dvh;
     border-radius: 24px;
   }
 
   .shoppingIntroTranslateModalHeader {
-    top: calc(49% - min(38vw, 166px) - 22px);
-    width: 76%;
+    top: calc(50% - min(34vw, 148px) - 18px);
+    width: 66%;
   }
 
   .shoppingIntroTranslateModalTitle {
@@ -1352,7 +1352,7 @@ select,
   }
 
   .shoppingIntroTranslateLanguageOrbit {
-    width: 76%;
+    width: 66%;
   }
 
   .shoppingIntroTranslateFlagButton {
@@ -1362,6 +1362,11 @@ select,
 
   .shoppingIntroTranslateFlagCode {
     display: none;
+  }
+
+  .shoppingIntroTranslateGlbLoading {
+    top: calc(50% + min(34vw, 148px) + 8px);
+    font-size: 10px;
   }
 }
 
