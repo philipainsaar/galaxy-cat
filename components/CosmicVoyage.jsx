@@ -10,6 +10,19 @@ const BOAT_MODEL_URL = '/models/cosmic-boat.glb';
 const FLOAT_RING_MODEL_URL = '/models/float-ring.glb';
 const FLOAT_RING_FALLBACK_MODEL_URL = '/models/floatring.glb';
 const SPARKLE_HEART_MODEL_URL = '/models/SparkleHeart_LowPoly.glb';
+const TRANSLATE_LANGUAGE_OPTIONS = [
+  { code: 'sv', name: 'Swedish', short: 'SV', flag: '🇸🇪' },
+  { code: 'en', name: 'English', short: 'EN', flag: '🇬🇧' },
+  { code: 'ja', name: 'Japanese', short: 'JA', flag: '🇯🇵' },
+  { code: 'ko', name: 'Korean', short: 'KO', flag: '🇰🇷' },
+  { code: 'zh', name: 'Chinese', short: 'ZH', flag: '🇨🇳' },
+  { code: 'fr', name: 'French', short: 'FR', flag: '🇫🇷' },
+  { code: 'de', name: 'German', short: 'DE', flag: '🇩🇪' },
+  { code: 'es', name: 'Spanish', short: 'ES', flag: '🇪🇸' },
+  { code: 'it', name: 'Italian', short: 'IT', flag: '🇮🇹' },
+  { code: 'pt', name: 'Portuguese', short: 'PT', flag: '🇵🇹' },
+];
+
 
 const CORE_MODEL_PRELOAD_URLS = [
   CAT_MODEL_URL,
@@ -977,6 +990,11 @@ const translateGlbStageRef = useRef(null);
 const [isFading, setIsFading] = useState(false);
 const [introExitRequested, setIntroExitRequested] = useState(false);
 const [showTranslateModal, setShowTranslateModal] = useState(false);
+const [selectedTranslateLanguageCode, setSelectedTranslateLanguageCode] = useState('sv');
+
+const selectedTranslateLanguage =
+  TRANSLATE_LANGUAGE_OPTIONS.find((language) => language.code === selectedTranslateLanguageCode) ||
+  TRANSLATE_LANGUAGE_OPTIONS[0];
 
   useEffect(() => {
     coreModelsReadyRef.current = coreModelsReady;
@@ -1409,6 +1427,7 @@ const canFadeToMain =
     let camera = null;
     let heartGroup = null;
     let resizeObserver = null;
+    let jewelryEnvironmentTexture = null;
 
     let pointerDown = false;
     let lastX = 0;
@@ -1424,13 +1443,127 @@ const canFadeToMain =
       }
     };
 
-    setLoadingText('Loading GLB...');
+    const createJewelryEnvironmentTexture = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = 512;
+      canvas.height = 256;
+
+      const ctx = canvas.getContext('2d');
+      const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+
+      gradient.addColorStop(0.0, '#ffffff');
+      gradient.addColorStop(0.18, '#ffe4f6');
+      gradient.addColorStop(0.38, '#dff4ff');
+      gradient.addColorStop(0.58, '#f2e4ff');
+      gradient.addColorStop(0.78, '#fff8fe');
+      gradient.addColorStop(1.0, '#c7edff');
+
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      ctx.globalAlpha = 0.7;
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 42, canvas.width, 18);
+      ctx.fillRect(0, 126, canvas.width, 12);
+      ctx.fillRect(0, 198, canvas.width, 22);
+
+      ctx.globalAlpha = 0.45;
+      ctx.fillStyle = '#ffb7dc';
+      ctx.fillRect(0, 82, canvas.width, 16);
+
+      ctx.globalAlpha = 0.38;
+      ctx.fillStyle = '#aedbff';
+      ctx.fillRect(0, 164, canvas.width, 14);
+
+      const texture = new THREE.CanvasTexture(canvas);
+      texture.mapping = THREE.EquirectangularReflectionMapping;
+      texture.colorSpace = THREE.SRGBColorSpace;
+      texture.needsUpdate = true;
+
+      return texture;
+    };
+
+    const makeGlossyJewelryMaterial = (sourceMaterial, meshName = '') => {
+      const source = sourceMaterial || {};
+      const lowerName = meshName.toLowerCase();
+      const looksLikeGem =
+        /sparkle|gem|crystal|diamond|star|jewel|shine|light/i.test(lowerName);
+
+      const sourceColor = source.color?.clone?.() || new THREE.Color(looksLikeGem ? '#fff6fd' : '#ff9fce');
+      const targetColor = looksLikeGem
+        ? new THREE.Color('#fff8ff')
+        : new THREE.Color('#ffabd1');
+
+      sourceColor.lerp(targetColor, looksLikeGem ? 0.72 : 0.38);
+
+      const material = new THREE.MeshPhysicalMaterial({
+        name: `${source.name || meshName || 'sparkle'}_glossy_jewelry`,
+        color: sourceColor,
+
+        map: source.map || null,
+        normalMap: source.normalMap || null,
+        roughnessMap: source.roughnessMap || null,
+        metalnessMap: source.metalnessMap || null,
+        emissiveMap: source.emissiveMap || null,
+        aoMap: source.aoMap || null,
+
+        metalness: looksLikeGem ? 0.48 : 0.76,
+        roughness: looksLikeGem ? 0.025 : 0.045,
+
+        clearcoat: 1.0,
+        clearcoatRoughness: 0.018,
+        ior: looksLikeGem ? 1.72 : 1.52,
+        reflectivity: 1.0,
+
+        iridescence: looksLikeGem ? 0.62 : 0.38,
+        iridescenceIOR: 1.35,
+        sheen: 0.22,
+        sheenRoughness: 0.16,
+        sheenColor: new THREE.Color('#ffd7f1'),
+
+        specularIntensity: 1.0,
+        specularColor: new THREE.Color('#fff9ff'),
+
+        emissive: new THREE.Color(looksLikeGem ? '#ffe6f6' : '#ff7fbd'),
+        emissiveIntensity: looksLikeGem ? 0.24 : 0.1,
+
+        envMapIntensity: looksLikeGem ? 2.6 : 2.15,
+        flatShading: false,
+        transparent: Boolean(source.transparent),
+        opacity: source.opacity ?? 1,
+        side: source.side ?? THREE.FrontSide,
+      });
+
+      [
+        material.map,
+        material.normalMap,
+        material.roughnessMap,
+        material.metalnessMap,
+        material.emissiveMap,
+        material.aoMap,
+      ].forEach((texture) => {
+        if (!texture) return;
+
+        texture.colorSpace = texture === material.map || texture === material.emissiveMap
+          ? THREE.SRGBColorSpace
+          : texture.colorSpace;
+
+        texture.magFilter = THREE.LinearFilter;
+        texture.minFilter = THREE.LinearMipmapLinearFilter;
+        texture.generateMipmaps = true;
+        texture.needsUpdate = true;
+      });
+
+      return material;
+    };
+
+    setLoadingText('Loading glossy jewelry...');
 
     scene = new THREE.Scene();
-    scene.fog = new THREE.FogExp2(0xffffff, 0.04);
+    scene.fog = new THREE.FogExp2(0xffffff, 0.035);
 
-    camera = new THREE.PerspectiveCamera(38, 1, 0.1, 80);
-    camera.position.set(0, 0.25, 6.4);
+    camera = new THREE.PerspectiveCamera(34, 1, 0.1, 80);
+    camera.position.set(0, 0.12, 8.2);
 
     renderer = new THREE.WebGLRenderer({
       antialias: true,
@@ -1441,49 +1574,60 @@ const canFadeToMain =
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.16;
+    renderer.toneMappingExposure = 1.42;
     renderer.domElement.className = 'shoppingIntroTranslateGlbCanvas';
 
     stage.appendChild(renderer.domElement);
 
-    scene.add(new THREE.HemisphereLight(0xffffff, 0xd4c4ff, 2.4));
+    jewelryEnvironmentTexture = createJewelryEnvironmentTexture();
+    scene.environment = jewelryEnvironmentTexture;
 
-    const keyLight = new THREE.DirectionalLight(0xffffff, 3.8);
+    scene.add(new THREE.HemisphereLight(0xffffff, 0xd4c4ff, 2.8));
+
+    const keyLight = new THREE.DirectionalLight(0xffffff, 5.2);
     keyLight.position.set(3.6, 4.8, 5.8);
     scene.add(keyLight);
 
-    const fillLight = new THREE.DirectionalLight(0xffffff, 1.2);
-    fillLight.position.set(-4.2, -1.8, 2.8);
-    scene.add(fillLight);
+    const frontShineLight = new THREE.DirectionalLight(0xffffff, 2.8);
+    frontShineLight.position.set(-1.8, 1.2, 6.2);
+    scene.add(frontShineLight);
 
-    const pinkLight = new THREE.PointLight(0xff9fce, 8.4, 14);
+    const rimLight = new THREE.DirectionalLight(0xffffff, 3.0);
+    rimLight.position.set(-4.8, 3.0, -3.2);
+    scene.add(rimLight);
+
+    const pinkLight = new THREE.PointLight(0xff9fce, 10.5, 16);
     pinkLight.position.set(-3.2, 2.2, 3.6);
     scene.add(pinkLight);
 
-    const blueLight = new THREE.PointLight(0xb7dcff, 7.2, 14);
+    const blueLight = new THREE.PointLight(0xb7dcff, 9.2, 16);
     blueLight.position.set(3.4, -0.4, 3.9);
     scene.add(blueLight);
 
-    const purpleLight = new THREE.PointLight(0xd5b8ff, 6.2, 14);
+    const purpleLight = new THREE.PointLight(0xd5b8ff, 8.4, 16);
     purpleLight.position.set(0, 4.0, -2.8);
     scene.add(purpleLight);
 
+    const whiteSparkLight = new THREE.PointLight(0xffffff, 5.8, 10);
+    whiteSparkLight.position.set(0, 0.4, 4.6);
+    scene.add(whiteSparkLight);
+
     heartGroup = new THREE.Group();
     heartGroup.name = 'ShoppingIntroTranslateHeartGroup';
-    heartGroup.scale.setScalar(1.8);
+    heartGroup.scale.setScalar(1.0);
     scene.add(heartGroup);
 
     const starGeometry = new THREE.IcosahedronGeometry(0.022, 0);
     const starMaterial = new THREE.MeshBasicMaterial({
       color: 0xffffff,
       transparent: true,
-      opacity: 0.72,
+      opacity: 0.82,
     });
 
     const stars = new THREE.Group();
     stars.name = 'ShoppingIntroTranslateSparkles';
 
-    for (let i = 0; i < 90; i += 1) {
+    for (let i = 0; i < 110; i += 1) {
       const star = new THREE.Mesh(starGeometry, starMaterial);
 
       star.position.set(
@@ -1511,6 +1655,8 @@ const canFadeToMain =
     };
 
     const onTranslatePointerDown = (event) => {
+      if (event.target.closest?.('.shoppingIntroTranslateFlagButton')) return;
+
       pointerDown = true;
       lastX = event.clientX;
       lastY = event.clientY;
@@ -1547,13 +1693,16 @@ const canFadeToMain =
       currentRotY += (targetRotY - currentRotY) * 0.07;
 
       if (!pointerDown) {
-        targetRotY += 0.003;
+        targetRotY += 0.0024;
       }
 
-      heartGroup.rotation.x = currentRotX + Math.sin(t * 1.7) * 0.025;
+      whiteSparkLight.intensity = 5.3 + Math.sin(t * 3.2) * 1.2;
+      whiteSparkLight.position.x = Math.sin(t * 1.1) * 1.3;
+
+      heartGroup.rotation.x = currentRotX + Math.sin(t * 1.7) * 0.02;
       heartGroup.rotation.y = currentRotY;
-      heartGroup.rotation.z = Math.sin(t * 1.25) * 0.025;
-      heartGroup.position.y = Math.sin(t * 2.1) * 0.06;
+      heartGroup.rotation.z = Math.sin(t * 1.25) * 0.02;
+      heartGroup.position.y = Math.sin(t * 2.1) * 0.045;
 
       renderer.render(scene, camera);
       animationFrame = requestAnimationFrame(animateTranslateHeart);
@@ -1582,26 +1731,16 @@ const canFadeToMain =
           child.castShadow = false;
           child.receiveShadow = false;
 
-          if (child.material) {
-            child.material = child.material.clone();
+          if (child.geometry && !child.geometry.attributes.normal) {
+            child.geometry.computeVertexNormals();
+          }
 
-            if ('metalness' in child.material) {
-              child.material.metalness = Math.max(child.material.metalness ?? 0, 0.55);
-            }
-
-            if ('roughness' in child.material) {
-              child.material.roughness = Math.min(child.material.roughness ?? 0.2, 0.16);
-            }
-
-            if ('emissive' in child.material) {
-              child.material.emissive = new THREE.Color(0xff9fce);
-              child.material.emissiveIntensity = Math.max(
-                child.material.emissiveIntensity ?? 0,
-                0.08,
-              );
-            }
-
-            child.material.needsUpdate = true;
+          if (Array.isArray(child.material)) {
+            child.material = child.material.map((material) =>
+              makeGlossyJewelryMaterial(material, child.name),
+            );
+          } else {
+            child.material = makeGlossyJewelryMaterial(child.material, child.name);
           }
         });
 
@@ -1612,11 +1751,11 @@ const canFadeToMain =
         heartModel.position.sub(center);
 
         if (size.y > 0) {
-          heartModel.scale.multiplyScalar(2.8 / size.y);
+          heartModel.scale.multiplyScalar(1.45 / size.y);
         }
 
         heartGroup.add(heartModel);
-        setLoadingText('Drag / touch to rotate');
+        setLoadingText('Choose language');
       })
       .catch((error) => {
         console.error('Could not load intro translate sparkle heart GLB:', error);
@@ -1639,6 +1778,8 @@ const canFadeToMain =
       if (scene) {
         disposeObject(scene);
       }
+
+      jewelryEnvironmentTexture?.dispose?.();
 
       if (renderer?.domElement?.parentNode) {
         renderer.domElement.parentNode.removeChild(renderer.domElement);
@@ -1711,7 +1852,7 @@ const canFadeToMain =
           className="shoppingIntroTranslateModalBackdrop"
           role="dialog"
           aria-modal="true"
-          aria-label="Translate"
+          aria-label={`Translate to ${selectedTranslateLanguage.name}`}
           onMouseDown={(event) => {
             if (event.target === event.currentTarget) {
               setShowTranslateModal(false);
@@ -1720,7 +1861,9 @@ const canFadeToMain =
         >
           <div className="shoppingIntroTranslateModalCard">
             <div className="shoppingIntroTranslateModalHeader">
-              <span className="shoppingIntroTranslateModalTitle">TRANSLATE</span>
+              <span className="shoppingIntroTranslateModalTitle">
+                TRANSLATE TO {selectedTranslateLanguage.name.toUpperCase()}
+              </span>
 
               <button
                 type="button"
@@ -1732,8 +1875,38 @@ const canFadeToMain =
               </button>
             </div>
 
+            <div className="shoppingIntroTranslateLanguageOrbit" aria-label="Choose translation language">
+              {TRANSLATE_LANGUAGE_OPTIONS.map((language, index) => {
+                const angle =
+                  (index / TRANSLATE_LANGUAGE_OPTIONS.length) * Math.PI * 2 -
+                  Math.PI / 2;
+
+                return (
+                  <button
+                    key={language.code}
+                    type="button"
+                    className={`shoppingIntroTranslateFlagButton${
+                      selectedTranslateLanguageCode === language.code ? ' isActive' : ''
+                    }`}
+                    style={{
+                      left: `${50 + Math.cos(angle) * 39}%`,
+                      top: `${50 + Math.sin(angle) * 39}%`,
+                    }}
+                    aria-label={`Translate to ${language.name}`}
+                    aria-pressed={selectedTranslateLanguageCode === language.code}
+                    onClick={() => setSelectedTranslateLanguageCode(language.code)}
+                  >
+                    <span className="shoppingIntroTranslateFlagEmoji">{language.flag}</span>
+                    <span className="shoppingIntroTranslateFlagCode">{language.short}</span>
+                  </button>
+                );
+              })}
+            </div>
+
             <div ref={translateGlbStageRef} className="shoppingIntroTranslateGlbStage">
-              <div className="shoppingIntroTranslateGlbLoading">Loading GLB...</div>
+              <div className="shoppingIntroTranslateGlbLoading">
+                {selectedTranslateLanguage.flag} Choose language
+              </div>
             </div>
           </div>
         </div>
