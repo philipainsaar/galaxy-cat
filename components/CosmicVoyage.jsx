@@ -9,6 +9,7 @@ const CAT_MODEL_URL = '/models/alien-cat.glb';
 const BOAT_MODEL_URL = '/models/cosmic-boat.glb';
 const FLOAT_RING_MODEL_URL = '/models/float-ring.glb';
 const FLOAT_RING_FALLBACK_MODEL_URL = '/models/floatring.glb';
+const SPARKLE_HEART_MODEL_URL = '/models/SparkleHeart_LowPoly.glb';
 
 const CORE_MODEL_PRELOAD_URLS = [
   CAT_MODEL_URL,
@@ -23,6 +24,7 @@ const ALL_PUBLIC_GLB_PRELOAD_URLS = [
   BOAT_MODEL_URL,
   FLOAT_RING_MODEL_URL,
   FLOAT_RING_FALLBACK_MODEL_URL,
+  SPARKLE_HEART_MODEL_URL,
   '/models/galaxy-bag.glb',
   '/models/pastel-looping-animated-water.glb',
 ];
@@ -971,8 +973,10 @@ const enterButtonRef = useRef(null);
 
   const coreModelsReadyRef = useRef(coreModelsReady);
 const requestIntroExitRef = useRef(null);
+const translateGlbStageRef = useRef(null);
 const [isFading, setIsFading] = useState(false);
 const [introExitRequested, setIntroExitRequested] = useState(false);
+const [showTranslateModal, setShowTranslateModal] = useState(false);
 
   useEffect(() => {
     coreModelsReadyRef.current = coreModelsReady;
@@ -1376,6 +1380,275 @@ const canFadeToMain =
     };
   }, [onFinished, preloadStore]);
 
+  useEffect(() => {
+    if (!showTranslateModal) return undefined;
+
+    const handleTranslateKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        setShowTranslateModal(false);
+      }
+    };
+
+    window.addEventListener('keydown', handleTranslateKeyDown);
+
+    return () => {
+      window.removeEventListener('keydown', handleTranslateKeyDown);
+    };
+  }, [showTranslateModal]);
+
+  useEffect(() => {
+    if (!showTranslateModal || !translateGlbStageRef.current) return undefined;
+
+    const stage = translateGlbStageRef.current;
+    const loadingNode = stage.querySelector('.shoppingIntroTranslateGlbLoading');
+
+    let disposed = false;
+    let animationFrame = 0;
+    let renderer = null;
+    let scene = null;
+    let camera = null;
+    let heartGroup = null;
+    let resizeObserver = null;
+
+    let pointerDown = false;
+    let lastX = 0;
+    let lastY = 0;
+    let targetRotX = -0.12;
+    let targetRotY = 0.35;
+    let currentRotX = targetRotX;
+    let currentRotY = targetRotY;
+
+    const setLoadingText = (text) => {
+      if (loadingNode) {
+        loadingNode.textContent = text;
+      }
+    };
+
+    setLoadingText('Loading GLB...');
+
+    scene = new THREE.Scene();
+    scene.fog = new THREE.FogExp2(0xffffff, 0.04);
+
+    camera = new THREE.PerspectiveCamera(38, 1, 0.1, 80);
+    camera.position.set(0, 0.25, 6.4);
+
+    renderer = new THREE.WebGLRenderer({
+      antialias: true,
+      alpha: true,
+      powerPreference: 'high-performance',
+    });
+
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.16;
+    renderer.domElement.className = 'shoppingIntroTranslateGlbCanvas';
+
+    stage.appendChild(renderer.domElement);
+
+    scene.add(new THREE.HemisphereLight(0xffffff, 0xd4c4ff, 2.4));
+
+    const keyLight = new THREE.DirectionalLight(0xffffff, 3.8);
+    keyLight.position.set(3.6, 4.8, 5.8);
+    scene.add(keyLight);
+
+    const fillLight = new THREE.DirectionalLight(0xffffff, 1.2);
+    fillLight.position.set(-4.2, -1.8, 2.8);
+    scene.add(fillLight);
+
+    const pinkLight = new THREE.PointLight(0xff9fce, 8.4, 14);
+    pinkLight.position.set(-3.2, 2.2, 3.6);
+    scene.add(pinkLight);
+
+    const blueLight = new THREE.PointLight(0xb7dcff, 7.2, 14);
+    blueLight.position.set(3.4, -0.4, 3.9);
+    scene.add(blueLight);
+
+    const purpleLight = new THREE.PointLight(0xd5b8ff, 6.2, 14);
+    purpleLight.position.set(0, 4.0, -2.8);
+    scene.add(purpleLight);
+
+    heartGroup = new THREE.Group();
+    heartGroup.name = 'ShoppingIntroTranslateHeartGroup';
+    heartGroup.scale.setScalar(1.8);
+    scene.add(heartGroup);
+
+    const starGeometry = new THREE.IcosahedronGeometry(0.022, 0);
+    const starMaterial = new THREE.MeshBasicMaterial({
+      color: 0xffffff,
+      transparent: true,
+      opacity: 0.72,
+    });
+
+    const stars = new THREE.Group();
+    stars.name = 'ShoppingIntroTranslateSparkles';
+
+    for (let i = 0; i < 90; i += 1) {
+      const star = new THREE.Mesh(starGeometry, starMaterial);
+
+      star.position.set(
+        (Math.random() - 0.5) * 12,
+        (Math.random() - 0.5) * 8,
+        -4 - Math.random() * 4,
+      );
+
+      star.scale.setScalar(0.6 + Math.random() * 2.2);
+      stars.add(star);
+    }
+
+    scene.add(stars);
+
+    const resizeTranslateRenderer = () => {
+      if (!renderer || !camera || !stage) return;
+
+      const rect = stage.getBoundingClientRect();
+      const width = Math.max(1, Math.floor(rect.width));
+      const height = Math.max(1, Math.floor(rect.height));
+
+      renderer.setSize(width, height, false);
+      camera.aspect = width / height;
+      camera.updateProjectionMatrix();
+    };
+
+    const onTranslatePointerDown = (event) => {
+      pointerDown = true;
+      lastX = event.clientX;
+      lastY = event.clientY;
+
+      try {
+        renderer.domElement.setPointerCapture(event.pointerId);
+      } catch {}
+    };
+
+    const onTranslatePointerMove = (event) => {
+      if (!pointerDown) return;
+
+      const dx = event.clientX - lastX;
+      const dy = event.clientY - lastY;
+
+      lastX = event.clientX;
+      lastY = event.clientY;
+
+      targetRotY += dx * 0.008;
+      targetRotX += dy * 0.006;
+      targetRotX = clampNumber(targetRotX, -0.75, 0.65);
+    };
+
+    const onTranslatePointerUp = () => {
+      pointerDown = false;
+    };
+
+    const animateTranslateHeart = (time) => {
+      if (disposed || !renderer || !scene || !camera || !heartGroup) return;
+
+      const t = time * 0.001;
+
+      currentRotX += (targetRotX - currentRotX) * 0.07;
+      currentRotY += (targetRotY - currentRotY) * 0.07;
+
+      if (!pointerDown) {
+        targetRotY += 0.003;
+      }
+
+      heartGroup.rotation.x = currentRotX + Math.sin(t * 1.7) * 0.025;
+      heartGroup.rotation.y = currentRotY;
+      heartGroup.rotation.z = Math.sin(t * 1.25) * 0.025;
+      heartGroup.position.y = Math.sin(t * 2.1) * 0.06;
+
+      renderer.render(scene, camera);
+      animationFrame = requestAnimationFrame(animateTranslateHeart);
+    };
+
+    renderer.domElement.addEventListener('pointerdown', onTranslatePointerDown);
+    renderer.domElement.addEventListener('pointermove', onTranslatePointerMove);
+    window.addEventListener('pointerup', onTranslatePointerUp);
+
+    resizeObserver = new ResizeObserver(resizeTranslateRenderer);
+    resizeObserver.observe(stage);
+
+    resizeTranslateRenderer();
+    animationFrame = requestAnimationFrame(animateTranslateHeart);
+
+    loadSceneGLTF(preloadStore, SPARKLE_HEART_MODEL_URL)
+      .then((gltf) => {
+        if (disposed || !gltf?.scene || !heartGroup) return;
+
+        const heartModel = gltf.scene;
+        heartModel.name = 'ShoppingIntroTranslateSparkleHeart';
+
+        heartModel.traverse((child) => {
+          if (!child.isMesh) return;
+
+          child.castShadow = false;
+          child.receiveShadow = false;
+
+          if (child.material) {
+            child.material = child.material.clone();
+
+            if ('metalness' in child.material) {
+              child.material.metalness = Math.max(child.material.metalness ?? 0, 0.55);
+            }
+
+            if ('roughness' in child.material) {
+              child.material.roughness = Math.min(child.material.roughness ?? 0.2, 0.16);
+            }
+
+            if ('emissive' in child.material) {
+              child.material.emissive = new THREE.Color(0xff9fce);
+              child.material.emissiveIntensity = Math.max(
+                child.material.emissiveIntensity ?? 0,
+                0.08,
+              );
+            }
+
+            child.material.needsUpdate = true;
+          }
+        });
+
+        const box = new THREE.Box3().setFromObject(heartModel);
+        const size = box.getSize(new THREE.Vector3());
+        const center = box.getCenter(new THREE.Vector3());
+
+        heartModel.position.sub(center);
+
+        if (size.y > 0) {
+          heartModel.scale.multiplyScalar(2.8 / size.y);
+        }
+
+        heartGroup.add(heartModel);
+        setLoadingText('Drag / touch to rotate');
+      })
+      .catch((error) => {
+        console.error('Could not load intro translate sparkle heart GLB:', error);
+        setLoadingText('Could not load GLB');
+      });
+
+    return () => {
+      disposed = true;
+
+      if (animationFrame) {
+        cancelAnimationFrame(animationFrame);
+      }
+
+      resizeObserver?.disconnect?.();
+
+      renderer?.domElement?.removeEventListener('pointerdown', onTranslatePointerDown);
+      renderer?.domElement?.removeEventListener('pointermove', onTranslatePointerMove);
+      window.removeEventListener('pointerup', onTranslatePointerUp);
+
+      if (scene) {
+        disposeObject(scene);
+      }
+
+      if (renderer?.domElement?.parentNode) {
+        renderer.domElement.parentNode.removeChild(renderer.domElement);
+      }
+
+      renderer?.dispose?.();
+      renderer?.forceContextLoss?.();
+    };
+  }, [showTranslateModal, preloadStore]);
+
   return (
     <div className={`shoppingIntroSplash${isFading ? ' isFading' : ''}`}>
       <canvas
@@ -1402,6 +1675,8 @@ const canFadeToMain =
   type="button"
   className="shoppingIntroTranslateButton"
   aria-label="Translate"
+  aria-expanded={showTranslateModal}
+  onClick={() => setShowTranslateModal(true)}
 >
   <img
     src="/images/translate-icon.png"
@@ -1430,6 +1705,39 @@ const canFadeToMain =
 </button>
 
       </div>
+
+      {showTranslateModal && (
+        <div
+          className="shoppingIntroTranslateModalBackdrop"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Translate"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) {
+              setShowTranslateModal(false);
+            }
+          }}
+        >
+          <div className="shoppingIntroTranslateModalCard">
+            <div className="shoppingIntroTranslateModalHeader">
+              <span className="shoppingIntroTranslateModalTitle">TRANSLATE</span>
+
+              <button
+                type="button"
+                className="shoppingIntroTranslateModalClose"
+                aria-label="Close translate popup"
+                onClick={() => setShowTranslateModal(false)}
+              >
+                ×
+              </button>
+            </div>
+
+            <div ref={translateGlbStageRef} className="shoppingIntroTranslateGlbStage">
+              <div className="shoppingIntroTranslateGlbLoading">Loading GLB...</div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
