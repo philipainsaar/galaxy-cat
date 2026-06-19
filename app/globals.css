@@ -1071,35 +1071,86 @@ select,
   place-items: center;
   padding: max(18px, env(safe-area-inset-top)) 18px max(18px, env(safe-area-inset-bottom));
   background:
-    radial-gradient(circle at 20% 18%, rgba(255, 190, 225, 0.36), transparent 38%),
-    radial-gradient(circle at 82% 20%, rgba(195, 223, 255, 0.34), transparent 38%),
+    radial-gradient(circle at 20% 18%, rgba(255, 190, 225, 0.38), transparent 38%),
+    radial-gradient(circle at 82% 20%, rgba(195, 223, 255, 0.36), transparent 38%),
+    radial-gradient(circle at 50% 82%, rgba(226, 198, 255, 0.28), transparent 42%),
     rgba(252, 246, 255, 0.42);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(13px);
+  -webkit-backdrop-filter: blur(13px);
   pointer-events: auto;
 }
 
 .shoppingIntroTranslateModalCard {
   position: relative;
-  width: min(92vw, 520px);
-  height: min(78dvh, 720px);
+  width: min(94vw, 620px);
+  height: min(84dvh, 760px);
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.72);
-  border-radius: 32px;
+  border: 1px solid rgba(255, 255, 255, 0.76);
+  border-radius: 36px;
   background:
-    radial-gradient(circle at 28% 22%, rgba(255, 200, 232, 0.45), transparent 38%),
-    radial-gradient(circle at 76% 20%, rgba(197, 225, 255, 0.46), transparent 40%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.66), rgba(246, 238, 255, 0.5));
+    radial-gradient(circle at 28% 22%, rgba(255, 200, 232, 0.46), transparent 38%),
+    radial-gradient(circle at 76% 20%, rgba(197, 225, 255, 0.48), transparent 40%),
+    radial-gradient(circle at 50% 58%, rgba(255, 255, 255, 0.72), transparent 34%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.68), rgba(246, 238, 255, 0.52));
   box-shadow:
-    0 28px 80px rgba(147, 106, 180, 0.25),
-    inset 0 0 24px rgba(255, 255, 255, 0.32);
+    0 30px 88px rgba(147, 106, 180, 0.27),
+    0 0 42px rgba(255, 210, 238, 0.28),
+    inset 0 0 28px rgba(255, 255, 255, 0.38);
   pointer-events: auto;
+}
+
+.shoppingIntroTranslateModalCard::before {
+  content: "";
+  position: absolute;
+  inset: 12%;
+  z-index: 0;
+  border-radius: 999px;
+  background:
+    radial-gradient(circle, rgba(255, 255, 255, 0.72), transparent 56%),
+    conic-gradient(
+      from 0deg,
+      rgba(255, 183, 220, 0.0),
+      rgba(255, 183, 220, 0.34),
+      rgba(174, 219, 255, 0.34),
+      rgba(202, 184, 255, 0.34),
+      rgba(255, 183, 220, 0.0)
+    );
+  filter: blur(3px);
+  opacity: 0.58;
+  pointer-events: none;
+}
+
+.shoppingIntroTranslateModalCard::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 52%;
+  z-index: 2;
+  width: min(74%, 430px);
+  aspect-ratio: 1;
+  border: 1px solid rgba(255, 255, 255, 0.66);
+  border-radius: 999px;
+  transform: translate(-50%, -50%);
+  background:
+    radial-gradient(circle, transparent 58%, rgba(255, 255, 255, 0.22) 59%, rgba(255, 255, 255, 0.08) 68%, transparent 69%),
+    conic-gradient(
+      from 12deg,
+      rgba(255, 143, 201, 0.28),
+      rgba(174, 219, 255, 0.32),
+      rgba(202, 184, 255, 0.32),
+      rgba(255, 183, 220, 0.30),
+      rgba(255, 143, 201, 0.28)
+    );
+  box-shadow:
+    0 0 28px rgba(255, 255, 255, 0.36),
+    inset 0 0 36px rgba(255, 255, 255, 0.18);
+  pointer-events: none;
 }
 
 .shoppingIntroTranslateModalHeader {
   position: absolute;
   inset: 14px 14px auto 14px;
-  z-index: 3;
+  z-index: 7;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1108,20 +1159,24 @@ select,
 }
 
 .shoppingIntroTranslateModalTitle {
+  max-width: calc(100% - 58px);
   padding: 10px 16px;
-  border: 1px solid rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.74);
   border-radius: 999px;
   color: #885278;
-  background: rgba(255, 255, 255, 0.34);
+  background: rgba(255, 255, 255, 0.38);
   box-shadow:
     0 12px 35px rgba(255, 160, 220, 0.16),
-    inset 0 0 18px rgba(255, 255, 255, 0.28);
+    inset 0 0 18px rgba(255, 255, 255, 0.3);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
   font-size: 12px;
   font-weight: 900;
   letter-spacing: 0.09em;
+  overflow: hidden;
   pointer-events: auto;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .shoppingIntroTranslateModalClose {
@@ -1130,7 +1185,7 @@ select,
   border: 1px solid rgba(255, 255, 255, 0.72);
   border-radius: 999px;
   color: #835a91;
-  background: rgba(255, 255, 255, 0.38);
+  background: rgba(255, 255, 255, 0.42);
   box-shadow: 0 14px 32px rgba(255, 160, 220, 0.18);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
@@ -1150,6 +1205,7 @@ select,
 .shoppingIntroTranslateGlbStage {
   position: absolute;
   inset: 0;
+  z-index: 1;
   overflow: hidden;
 }
 
@@ -1166,17 +1222,104 @@ select,
   position: absolute;
   left: 50%;
   bottom: 22px;
-  z-index: 2;
+  z-index: 6;
+  max-width: 78%;
   transform: translateX(-50%);
-  color: rgba(118, 82, 122, 0.82);
+  color: rgba(118, 82, 122, 0.84);
   font-size: 12px;
   font-weight: 900;
   letter-spacing: 0.08em;
+  text-align: center;
   text-transform: uppercase;
   user-select: none;
   white-space: nowrap;
   text-shadow: 0 1px 8px rgba(255, 255, 255, 0.9);
   pointer-events: none;
+}
+
+.shoppingIntroTranslateLanguageOrbit {
+  position: absolute;
+  left: 50%;
+  top: 52%;
+  z-index: 5;
+  width: min(78%, 470px);
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.shoppingIntroTranslateLanguageOrbit::before {
+  content: "";
+  position: absolute;
+  inset: 8%;
+  border: 1px dashed rgba(130, 105, 199, 0.32);
+  border-radius: 999px;
+  box-shadow:
+    0 0 18px rgba(255, 183, 220, 0.2),
+    inset 0 0 24px rgba(174, 219, 255, 0.18);
+  pointer-events: none;
+}
+
+.shoppingIntroTranslateFlagButton {
+  position: absolute;
+  z-index: 6;
+  width: clamp(42px, 10vw, 58px);
+  height: clamp(42px, 10vw, 58px);
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  border-radius: 999px;
+  color: #76558e;
+  background:
+    radial-gradient(circle at 30% 20%, rgba(255, 255, 255, 0.95), rgba(255, 236, 250, 0.66) 46%, rgba(217, 239, 255, 0.58));
+  box-shadow:
+    0 10px 22px rgba(145, 116, 205, 0.16),
+    0 0 18px rgba(255, 183, 220, 0.22),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  cursor: pointer;
+  pointer-events: auto;
+  transform: translate(-50%, -50%);
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease,
+    background 0.18s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.shoppingIntroTranslateFlagButton:hover,
+.shoppingIntroTranslateFlagButton:focus-visible,
+.shoppingIntroTranslateFlagButton.isActive {
+  background:
+    radial-gradient(circle at 30% 20%, #ffffff, rgba(255, 183, 220, 0.82) 46%, rgba(174, 219, 255, 0.74));
+  box-shadow:
+    0 12px 26px rgba(145, 116, 205, 0.24),
+    0 0 18px rgba(255, 183, 220, 0.52),
+    0 0 32px rgba(174, 219, 255, 0.38),
+    inset 0 1px 0 rgba(255, 255, 255, 0.94);
+  outline: none;
+  transform: translate(-50%, -50%) scale(1.12);
+}
+
+.shoppingIntroTranslateFlagEmoji {
+  display: block;
+  font-size: clamp(19px, 4.2vw, 26px);
+  line-height: 1;
+  filter:
+    drop-shadow(0 1px 0 rgba(255, 255, 255, 0.78))
+    drop-shadow(0 0 7px rgba(255, 255, 255, 0.75));
+}
+
+.shoppingIntroTranslateFlagCode {
+  position: absolute;
+  left: 50%;
+  bottom: 4px;
+  transform: translateX(-50%);
+  color: rgba(86, 63, 128, 0.78);
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  text-shadow: 0 1px 4px rgba(255, 255, 255, 0.9);
 }
 
 @media (max-width: 430px) {
@@ -1186,7 +1329,7 @@ select,
 
   .shoppingIntroTranslateModalCard {
     width: 94vw;
-    height: 74dvh;
+    height: 76dvh;
     border-radius: 24px;
   }
 
@@ -1195,7 +1338,22 @@ select,
   }
 
   .shoppingIntroTranslateModalTitle {
+    max-width: calc(100% - 54px);
     padding-inline: 13px;
+    font-size: 10px;
+  }
+
+  .shoppingIntroTranslateLanguageOrbit {
+    width: 82%;
+  }
+
+  .shoppingIntroTranslateFlagButton {
+    width: 42px;
+    height: 42px;
+  }
+
+  .shoppingIntroTranslateFlagCode {
+    display: none;
   }
 }
 
