@@ -1149,13 +1149,25 @@ select,
 
 .shoppingIntroTranslateModalHeader {
   position: absolute;
-  inset: 14px 14px auto 14px;
+  left: 0;
+  right: 0;
+  top: clamp(140px, 22dvh, 220px);
   z-index: 7;
   display: flex;
-  align-items: center;
+  align-items: stretch;
   justify-content: space-between;
-  gap: 12px;
+  gap: 0;
+  min-height: 52px;
   pointer-events: none;
+}
+
+.shoppingIntroTranslateGlbLoading {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: clamp(140px, 20dvh, 220px);
+  z-index: 6;
+  min-height: 44px;
 }
 
 .shoppingIntroTranslateModalTitle {
