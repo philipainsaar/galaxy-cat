@@ -1529,9 +1529,13 @@ const canFadeToMain =
 
         envMapIntensity: looksLikeGem ? 2.6 : 2.15,
         flatShading: false,
-        transparent: Boolean(source.transparent),
-        opacity: source.opacity ?? 1,
-        side: source.side ?? THREE.FrontSide,
+        transparent: true,
+
+// Change these numbers:
+opacity: looksLikeGem ? 0.95 : 0.88,
+
+depthWrite: false,
+side: source.side ?? THREE.FrontSide,
       });
 
       [
