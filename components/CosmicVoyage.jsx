@@ -1496,7 +1496,7 @@ const canFadeToMain =
 
       sourceColor.lerp(targetColor, looksLikeGem ? 0.72 : 0.38);
 
-      const material = new THREE.MeshPhysicalMaterial({
+      const material = new THREE.MeshStandardMaterial({
         name: `${source.name || meshName || 'sparkle'}_glossy_jewelry`,
         color: sourceColor,
 
@@ -1507,22 +1507,8 @@ const canFadeToMain =
         emissiveMap: source.emissiveMap || null,
         aoMap: source.aoMap || null,
 
-        metalness: looksLikeGem ? 0.48 : 0.76,
-        roughness: looksLikeGem ? 0.025 : 0.045,
-
-        clearcoat: 1.0,
-        clearcoatRoughness: 0.018,
-        ior: looksLikeGem ? 1.72 : 1.52,
-        reflectivity: 1.0,
-
-        iridescence: looksLikeGem ? 0.62 : 0.38,
-        iridescenceIOR: 1.35,
-        sheen: 0.22,
-        sheenRoughness: 0.16,
-        sheenColor: new THREE.Color('#ffd7f1'),
-
-        specularIntensity: 1.0,
-        specularColor: new THREE.Color('#fff9ff'),
+        metalness: 0.45,
+roughness: 0.18,
 
         emissive: new THREE.Color(looksLikeGem ? '#ffe6f6' : '#ff7fbd'),
         emissiveIntensity: looksLikeGem ? 0.24 : 0.1,
@@ -1575,7 +1561,7 @@ side: source.side ?? THREE.FrontSide,
       powerPreference: 'high-performance',
     });
 
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.35));
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.42;
