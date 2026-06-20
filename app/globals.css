@@ -1159,6 +1159,7 @@ select,
 }
 
 .shoppingIntroTranslateModalTitle {
+  overflow-wrap: anywhere;
   max-width: calc(100% - 58px);
   padding: 10px 16px;
   border: 1px solid rgba(255, 255, 255, 0.74);
