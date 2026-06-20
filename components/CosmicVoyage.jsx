@@ -11,16 +11,16 @@ const FLOAT_RING_MODEL_URL = '/models/float-ring.glb';
 const FLOAT_RING_FALLBACK_MODEL_URL = '/models/floatring.glb';
 const SPARKLE_HEART_MODEL_URL = '/models/SparkleHeart_LowPoly.glb';
 const TRANSLATE_LANGUAGE_OPTIONS = [
-  { code: 'sv', name: 'Swedish', short: 'SV', flag: '🇸🇪' },
-  { code: 'en', name: 'English', short: 'EN', flag: '🇬🇧' },
-  { code: 'ja', name: 'Japanese', short: 'JA', flag: '🇯🇵' },
-  { code: 'ko', name: 'Korean', short: 'KO', flag: '🇰🇷' },
-  { code: 'zh', name: 'Chinese', short: 'ZH', flag: '🇨🇳' },
-  { code: 'fr', name: 'French', short: 'FR', flag: '🇫🇷' },
-  { code: 'de', name: 'German', short: 'DE', flag: '🇩🇪' },
-  { code: 'es', name: 'Spanish', short: 'ES', flag: '🇪🇸' },
-  { code: 'it', name: 'Italian', short: 'IT', flag: '🇮🇹' },
-  { code: 'pt', name: 'Portuguese', short: 'PT', flag: '🇵🇹' },
+  { code: 'sv', name: 'Swedish', short: 'SV', flag: '/images/flags/flag-sweden.png' },
+  { code: 'en', name: 'English', short: 'EN', flag: '/images/flags/flag-united-kingdom.png' },
+  { code: 'ja', name: 'Japanese', short: 'JA', flag: '/images/flags/flag-japan.png' },
+  { code: 'ko', name: 'Korean', short: 'KO', flag: '/images/flags/flag-south-korea.png' },
+  { code: 'zh', name: 'Chinese', short: 'ZH', flag: '/images/flags/flag-china.png' },
+  { code: 'fr', name: 'French', short: 'FR', flag: '/images/flags/flag-france.png' },
+  { code: 'de', name: 'German', short: 'DE', flag: '/images/flags/flag-germany.png' },
+  { code: 'es', name: 'Spanish', short: 'ES', flag: '/images/flags/flag-spain.png' },
+  { code: 'it', name: 'Italian', short: 'IT', flag: '/images/flags/flag-italy.png' },
+  { code: 'pt', name: 'Portuguese', short: 'PT', flag: '/images/flags/flag-portugal.png' },
 ];
 
 
@@ -1888,8 +1888,15 @@ side: source.side ?? THREE.FrontSide,
                     aria-pressed={selectedTranslateLanguageCode === language.code}
                     onClick={() => setSelectedTranslateLanguageCode(language.code)}
                   >
-                    <span className="shoppingIntroTranslateFlagEmoji">{language.flag}</span>
-                    <span className="shoppingIntroTranslateFlagCode">{language.short}</span>
+                    <img
+  className="shoppingIntroTranslateFlagImage"
+  src={language.flag}
+  alt=""
+  aria-hidden="true"
+  draggable="false"
+/>
+<span className="shoppingIntroTranslateFlagCode">{language.short}</span>
+      
                   </button>
                 );
               })}
