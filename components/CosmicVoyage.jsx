@@ -23,7 +23,7 @@ const TRANSLATE_LANGUAGE_OPTIONS = [
   { code: 'pt', name: 'Portuguese', nativeName: 'Português', short: 'PT', flag: '/images/flags/flag-portugal.png' },
 ];
 
-const DEFAULT_LANGUAGE_CODE = 'sv';
+const DEFAULT_LANGUAGE_CODE = 'en';
 const SITE_TRANSLATIONS = {
   "sv": {
     "languageNativeName": "Svenska",
