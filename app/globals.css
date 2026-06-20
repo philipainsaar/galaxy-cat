@@ -1309,6 +1309,24 @@ select,
     drop-shadow(0 0 7px rgba(255, 255, 255, 0.75));
 }
 
+.shoppingIntroTranslateFlagImage {
+  display: block;
+  width: clamp(32px, 7vw, 46px);
+  height: clamp(32px, 7vw, 46px);
+  object-fit: cover;
+  border-radius: 999px;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.78),
+    0 0 7px rgba(255, 255, 255, 0.75);
+  pointer-events: none;
+  user-select: none;
+}
+
+.shoppingIntroTranslateFlagImage {
+  width: clamp(28px, 8vw, 38px);
+  height: clamp(28px, 8vw, 38px);
+}
+
 .shoppingIntroTranslateFlagCode {
   position: absolute;
   left: 50%;
