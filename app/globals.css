@@ -19,24 +19,6 @@
   --font-display: "Bitcount Prop Single", "Murecho", system-ui, sans-serif;
 }
 
-html[lang="ja"],
-html[lang="ja"] body,
-html[lang="ja"] button {
-  font-family: "DotGothic16", var(--font-main), system-ui, sans-serif;
-}
-
-html[lang="ko"],
-html[lang="ko"] body,
-html[lang="ko"] button {
-  font-family: "Hi Melody", var(--font-main), system-ui, sans-serif;
-}
-
-html[lang="zh-CN"],
-html[lang="zh-CN"] body,
-html[lang="zh-CN"] button {
-  font-family: "ZCOOL KuaiLe", var(--font-main), system-ui, sans-serif;
-}
-
 html,
 body {
   width: 100%;
@@ -1859,4 +1841,37 @@ select,
 .ringTerminalCursor {
   font-family: "Germania One", Georgia, serif !important;
 }
+}
+
+/* Force language-specific fonts across ALL live HTML text.
+   CosmicVoyage.jsx updates document.documentElement.lang when a flag is selected.
+   This does not affect text baked inside images or text drawn inside canvas/WebGL. */
+
+html,
+body {
+  font-family: var(--font-main), system-ui, sans-serif;
+}
+
+/* Japanese: DotGothic16 everywhere */
+html[lang="ja"],
+html[lang="ja"] *,
+html[lang="ja"] *::before,
+html[lang="ja"] *::after {
+  font-family: "DotGothic16", var(--font-main), system-ui, sans-serif !important;
+}
+
+/* Korean: Hi Melody everywhere */
+html[lang="ko"],
+html[lang="ko"] *,
+html[lang="ko"] *::before,
+html[lang="ko"] *::after {
+  font-family: "Hi Melody", var(--font-main), system-ui, sans-serif !important;
+}
+
+/* Chinese: ZCOOL KuaiLe everywhere */
+html[lang="zh-CN"],
+html[lang="zh-CN"] *,
+html[lang="zh-CN"] *::before,
+html[lang="zh-CN"] *::after {
+  font-family: "ZCOOL KuaiLe", var(--font-main), system-ui, sans-serif !important;
 }
