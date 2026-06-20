@@ -3808,7 +3808,7 @@ if (state.landed) {
 
   <a
     className="ringSocialButton ringSocialButtonEmail"
-    href="mailto:almostmadeinjapan@gmail.com&subject=Almost%20Made%20in%20Japan&body=https%3A%2F%2Fwww.almostmadeinjapan.com%2F"
+    href="mailto:almostmadeinjapan@gmail.com?subject=Almost Made in Japan&body=https://www.almostmadeinjapan.com/"
     aria-label="Email"
   >
     <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
