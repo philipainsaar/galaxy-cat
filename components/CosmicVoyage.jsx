@@ -11,17 +11,363 @@ const FLOAT_RING_MODEL_URL = '/models/float-ring.glb';
 const FLOAT_RING_FALLBACK_MODEL_URL = '/models/floatring.glb';
 const SPARKLE_HEART_MODEL_URL = '/models/SparkleHeart_LowPoly.glb';
 const TRANSLATE_LANGUAGE_OPTIONS = [
-  { code: 'sv', name: 'Swedish', short: 'SV', flag: '/images/flags/flag-sweden.png' },
-  { code: 'en', name: 'English', short: 'EN', flag: '/images/flags/flag-united-kingdom.png' },
-  { code: 'ja', name: 'Japanese', short: 'JA', flag: '/images/flags/flag-japan.png' },
-  { code: 'ko', name: 'Korean', short: 'KO', flag: '/images/flags/flag-south-korea.png' },
-  { code: 'zh', name: 'Chinese', short: 'ZH', flag: '/images/flags/flag-china.png' },
-  { code: 'fr', name: 'French', short: 'FR', flag: '/images/flags/flag-france.png' },
-  { code: 'de', name: 'German', short: 'DE', flag: '/images/flags/flag-germany.png' },
-  { code: 'es', name: 'Spanish', short: 'ES', flag: '/images/flags/flag-spain.png' },
-  { code: 'it', name: 'Italian', short: 'IT', flag: '/images/flags/flag-italy.png' },
-  { code: 'pt', name: 'Portuguese', short: 'PT', flag: '/images/flags/flag-portugal.png' },
+  { code: 'sv', name: 'Swedish', nativeName: 'Svenska', short: 'SV', flag: '/images/flags/flag-sweden.png' },
+  { code: 'en', name: 'English', nativeName: 'English', short: 'EN', flag: '/images/flags/flag-united-kingdom.png' },
+  { code: 'ja', name: 'Japanese', nativeName: '日本語', short: 'JA', flag: '/images/flags/flag-japan.png' },
+  { code: 'ko', name: 'Korean', nativeName: '한국어', short: 'KO', flag: '/images/flags/flag-south-korea.png' },
+  { code: 'zh', name: 'Chinese', nativeName: '中文', short: 'ZH', flag: '/images/flags/flag-china.png' },
+  { code: 'fr', name: 'French', nativeName: 'Français', short: 'FR', flag: '/images/flags/flag-france.png' },
+  { code: 'de', name: 'German', nativeName: 'Deutsch', short: 'DE', flag: '/images/flags/flag-germany.png' },
+  { code: 'es', name: 'Spanish', nativeName: 'Español', short: 'ES', flag: '/images/flags/flag-spain.png' },
+  { code: 'it', name: 'Italian', nativeName: 'Italiano', short: 'IT', flag: '/images/flags/flag-italy.png' },
+  { code: 'pt', name: 'Portuguese', nativeName: 'Português', short: 'PT', flag: '/images/flags/flag-portugal.png' },
 ];
+
+const DEFAULT_LANGUAGE_CODE = 'sv';
+const SITE_TRANSLATIONS = {
+  "sv": {
+    "languageNativeName": "Svenska",
+    "logoAlt": "Almost Made in Japan",
+    "translate": "Översätt",
+    "translateTo": "Översätt till {language}",
+    "translateToLanguage": "Översätt till {language}",
+    "closeTranslatePopup": "Stäng översättningsfönster",
+    "chooseTranslationLanguage": "Välj översättningsspråk",
+    "chooseLanguage": "Välj språk",
+    "loadingGlossyJewelry": "Laddar glansigt smycke...",
+    "couldNotLoadGlb": "Kunde inte ladda GLB",
+    "introLine1": "EN ALIENKATT KOM",
+    "introLine2": "FÖR ATT HÄMTA DIG TILL SHOPPING",
+    "enterWebsite": "Gå in på webbplatsen",
+    "enterPortal": "GÅ IN I PORTALEN?",
+    "entering": "GÅR IN...",
+    "dragHint": "↑ dra alienkatten till båten ↑",
+    "loadingTicker": "Ansluter till CYBER-NÄTVERKET...",
+    "loadingTitle": "LADDAR...",
+    "collectionsTitle": "KOLLEKTIONER",
+    "openCollection": "Öppna {title}",
+    "modelLoadError": "MODELLFEL VID LADDNING",
+    "close": "STÄNG",
+    "modelErrorBody1": "Filerna kan finnas, men modellinställningen kan ändå misslyckas.",
+    "modelErrorBody2": "Öppna webbläsarkonsolen för exakt fel.",
+    "ringTerminalMessage": "• Modellering: £50 per timme.\n\n• Make-up: £50\n\n• Styling: £50\n\n• Videoredigering: £15 per video.\n\n• Art Director: £150",
+    "collectionNames": {
+      "dreamy": "DRÖM",
+      "emo": "EMO",
+      "nature": "NATUR",
+      "cyber": "CYBER"
+    }
+  },
+  "en": {
+    "languageNativeName": "English",
+    "logoAlt": "Almost Made in Japan",
+    "translate": "Translate",
+    "translateTo": "Translate to {language}",
+    "translateToLanguage": "Translate to {language}",
+    "closeTranslatePopup": "Close translate popup",
+    "chooseTranslationLanguage": "Choose translation language",
+    "chooseLanguage": "Choose language",
+    "loadingGlossyJewelry": "Loading glossy jewelry...",
+    "couldNotLoadGlb": "Could not load GLB",
+    "introLine1": "AN ALIEN CAT CAME",
+    "introLine2": "TO COLLECT YOU FOR SHOPPING",
+    "enterWebsite": "Enter the website",
+    "enterPortal": "ENTER THE PORTAL?",
+    "entering": "ENTERING...",
+    "dragHint": "↑ drag the alien cat to the boat ↑",
+    "loadingTicker": "Connecting to the CYBER-NETWORK...",
+    "loadingTitle": "LOADING...",
+    "collectionsTitle": "COLLECTIONS",
+    "openCollection": "Open {title}",
+    "modelLoadError": "MODEL LOAD ERROR",
+    "close": "CLOSE",
+    "modelErrorBody1": "The files may exist, but model setup can still fail.",
+    "modelErrorBody2": "Open the browser console for the exact error.",
+    "ringTerminalMessage": "• Modeling: £50 an hour.\n\n• Make-up: £50\n\n• Styling: £50\n\n• Video editing: £15 per video.\n\n• Art Director: £150",
+    "collectionNames": {
+      "dreamy": "DREAMY",
+      "emo": "EMO",
+      "nature": "NATURE",
+      "cyber": "CYBER"
+    }
+  },
+  "ja": {
+    "languageNativeName": "日本語",
+    "logoAlt": "Almost Made in Japan",
+    "translate": "翻訳",
+    "translateTo": "{language}へ翻訳",
+    "translateToLanguage": "{language}へ翻訳",
+    "closeTranslatePopup": "翻訳ウィンドウを閉じる",
+    "chooseTranslationLanguage": "翻訳する言語を選択",
+    "chooseLanguage": "言語を選択",
+    "loadingGlossyJewelry": "光るジュエリーを読み込み中...",
+    "couldNotLoadGlb": "GLBを読み込めませんでした",
+    "introLine1": "エイリアン猫が来た",
+    "introLine2": "あなたを買い物へ連れていくために",
+    "enterWebsite": "ウェブサイトに入る",
+    "enterPortal": "ポータルに入る？",
+    "entering": "入っています...",
+    "dragHint": "↑ エイリアン猫をボートへドラッグ ↑",
+    "loadingTicker": "CYBER-NETWORKに接続中...",
+    "loadingTitle": "読み込み中...",
+    "collectionsTitle": "コレクション",
+    "openCollection": "{title}を開く",
+    "modelLoadError": "モデル読み込みエラー",
+    "close": "閉じる",
+    "modelErrorBody1": "ファイルが存在していても、モデル設定で失敗する場合があります。",
+    "modelErrorBody2": "正確なエラーはブラウザのコンソールで確認してください。",
+    "ringTerminalMessage": "• モデリング：1時間 £50\n\n• メイクアップ：£50\n\n• スタイリング：£50\n\n• 動画編集：1本 £15\n\n• アートディレクター：£150",
+    "collectionNames": {
+      "dreamy": "ドリーミー",
+      "emo": "エモ",
+      "nature": "ネイチャー",
+      "cyber": "サイバー"
+    }
+  },
+  "ko": {
+    "languageNativeName": "한국어",
+    "logoAlt": "Almost Made in Japan",
+    "translate": "번역",
+    "translateTo": "{language}로 번역",
+    "translateToLanguage": "{language}로 번역",
+    "closeTranslatePopup": "번역 창 닫기",
+    "chooseTranslationLanguage": "번역 언어 선택",
+    "chooseLanguage": "언어 선택",
+    "loadingGlossyJewelry": "반짝이는 주얼리 로딩 중...",
+    "couldNotLoadGlb": "GLB를 불러올 수 없습니다",
+    "introLine1": "외계 고양이가 왔어요",
+    "introLine2": "당신을 쇼핑으로 데려가려고",
+    "enterWebsite": "웹사이트 들어가기",
+    "enterPortal": "포털에 들어갈까요?",
+    "entering": "들어가는 중...",
+    "dragHint": "↑ 외계 고양이를 보트로 드래그 ↑",
+    "loadingTicker": "CYBER-NETWORK에 연결 중...",
+    "loadingTitle": "로딩 중...",
+    "collectionsTitle": "컬렉션",
+    "openCollection": "{title} 열기",
+    "modelLoadError": "모델 로드 오류",
+    "close": "닫기",
+    "modelErrorBody1": "파일이 있어도 모델 설정은 실패할 수 있습니다.",
+    "modelErrorBody2": "정확한 오류는 브라우저 콘솔에서 확인하세요.",
+    "ringTerminalMessage": "• 모델링: 시간당 £50\n\n• 메이크업: £50\n\n• 스타일링: £50\n\n• 영상 편집: 영상당 £15\n\n• 아트 디렉터: £150",
+    "collectionNames": {
+      "dreamy": "드리미",
+      "emo": "이모",
+      "nature": "네이처",
+      "cyber": "사이버"
+    }
+  },
+  "zh": {
+    "languageNativeName": "中文",
+    "logoAlt": "Almost Made in Japan",
+    "translate": "翻译",
+    "translateTo": "翻译成{language}",
+    "translateToLanguage": "翻译成{language}",
+    "closeTranslatePopup": "关闭翻译窗口",
+    "chooseTranslationLanguage": "选择翻译语言",
+    "chooseLanguage": "选择语言",
+    "loadingGlossyJewelry": "正在加载闪亮珠宝...",
+    "couldNotLoadGlb": "无法加载 GLB",
+    "introLine1": "外星猫来了",
+    "introLine2": "要带你去购物",
+    "enterWebsite": "进入网站",
+    "enterPortal": "进入传送门？",
+    "entering": "正在进入...",
+    "dragHint": "↑ 把外星猫拖到船上 ↑",
+    "loadingTicker": "正在连接 CYBER-NETWORK...",
+    "loadingTitle": "加载中...",
+    "collectionsTitle": "系列",
+    "openCollection": "打开{title}",
+    "modelLoadError": "模型加载错误",
+    "close": "关闭",
+    "modelErrorBody1": "文件可能存在，但模型设置仍然可能失败。",
+    "modelErrorBody2": "请打开浏览器控制台查看准确错误。",
+    "ringTerminalMessage": "• 建模：每小时 £50\n\n• 化妆：£50\n\n• 造型：£50\n\n• 视频剪辑：每个视频 £15\n\n• 艺术指导：£150",
+    "collectionNames": {
+      "dreamy": "梦幻",
+      "emo": "EMO",
+      "nature": "自然",
+      "cyber": "赛博"
+    }
+  },
+  "fr": {
+    "languageNativeName": "Français",
+    "logoAlt": "Almost Made in Japan",
+    "translate": "Traduire",
+    "translateTo": "Traduire en {language}",
+    "translateToLanguage": "Traduire en {language}",
+    "closeTranslatePopup": "Fermer la fenêtre de traduction",
+    "chooseTranslationLanguage": "Choisir la langue de traduction",
+    "chooseLanguage": "Choisir une langue",
+    "loadingGlossyJewelry": "Chargement du bijou brillant...",
+    "couldNotLoadGlb": "Impossible de charger le GLB",
+    "introLine1": "UN CHAT ALIEN EST VENU",
+    "introLine2": "TE CHERCHER POUR FAIRE DU SHOPPING",
+    "enterWebsite": "Entrer sur le site",
+    "enterPortal": "ENTRER DANS LE PORTAIL ?",
+    "entering": "ENTRÉE...",
+    "dragHint": "↑ fais glisser le chat alien vers le bateau ↑",
+    "loadingTicker": "Connexion au CYBER-RÉSEAU...",
+    "loadingTitle": "CHARGEMENT...",
+    "collectionsTitle": "COLLECTIONS",
+    "openCollection": "Ouvrir {title}",
+    "modelLoadError": "ERREUR DE CHARGEMENT DU MODÈLE",
+    "close": "FERMER",
+    "modelErrorBody1": "Les fichiers peuvent exister, mais la configuration du modèle peut encore échouer.",
+    "modelErrorBody2": "Ouvre la console du navigateur pour voir l’erreur exacte.",
+    "ringTerminalMessage": "• Modélisation : £50 de l’heure.\n\n• Maquillage : £50\n\n• Stylisme : £50\n\n• Montage vidéo : £15 par vidéo.\n\n• Directeur artistique : £150",
+    "collectionNames": {
+      "dreamy": "RÊVE",
+      "emo": "EMO",
+      "nature": "NATURE",
+      "cyber": "CYBER"
+    }
+  },
+  "de": {
+    "languageNativeName": "Deutsch",
+    "logoAlt": "Almost Made in Japan",
+    "translate": "Übersetzen",
+    "translateTo": "Ins {language} übersetzen",
+    "translateToLanguage": "Ins {language} übersetzen",
+    "closeTranslatePopup": "Übersetzungsfenster schließen",
+    "chooseTranslationLanguage": "Übersetzungssprache wählen",
+    "chooseLanguage": "Sprache wählen",
+    "loadingGlossyJewelry": "Glänzendes Schmuckstück wird geladen...",
+    "couldNotLoadGlb": "GLB konnte nicht geladen werden",
+    "introLine1": "EINE ALIEN-KATZE KAM",
+    "introLine2": "UM DICH ZUM SHOPPING ABZUHOLEN",
+    "enterWebsite": "Website betreten",
+    "enterPortal": "DAS PORTAL BETRETEN?",
+    "entering": "BETRETE...",
+    "dragHint": "↑ zieh die Alien-Katze zum Boot ↑",
+    "loadingTicker": "Verbindung zum CYBER-NETWORK...",
+    "loadingTitle": "LÄDT...",
+    "collectionsTitle": "KOLLEKTIONEN",
+    "openCollection": "{title} öffnen",
+    "modelLoadError": "MODELL-LADEFEHLER",
+    "close": "SCHLIESSEN",
+    "modelErrorBody1": "Die Dateien können vorhanden sein, aber die Modelleinrichtung kann trotzdem fehlschlagen.",
+    "modelErrorBody2": "Öffne die Browser-Konsole für den genauen Fehler.",
+    "ringTerminalMessage": "• Modeling: £50 pro Stunde.\n\n• Make-up: £50\n\n• Styling: £50\n\n• Videobearbeitung: £15 pro Video.\n\n• Art Director: £150",
+    "collectionNames": {
+      "dreamy": "TRÄUMERISCH",
+      "emo": "EMO",
+      "nature": "NATUR",
+      "cyber": "CYBER"
+    }
+  },
+  "es": {
+    "languageNativeName": "Español",
+    "logoAlt": "Almost Made in Japan",
+    "translate": "Traducir",
+    "translateTo": "Traducir a {language}",
+    "translateToLanguage": "Traducir a {language}",
+    "closeTranslatePopup": "Cerrar ventana de traducción",
+    "chooseTranslationLanguage": "Elegir idioma de traducción",
+    "chooseLanguage": "Elegir idioma",
+    "loadingGlossyJewelry": "Cargando joya brillante...",
+    "couldNotLoadGlb": "No se pudo cargar el GLB",
+    "introLine1": "VINO UN GATO ALIENÍGENA",
+    "introLine2": "A LLEVARTE DE COMPRAS",
+    "enterWebsite": "Entrar al sitio web",
+    "enterPortal": "¿ENTRAR AL PORTAL?",
+    "entering": "ENTRANDO...",
+    "dragHint": "↑ arrastra el gato alienígena al barco ↑",
+    "loadingTicker": "Conectando a la CYBER-NETWORK...",
+    "loadingTitle": "CARGANDO...",
+    "collectionsTitle": "COLECCIONES",
+    "openCollection": "Abrir {title}",
+    "modelLoadError": "ERROR AL CARGAR EL MODELO",
+    "close": "CERRAR",
+    "modelErrorBody1": "Los archivos pueden existir, pero la configuración del modelo aún puede fallar.",
+    "modelErrorBody2": "Abre la consola del navegador para ver el error exacto.",
+    "ringTerminalMessage": "• Modelaje: £50 por hora.\n\n• Maquillaje: £50\n\n• Estilismo: £50\n\n• Edición de video: £15 por video.\n\n• Director de arte: £150",
+    "collectionNames": {
+      "dreamy": "ENSUEÑO",
+      "emo": "EMO",
+      "nature": "NATURALEZA",
+      "cyber": "CYBER"
+    }
+  },
+  "it": {
+    "languageNativeName": "Italiano",
+    "logoAlt": "Almost Made in Japan",
+    "translate": "Traduci",
+    "translateTo": "Traduci in {language}",
+    "translateToLanguage": "Traduci in {language}",
+    "closeTranslatePopup": "Chiudi finestra di traduzione",
+    "chooseTranslationLanguage": "Scegli lingua di traduzione",
+    "chooseLanguage": "Scegli lingua",
+    "loadingGlossyJewelry": "Caricamento gioiello lucido...",
+    "couldNotLoadGlb": "Impossibile caricare GLB",
+    "introLine1": "È ARRIVATO UN GATTO ALIENO",
+    "introLine2": "PER PORTARTI A FARE SHOPPING",
+    "enterWebsite": "Entra nel sito",
+    "enterPortal": "ENTRARE NEL PORTALE?",
+    "entering": "ENTRO...",
+    "dragHint": "↑ trascina il gatto alieno sulla barca ↑",
+    "loadingTicker": "Connessione alla CYBER-NETWORK...",
+    "loadingTitle": "CARICAMENTO...",
+    "collectionsTitle": "COLLEZIONI",
+    "openCollection": "Apri {title}",
+    "modelLoadError": "ERRORE DI CARICAMENTO MODELLO",
+    "close": "CHIUDI",
+    "modelErrorBody1": "I file possono esistere, ma la configurazione del modello può comunque fallire.",
+    "modelErrorBody2": "Apri la console del browser per l’errore esatto.",
+    "ringTerminalMessage": "• Modellazione: £50 all’ora.\n\n• Make-up: £50\n\n• Styling: £50\n\n• Montaggio video: £15 per video.\n\n• Art Director: £150",
+    "collectionNames": {
+      "dreamy": "SOGNO",
+      "emo": "EMO",
+      "nature": "NATURA",
+      "cyber": "CYBER"
+    }
+  },
+  "pt": {
+    "languageNativeName": "Português",
+    "logoAlt": "Almost Made in Japan",
+    "translate": "Traduzir",
+    "translateTo": "Traduzir para {language}",
+    "translateToLanguage": "Traduzir para {language}",
+    "closeTranslatePopup": "Fechar janela de tradução",
+    "chooseTranslationLanguage": "Escolher idioma de tradução",
+    "chooseLanguage": "Escolher idioma",
+    "loadingGlossyJewelry": "Carregando joia brilhante...",
+    "couldNotLoadGlb": "Não foi possível carregar o GLB",
+    "introLine1": "UM GATO ALIENÍGENA VEIO",
+    "introLine2": "BUSCAR VOCÊ PARA FAZER COMPRAS",
+    "enterWebsite": "Entrar no site",
+    "enterPortal": "ENTRAR NO PORTAL?",
+    "entering": "ENTRANDO...",
+    "dragHint": "↑ arraste o gato alienígena até o barco ↑",
+    "loadingTicker": "Conectando à CYBER-NETWORK...",
+    "loadingTitle": "CARREGANDO...",
+    "collectionsTitle": "COLEÇÕES",
+    "openCollection": "Abrir {title}",
+    "modelLoadError": "ERRO AO CARREGAR MODELO",
+    "close": "FECHAR",
+    "modelErrorBody1": "Os arquivos podem existir, mas a configuração do modelo ainda pode falhar.",
+    "modelErrorBody2": "Abra o console do navegador para ver o erro exato.",
+    "ringTerminalMessage": "• Modelagem: £50 por hora.\n\n• Maquiagem: £50\n\n• Styling: £50\n\n• Edição de vídeo: £15 por vídeo.\n\n• Diretor de arte: £150",
+    "collectionNames": {
+      "dreamy": "SONHO",
+      "emo": "EMO",
+      "nature": "NATUREZA",
+      "cyber": "CYBER"
+    }
+  }
+};
+
+const getSiteCopy = (languageCode) =>
+  SITE_TRANSLATIONS[languageCode] || SITE_TRANSLATIONS[DEFAULT_LANGUAGE_CODE];
+
+const formatCopy = (template, values = {}) =>
+  String(template || '').replace(/\{(\w+)\}/g, (_, key) => values[key] ?? '');
+
+const getDocumentLangCode = (languageCode) => {
+  if (languageCode === 'zh') return 'zh-CN';
+  if (languageCode === 'pt') return 'pt-PT';
+  return languageCode || DEFAULT_LANGUAGE_CODE;
+};
 
 
 const CORE_MODEL_PRELOAD_URLS = [
@@ -110,21 +456,25 @@ const RING_CHAT_BUBBLES = [
 const MISSION_LINK_IMAGES = [
     {
         title: 'DREAMY',
+        titleKey: 'dreamy',
             image: '/images/covers/dreamy.jpg',
                 url: 'https://www.almostmadeinjapan.com/collections/dreamy',
                   },
                     {
                         title: 'EMO',
+                            titleKey: 'emo',
                             image: '/images/covers/emo.jpg',
                                 url: 'https://www.almostmadeinjapan.com/collections/emo',
                                   },
                                    {
                                        title: 'NATURE',
+                                           titleKey: 'nature',
                                            image: '/images/covers/nature.jpg',
                                                url: 'https://www.almostmadeinjapan.com/collections/frontpage',
                                                  },
                                                   {
                                                       title: 'CYBER',
+                                                      titleKey: 'cyber',
                                                           image: '/images/covers/cyber.jpg',
                                                               url: 'https://www.almostmadeinjapan.com/collections/cyber',
                                                                 },
@@ -978,7 +1328,7 @@ function loadBlurredSpriteTexture(url, blurPx = 3.0) {
 
 
 
-function ShoppingIntroSplash({ onFinished, preloadStore, coreModelsReady }) {
+function ShoppingIntroSplash({ onFinished, preloadStore, coreModelsReady, selectedLanguageCode, onLanguageChange }) {
   const bubbleCanvasRef = useRef(null);
 const catCanvasRef = useRef(null);
 const textCardRef = useRef(null);
@@ -990,11 +1340,15 @@ const translateGlbStageRef = useRef(null);
 const [isFading, setIsFading] = useState(false);
 const [introExitRequested, setIntroExitRequested] = useState(false);
 const [showTranslateModal, setShowTranslateModal] = useState(false);
-const [selectedTranslateLanguageCode, setSelectedTranslateLanguageCode] = useState('sv');
+const [translateGlbStatusKey, setTranslateGlbStatusKey] = useState('chooseLanguage');
 
+const selectedTranslateLanguageCode = selectedLanguageCode || DEFAULT_LANGUAGE_CODE;
+const languageCopy = getSiteCopy(selectedTranslateLanguageCode);
 const selectedTranslateLanguage =
   TRANSLATE_LANGUAGE_OPTIONS.find((language) => language.code === selectedTranslateLanguageCode) ||
   TRANSLATE_LANGUAGE_OPTIONS[0];
+const selectedTranslateLanguageName =
+  selectedTranslateLanguage.nativeName || selectedTranslateLanguage.name;
 
   useEffect(() => {
     coreModelsReadyRef.current = coreModelsReady;
@@ -1418,7 +1772,6 @@ const canFadeToMain =
     if (!showTranslateModal || !translateGlbStageRef.current) return undefined;
 
     const stage = translateGlbStageRef.current;
-    const loadingNode = stage.querySelector('.shoppingIntroTranslateGlbLoading');
 
     let disposed = false;
     let animationFrame = 0;
@@ -1436,12 +1789,6 @@ const canFadeToMain =
     let targetRotY = 0.35;
     let currentRotX = targetRotX;
     let currentRotY = targetRotY;
-
-    const setLoadingText = (text) => {
-      if (loadingNode) {
-        loadingNode.textContent = text;
-      }
-    };
 
     const createJewelryEnvironmentTexture = () => {
       const canvas = document.createElement('canvas');
@@ -1549,7 +1896,7 @@ side: source.side ?? THREE.FrontSide,
       return material;
     };
 
-    setLoadingText('Loading glossy jewelry...');
+    setTranslateGlbStatusKey('loadingGlossyJewelry');
 
     scene = new THREE.Scene();
     scene.fog = new THREE.FogExp2(0xffffff, 0.035);
@@ -1747,11 +2094,11 @@ side: source.side ?? THREE.FrontSide,
         }
 
         heartGroup.add(heartModel);
-        setLoadingText('Choose language');
+        setTranslateGlbStatusKey('chooseLanguage');
       })
       .catch((error) => {
         console.error('Could not load intro translate sparkle heart GLB:', error);
-        setLoadingText('Could not load GLB');
+        setTranslateGlbStatusKey('couldNotLoadGlb');
       });
 
     return () => {
@@ -1799,7 +2146,7 @@ side: source.side ?? THREE.FrontSide,
       <div className="shoppingIntroPreviewText">
         <img
           src="/images/almostmadeinjapan.png"
-          alt="Almost Made in Japan"
+          alt={languageCopy.logoAlt}
           className="shoppingIntroLogo"
           draggable="false"
         />
@@ -1807,7 +2154,7 @@ side: source.side ?? THREE.FrontSide,
         <button
   type="button"
   className="shoppingIntroTranslateButton"
-  aria-label="Translate"
+  aria-label={languageCopy.translate}
   aria-expanded={showTranslateModal}
   onClick={() => setShowTranslateModal(true)}
 >
@@ -1821,8 +2168,8 @@ side: source.side ?? THREE.FrontSide,
 
         <div ref={textCardRef} className="shoppingIntroTextCard">
           <h1 className="shoppingIntroText">
-            AN ALIEN CAT CAME
-            <span>TO COLLECT YOU FOR SHOPPING</span>
+            {languageCopy.introLine1}
+            <span>{languageCopy.introLine2}</span>
           </h1>
         </div>
         
@@ -1832,9 +2179,9 @@ side: source.side ?? THREE.FrontSide,
   className="shoppingIntroEnterButton"
   onClick={() => requestIntroExitRef.current?.()}
   disabled={introExitRequested}
-  aria-label="Enter the website"
+  aria-label={languageCopy.enterWebsite}
 >
-  {introExitRequested ? 'ENTERING...' : 'ENTER THE PORTAL?'}
+  {introExitRequested ? languageCopy.entering : languageCopy.enterPortal}
 </button>
 
       </div>
@@ -1844,7 +2191,7 @@ side: source.side ?? THREE.FrontSide,
           className="shoppingIntroTranslateModalBackdrop"
           role="dialog"
           aria-modal="true"
-          aria-label={`Translate to ${selectedTranslateLanguage.name}`}
+          aria-label={formatCopy(languageCopy.translateTo, { language: selectedTranslateLanguageName })}
           onMouseDown={(event) => {
             if (event.target === event.currentTarget) {
               setShowTranslateModal(false);
@@ -1854,20 +2201,20 @@ side: source.side ?? THREE.FrontSide,
           <div className="shoppingIntroTranslateModalCard">
             <div className="shoppingIntroTranslateModalHeader">
               <span className="shoppingIntroTranslateModalTitle">
-                TRANSLATE TO {selectedTranslateLanguage.name.toUpperCase()}
+                {formatCopy(languageCopy.translateTo, { language: selectedTranslateLanguageName })}
               </span>
 
               <button
                 type="button"
                 className="shoppingIntroTranslateModalClose"
-                aria-label="Close translate popup"
+                aria-label={languageCopy.closeTranslatePopup}
                 onClick={() => setShowTranslateModal(false)}
               >
                 ×
               </button>
             </div>
 
-            <div className="shoppingIntroTranslateLanguageOrbit" aria-label="Choose translation language">
+            <div className="shoppingIntroTranslateLanguageOrbit" aria-label={languageCopy.chooseTranslationLanguage}>
               {TRANSLATE_LANGUAGE_OPTIONS.map((language, index) => {
                 const angle =
                   (index / TRANSLATE_LANGUAGE_OPTIONS.length) * Math.PI * 2 -
@@ -1884,9 +2231,9 @@ side: source.side ?? THREE.FrontSide,
                       left: `${50 + Math.cos(angle) * 39}%`,
                       top: `${50 + Math.sin(angle) * 39}%`,
                     }}
-                    aria-label={`Translate to ${language.name}`}
+                    aria-label={formatCopy(languageCopy.translateToLanguage, { language: language.nativeName || language.name })}
                     aria-pressed={selectedTranslateLanguageCode === language.code}
-                    onClick={() => setSelectedTranslateLanguageCode(language.code)}
+                    onClick={() => onLanguageChange?.(language.code)}
                   >
                     <img
   className="shoppingIntroTranslateFlagImage"
@@ -1904,7 +2251,7 @@ side: source.side ?? THREE.FrontSide,
 
             <div ref={translateGlbStageRef} className="shoppingIntroTranslateGlbStage">
               <div className="shoppingIntroTranslateGlbLoading">
-                {selectedTranslateLanguage.flag} Choose language
+                {languageCopy[translateGlbStatusKey] || languageCopy.chooseLanguage}
               </div>
             </div>
           </div>
@@ -2021,8 +2368,25 @@ export default function CosmicVoyage() {
   const [movingBgSymbols, setMovingBgSymbols] = useState([]);
   const [introFinished, setIntroFinished] = useState(false);
   const [coreModelsReady, setCoreModelsReady] = useState(false);
+  const [selectedLanguageCode, setSelectedLanguageCode] = useState(() => {
+    if (typeof window === 'undefined') return DEFAULT_LANGUAGE_CODE;
+
+    return window.localStorage.getItem('amij-language-code') || DEFAULT_LANGUAGE_CODE;
+  });
+  const copy = useMemo(() => getSiteCopy(selectedLanguageCode), [selectedLanguageCode]);
   const finishIntro = useCallback(() => setIntroFinished(true), []);
   const closeRingPopup = useCallback(() => setRingPopupOpen(false), []);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem('amij-language-code', selectedLanguageCode);
+    }
+
+    if (typeof document !== 'undefined') {
+      document.documentElement.lang = getDocumentLangCode(selectedLanguageCode);
+    }
+  }, [selectedLanguageCode]);
+
 
   const placeRingPopupFromPointer = useCallback((clientX, clientY) => {
     const viewportWidth = window.innerWidth || 390;
@@ -2057,18 +2421,19 @@ export default function CosmicVoyage() {
       return undefined;
     }
 
+    const ringMessage = copy.ringTerminalMessage || RING_TERMINAL_MESSAGE;
     let index = 0;
     const timer = window.setInterval(() => {
-      index = Math.min(index + 2, RING_TERMINAL_MESSAGE.length);
-      setRingTerminalText(RING_TERMINAL_MESSAGE.slice(0, index));
+      index = Math.min(index + 2, ringMessage.length);
+      setRingTerminalText(ringMessage.slice(0, index));
 
-      if (index >= RING_TERMINAL_MESSAGE.length) {
+      if (index >= ringMessage.length) {
         window.clearInterval(timer);
       }
     }, 24);
 
     return () => window.clearInterval(timer);
-  }, [ringPopupOpen]);
+  }, [ringPopupOpen, copy.ringTerminalMessage]);
 
   useEffect(() => {
     if (!ringTerminalRef.current) return;
@@ -3212,6 +3577,8 @@ if (state.landed) {
           onFinished={finishIntro}
           preloadStore={preloadStoreRef.current}
           coreModelsReady={coreModelsReady}
+          selectedLanguageCode={selectedLanguageCode}
+          onLanguageChange={setSelectedLanguageCode}
         />
       ) : (
         <div className="mainExperienceFadeIn">
@@ -3244,7 +3611,7 @@ if (state.landed) {
         <div className="logoContainer">
             <img
                 src="/images/almostmadeinjapan.png"
-                    alt="Almost Made in Japan"
+                    alt={copy.logoAlt}
                         className="logoImage"
                           />
         </div>
@@ -3252,7 +3619,7 @@ if (state.landed) {
 
         {!landedUI && (
           <div className="hint">
-           ↑ drag the alien cat to the boat ↑
+           {copy.dragHint}
           </div>
         )}
       </div>
@@ -3261,7 +3628,7 @@ if (state.landed) {
 {loading && (
   <div className="loadingOverlay">
     <div className="loadingNetworkTicker" aria-hidden="true">
-      <span>Connecting to the CYBER-NETWORK...</span>
+      <span>{copy.loadingTicker}</span>
     </div>
 
     <div className="loadingPopup" role="status">
@@ -3269,7 +3636,7 @@ if (state.landed) {
         <span />
       </div>
 
-      <div className="loadingTitle">LOADING...</div>
+      <div className="loadingTitle">{copy.loadingTitle}</div>
 
       <div className="loadingBarOuter">
         <div
@@ -3290,7 +3657,7 @@ if (state.landed) {
         <div className="popupWindow">
           <div className="popupWindow missionGalleryWindow">
               <div className="termHeader">
-                  <span>COLLECTIONS</span>
+                  <span>{copy.collectionsTitle}</span>
                       <button type="button" onClick={resetExperience}>
                             •
                                 </button>
@@ -3304,23 +3671,31 @@ if (state.landed) {
 </div>
 
                                                     <div className="missionImageGrid">
-                                                        {MISSION_LINK_IMAGES.map((item) => (
-                                                              <a
-                                                                      key={item.title}
-                                                                              className="missionImageLink"
-                                                                                      href={item.url}
-                                                                                              target="_blank"
-                                                                                                      rel="noreferrer"
-                                                                                                              aria-label={`Open ${item.title}`}
-                                                                                                                    >
-                                                                                                                            <img
-                                                                                                                                      src={item.image}
-                                                                                                                                                alt={item.title}
-                                                                                                                                                          loading="lazy"
-                                                                                                                                                                  />
-                                                                                                                                                                          <span>{item.title}</span>
-                                                                                                                                                                                </a>
-                                                                                                                                                                                    ))}
+                                                        {MISSION_LINK_IMAGES.map((item) => {
+                                                          const collectionTitle =
+                                                            copy.collectionNames?.[item.titleKey] || item.title;
+                                                          const openCollectionLabel = formatCopy(copy.openCollection, {
+                                                            title: collectionTitle,
+                                                          });
+
+                                                          return (
+                                                            <a
+                                                              key={item.title}
+                                                              className="missionImageLink"
+                                                              href={item.url}
+                                                              target="_blank"
+                                                              rel="noreferrer"
+                                                              aria-label={openCollectionLabel}
+                                                            >
+                                                              <img
+                                                                src={item.image}
+                                                                alt={collectionTitle}
+                                                                loading="lazy"
+                                                              />
+                                                              <span>{collectionTitle}</span>
+                                                            </a>
+                                                          );
+                                                        })}
                                                                                                                                                                                       </div>
                                                                                                                                                                                       </div>
         </div>
@@ -3384,12 +3759,12 @@ if (state.landed) {
           {modelError && (
             <div className="popupWindow">
           <div className="termHeader">
-            <span>MODEL LOAD ERROR</span>
+            <span>{copy.modelLoadError}</span>
             <button
               type="button"
               onClick={() => setModelError('')}
             >
-              CLOSE
+              {copy.close}
             </button>
           </div>
 
@@ -3397,9 +3772,9 @@ if (state.landed) {
             {modelError}
             <br />
             <br />
-            The files may exist, but model setup can still fail.
+            {copy.modelErrorBody1}
             <br />
-            Open the browser console for the exact error.
+            {copy.modelErrorBody2}
           </div>
         </div>
           )}
