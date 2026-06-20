@@ -5,7 +5,7 @@ export const metadata = {
   description: 'Place the alien cat into the boat.'
   icon: [
       {
-        url: '/favicon.png',
+        url: '/favicon.ico',
         sizes: 'any',
       },
       {
