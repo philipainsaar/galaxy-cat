@@ -286,6 +286,15 @@ button {
     drop-shadow(0 0 24px rgba(201, 183, 255, 0.35));
 }
 
+.logoLink {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
 .ringTerminalImageLine {
   display: block;
   width: 100%;
