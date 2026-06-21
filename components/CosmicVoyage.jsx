@@ -2373,7 +2373,13 @@ export default function CosmicVoyage() {
 
     return window.localStorage.getItem('amij-language-code') || DEFAULT_LANGUAGE_CODE;
   });
+  const [showMainTranslateModal, setShowMainTranslateModal] = useState(false);
   const copy = useMemo(() => getSiteCopy(selectedLanguageCode), [selectedLanguageCode]);
+  const selectedMainTranslateLanguage =
+    TRANSLATE_LANGUAGE_OPTIONS.find((language) => language.code === selectedLanguageCode) ||
+    TRANSLATE_LANGUAGE_OPTIONS[0];
+  const selectedMainTranslateLanguageName =
+    selectedMainTranslateLanguage.nativeName || selectedMainTranslateLanguage.name;
   const finishIntro = useCallback(() => setIntroFinished(true), []);
   const closeRingPopup = useCallback(() => setRingPopupOpen(false), []);
 
@@ -3644,6 +3650,30 @@ if (state.landed) {
                           />
         </div>
 
+        <button
+          type="button"
+          className="shoppingIntroTranslateButton mainExperienceTranslateButton"
+          aria-label={copy.translate}
+          aria-expanded={showMainTranslateModal}
+          onClick={() => setShowMainTranslateModal(true)}
+          style={{
+            position: 'fixed',
+            top: 'max(16px, calc(env(safe-area-inset-top) + 12px))',
+            right: 'max(16px, calc(env(safe-area-inset-right) + 12px))',
+            left: 'auto',
+            bottom: 'auto',
+            zIndex: 42,
+            transform: 'none',
+          }}
+        >
+          <img
+            src="/images/translate-icon.png"
+            alt=""
+            aria-hidden="true"
+            draggable="false"
+          />
+        </button>
+
 
         {!landedUI && (
           <div className="hint">
@@ -3652,8 +3682,82 @@ if (state.landed) {
         )}
       </div>
 
-      
+      {showMainTranslateModal && (
+        <div
+          className="shoppingIntroTranslateModalBackdrop mainExperienceTranslateModalBackdrop"
+          role="dialog"
+          aria-modal="true"
+          aria-label={formatCopy(copy.translateTo, { language: selectedMainTranslateLanguageName })}
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) {
+              setShowMainTranslateModal(false);
+            }
+          }}
+        >
+          <div className="shoppingIntroTranslateModalCard">
+            <div className="shoppingIntroTranslateModalHeader">
+              <span className="shoppingIntroTranslateModalTitle">
+                {formatCopy(copy.translateTo, { language: selectedMainTranslateLanguageName })}
+              </span>
+
+              <button
+                type="button"
+                className="shoppingIntroTranslateModalClose"
+                aria-label={copy.closeTranslatePopup}
+                onClick={() => setShowMainTranslateModal(false)}
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="shoppingIntroTranslateLanguageOrbit" aria-label={copy.chooseTranslationLanguage}>
+              {TRANSLATE_LANGUAGE_OPTIONS.map((language, index) => {
+                const angle =
+                  (index / TRANSLATE_LANGUAGE_OPTIONS.length) * Math.PI * 2 -
+                  Math.PI / 2;
+
+                return (
+                  <button
+                    key={language.code}
+                    type="button"
+                    className={`shoppingIntroTranslateFlagButton${
+                      selectedLanguageCode === language.code ? ' isActive' : ''
+                    }`}
+                    style={{
+                      left: `${50 + Math.cos(angle) * 39}%`,
+                      top: `${50 + Math.sin(angle) * 39}%`,
+                    }}
+                    aria-label={formatCopy(copy.translateToLanguage, {
+                      language: language.nativeName || language.name,
+                    })}
+                    aria-pressed={selectedLanguageCode === language.code}
+                    onClick={() => setSelectedLanguageCode(language.code)}
+                  >
+                    <img
+                      className="shoppingIntroTranslateFlagImage"
+                      src={language.flag}
+                      alt=""
+                      aria-hidden="true"
+                      draggable="false"
+                    />
+                    <span className="shoppingIntroTranslateFlagCode">{language.short}</span>
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="shoppingIntroTranslateGlbStage">
+              <div className="shoppingIntroTranslateGlbLoading">
+                {copy.chooseLanguage}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+
 {loading && (
+
   <div className="loadingOverlay">
     <div className="loadingNetworkTicker" aria-hidden="true">
       <span>{copy.loadingTicker}</span>
