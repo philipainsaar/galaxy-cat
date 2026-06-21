@@ -1694,11 +1694,9 @@ const onIntroCatPointerDown = (event) => {
   introDragOffset.copy(introCatGroup.position).sub(introPointerWorld);
   introDragTarget.copy(introCatGroup.position);
 
-  catCanvas.style.cursor = 'grabbing';
+  document.body.style.cursor = 'grabbing';
 
-  try {
-    catCanvas.setPointerCapture(event.pointerId);
-  } catch {}
+
 };
 
 const onIntroCatPointerMove = (event) => {
@@ -1725,13 +1723,9 @@ const finishIntroCatDrag = (event) => {
 
   introDragState.isDragging = false;
   introDragState.pointerId = null;
-  catCanvas.style.cursor = 'grab';
+  document.body.style.cursor = '';
 
-  try {
-    if (event?.pointerId !== undefined) {
-      catCanvas.releasePointerCapture(event.pointerId);
-    }
-  } catch {}
+
 };    
 
 const drawBubbles = (dt) => {
@@ -1883,9 +1877,10 @@ animationFrame = requestAnimationFrame(animate);
 window.addEventListener('resize', handleResize);
 
 catCanvas.style.touchAction = 'none';
-catCanvas.style.cursor = 'grab';
-catCanvas.addEventListener('pointerdown', onIntroCatPointerDown);
-catCanvas.addEventListener('pointermove', onIntroCatPointerMove);
+catCanvas.style.pointerEvents = 'none';
+
+window.addEventListener('pointerdown', onIntroCatPointerDown);
+window.addEventListener('pointermove', onIntroCatPointerMove);
 window.addEventListener('pointerup', finishIntroCatDrag);
 window.addEventListener('pointercancel', finishIntroCatDrag);
     
@@ -1894,12 +1889,13 @@ window.addEventListener('pointercancel', finishIntroCatDrag);
   cancelAnimationFrame(animationFrame);
 
   window.removeEventListener('resize', handleResize);
-  catCanvas.removeEventListener('pointerdown', onIntroCatPointerDown);
-  catCanvas.removeEventListener('pointermove', onIntroCatPointerMove);
-  window.removeEventListener('pointerup', finishIntroCatDrag);
-  window.removeEventListener('pointercancel', finishIntroCatDrag);
-  catCanvas.style.cursor = '';
-  catCanvas.style.touchAction = '';
+  window.removeEventListener('pointerdown', onIntroCatPointerDown);
+window.removeEventListener('pointermove', onIntroCatPointerMove);
+window.removeEventListener('pointerup', finishIntroCatDrag);
+window.removeEventListener('pointercancel', finishIntroCatDrag);
+catCanvas.style.pointerEvents = '';
+catCanvas.style.touchAction = '';
+document.body.style.cursor = '';
   introMixers.forEach((mixer) => mixer.stopAllAction());
 
   disposeObject(introScene);
