@@ -2015,3 +2015,50 @@ html[lang="zh-CN"] *::after {
     border-radius: 15px;
   }
 }
+
+/* Stop intro headline text from overflowing the glass box */
+.shoppingIntroTextCard {
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.shoppingIntroText {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+
+  font-size: clamp(24px, 8.2vw, 58px);
+  line-height: 0.98;
+
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  text-wrap: balance;
+}
+
+.shoppingIntroText span {
+  display: block;
+  max-width: 100%;
+  font-size: clamp(20px, 6.4vw, 42px);
+  line-height: 1.04;
+
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+html[lang="pt-PT"] .shoppingIntroText,
+html[lang="es"] .shoppingIntroText,
+html[lang="de"] .shoppingIntroText,
+html[lang="fr"] .shoppingIntroText,
+html[lang="it"] .shoppingIntroText {
+  font-size: clamp(20px, 6.7vw, 46px);
+  line-height: 1.02;
+}
+
+html[lang="pt-PT"] .shoppingIntroText span,
+html[lang="es"] .shoppingIntroText span,
+html[lang="de"] .shoppingIntroText span,
+html[lang="fr"] .shoppingIntroText span,
+html[lang="it"] .shoppingIntroText span {
+  font-size: clamp(18px, 5.6vw, 34px);
+}
