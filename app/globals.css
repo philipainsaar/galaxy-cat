@@ -268,11 +268,6 @@ button {
   z-index: 10;
 }
 
-.ui .logoContainer,
-.ui .logoLink {
-  pointer-events: auto;
-}
-
 .logoImage {
   width: min(82px, 52vw);
   height: auto;
@@ -282,27 +277,31 @@ button {
     drop-shadow(0 0 24px rgba(201, 183, 255, 0.35));
 }
 
-.logoContainer {
-  left: 50%;
-  transform: translateX(-50%);
-  pointer-events: auto;
-}
+/* Make intro + main logo clickable without changing their position */
 
 .shoppingIntroLogoLink,
 .logoLink {
-  pointer-events: auto;
-  cursor: pointer;
-  text-decoration: none;
   display: inline-flex;
-  justify-content: center;
   align-items: center;
+  justify-content: center;
+  width: fit-content;
+  max-width: 100%;
+  line-height: 0;
+  text-decoration: none;
+  cursor: pointer;
+  pointer-events: auto;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .shoppingIntroLogoLink .shoppingIntroLogo,
 .logoLink .logoImage {
+  display: block;
   pointer-events: auto;
 }
 
+/* Keep the original logo positions. Only enable clicking. */
+.shoppingIntroPreviewText,
+.logoContainer,
 .ui .logoContainer,
 .ui .logoLink {
   pointer-events: auto;
