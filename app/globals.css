@@ -2063,23 +2063,20 @@ html[lang="it"] .shoppingIntroText span {
   font-size: clamp(18px, 5.6vw, 34px);
 }
 
-/* Intro alien-cat drag support.
-   This lets the intro cat canvas receive drag gestures, while the visible intro UI stays clickable. */
 
+/* Intro alien-cat drag: visible + draggable without blocking the intro UI */
 .shoppingIntroCatCanvas {
-  pointer-events: auto;
-  touch-action: none;
-  cursor: grab;
-}
-
-.shoppingIntroPreviewText {
   pointer-events: none;
+  touch-action: none;
 }
 
+/* Keep intro UI clickable above the ghost cat canvas */
+.shoppingIntroPreviewText,
 .shoppingIntroPreviewText a,
 .shoppingIntroPreviewText button,
 .shoppingIntroEnterButton,
 .shoppingIntroTranslateButton,
-.shoppingIntroTextCard {
+.shoppingIntroTextCard,
+.shoppingIntroLogoLink {
   pointer-events: auto;
 }
