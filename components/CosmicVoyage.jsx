@@ -3642,6 +3642,7 @@ if (state.landed) {
       <canvas ref={canvasRef} className="canvas" />
 
       <div className="ui">
+
         <div className="logoContainer">
   <a
     href="https://www.almostmadeinjapan.com/home"
