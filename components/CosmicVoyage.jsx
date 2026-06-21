@@ -2728,8 +2728,6 @@ scene.add(pinkWireframeGlobe);
 
     const seatPosition = DEFAULT_SEAT.clone();
     const mixers = [];
-    const fluffTexture = createFluffSpriteTexture();
-    const fluffClouds = [];
 
     const dropZoneMaterial = new THREE.MeshBasicMaterial({
       color: 0xaedbff,
@@ -2873,19 +2871,6 @@ scene.add(pinkWireframeGlobe);
         boatGroup.add(boatModel);
         createMixer(boatModel, boatGLTF.animations, mixers);
 
-        const boatFluff = addTexturePreservingFluff(boatModel, {
-          texture: fluffTexture,
-          count: width < 768 ? 220 : 340,
-          size: 0.115,
-          opacity: 0.28,
-          shellOffset: 0.070,
-          jitter: 0.026,
-          palette: ['#fff0fb', '#efe7ff', '#e9fbff', '#ffffff'],
-          skipPattern: /eye|eyes|pupil|iris|glass|window|light|glow|black|mouth|teeth|screen|gem|crystal|metal|chrome|propeller/i,
-        });
-
-        if (boatFluff) fluffClouds.push(boatFluff);
-
         const boatSize = boatBox.getSize(new THREE.Vector3());
 
         // Optional exact marker:
@@ -2930,18 +2915,6 @@ scene.add(pinkWireframeGlobe);
 
         catGroup.add(catModel);
         createMixer(catModel, catGLTF.animations, mixers);
-
-        const catFluff = addTexturePreservingFluff(catModel, {
-          texture: fluffTexture,
-          count: width < 768 ? 420 : 620,
-          size: 0.105,
-          opacity: 0.42,
-          shellOffset: 0.095,
-          jitter: 0.035,
-          palette: ['#fff6fb', '#f5e9ff', '#e8fbff', '#ffffff'],
-        });
-
-        if (catFluff) fluffClouds.push(catFluff);
 
         const catSize = catBox.getSize(new THREE.Vector3());
         const hitRadius =
@@ -3358,16 +3331,6 @@ pinkWireframeGlobe.rotation.z =
       floatRingGroup.rotation.z = Math.sin(elapsed * 2.1) * 0.055;
       floatRingGlow.intensity = 1.55 + Math.sin(elapsed * 3.2) * 0.28;
 
-      fluffClouds.forEach((cloud) => {
-        const motion = cloud.userData.fluffMotion;
-        if (!motion) return;
-
-        const pulse = 0.92 + Math.sin(elapsed * 2.15 + motion.phase) * 0.08;
-        cloud.material.size = motion.baseSize * pulse;
-        cloud.material.opacity = motion.baseOpacity * (0.88 + Math.sin(elapsed * 1.75 + motion.phase) * 0.12);
-        cloud.rotation.y = Math.sin(elapsed * 0.72 + motion.phase) * 0.018;
-        cloud.rotation.x = Math.cos(elapsed * 0.55 + motion.phase) * 0.012;
-      });
 
       // Smooth high waves with animated vertex colors.
       // PlaneGeometry lies in local X/Y, so wave height is local Z after rotation.
