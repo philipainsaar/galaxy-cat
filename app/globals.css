@@ -283,8 +283,8 @@ button {
 }
 
 .logoContainer {
-  position: relative;
-  z-index: 80;
+  left: 50%;
+  transform: translateX(-50%);
   pointer-events: auto;
 }
 
@@ -300,12 +300,6 @@ button {
 
 .shoppingIntroLogoLink .shoppingIntroLogo,
 .logoLink .logoImage {
-  pointer-events: auto;
-}
-
-.logoContainer {
-  left: 50%;
-  transform: translateX(-50%);
   pointer-events: auto;
 }
 
