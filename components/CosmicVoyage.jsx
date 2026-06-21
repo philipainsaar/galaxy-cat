@@ -1374,7 +1374,11 @@ const selectedTranslateLanguageName =
    const INTRO_BUBBLE_COUNT = isMobileIntro ? 64 : 92;
 const INTRO_VISIBLE_SECONDS = 3.6;
 const INTRO_FADE_SECONDS = 0.78;
+
 const CAT_GROUND_IN_INTRO = -0.44;
+const INTRO_CAT_DRAG_HIT_RADIUS = 1.65;
+const INTRO_CAT_RETURN_SPEED = 5.8;
+const INTRO_CAT_DRAG_SPEED = 18;
 
 const requestIntroExit = () => {
   if (introExitRequestedAt !== null || disposed) return;
@@ -1554,12 +1558,30 @@ window.addEventListener('keydown', handleIntroKeyDown);
     introBlueLight.position.set(-4, 2.2, 4);
     introScene.add(introBlueLight);
 
-    const introCatGroup = new THREE.Group();
-    introCatGroup.visible = false;
-    introScene.add(introCatGroup);
+    
+const introCatGroup = new THREE.Group();
+introCatGroup.visible = false;
+introScene.add(introCatGroup);
 
-    let introCatLoadedAt = 0;
-    const introMixers = [];
+const introRaycaster = new THREE.Raycaster();
+const introPointerNDC = new THREE.Vector2();
+const introPointerWorld = new THREE.Vector3();
+const introDragPlane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
+const introHomePosition = new THREE.Vector3();
+const introDragTarget = new THREE.Vector3();
+const introDragOffset = new THREE.Vector3();
+
+const introDragState = {
+  isDragging: false,
+  hasMoved: false,
+  pointerId: null,
+  startClientX: 0,
+  startClientY: 0,
+};
+
+let introCatLoadedAt = 0;
+const introMixers = [];
+    
 
     loadSceneGLTF(preloadStore, CAT_MODEL_URL)
       .then((gltf) => {
@@ -1617,6 +1639,100 @@ const getIntroCatTargetY = () => {
   // Change -0.02 to -0.08 if you want the cat to sink into the button more.
   return buttonTopWorld - CAT_GROUND_IN_INTRO - 0.02;
 };
+
+const introPointerToWorld = (clientX, clientY) => {
+  const rect = catCanvas.getBoundingClientRect();
+
+  introPointerNDC.set(
+    ((clientX - rect.left) / rect.width) * 2 - 1,
+    -((clientY - rect.top) / rect.height) * 2 + 1,
+  );
+
+  introRaycaster.setFromCamera(introPointerNDC, introCamera);
+  introRaycaster.ray.intersectPlane(introDragPlane, introPointerWorld);
+
+  return introPointerWorld;
+};
+
+const clampIntroCatPosition = (position) => {
+  const marginX = Math.min(2.1, viewportWidth * 0.28);
+  const minX = introCamera.left + marginX;
+  const maxX = introCamera.right - marginX;
+  const minY = introCamera.bottom + 1.25;
+  const maxY = introCamera.top - 1.25;
+
+  position.x = clampNumber(position.x, minX, maxX);
+  position.y = clampNumber(position.y, minY, maxY);
+  position.z = 0;
+
+  return position;
+};
+
+const isPointerOverIntroCat = (clientX, clientY) => {
+  if (!introCatGroup.visible) return false;
+
+  introPointerToWorld(clientX, clientY);
+  const intersections = introRaycaster.intersectObject(introCatGroup, true);
+
+  if (intersections.length > 0) return true;
+
+  return introPointerWorld.distanceTo(introCatGroup.position) < INTRO_CAT_DRAG_HIT_RADIUS;
+};
+
+const onIntroCatPointerDown = (event) => {
+  if (introExitRequestedAt !== null || !introCatGroup.visible) return;
+  if (!isPointerOverIntroCat(event.clientX, event.clientY)) return;
+
+  event.preventDefault();
+
+  introDragState.isDragging = true;
+  introDragState.hasMoved = false;
+  introDragState.pointerId = event.pointerId;
+  introDragState.startClientX = event.clientX;
+  introDragState.startClientY = event.clientY;
+
+  introDragOffset.copy(introCatGroup.position).sub(introPointerWorld);
+  introDragTarget.copy(introCatGroup.position);
+
+  catCanvas.style.cursor = 'grabbing';
+
+  try {
+    catCanvas.setPointerCapture(event.pointerId);
+  } catch {}
+};
+
+const onIntroCatPointerMove = (event) => {
+  if (!introDragState.isDragging) return;
+
+  event.preventDefault();
+
+  const movedDistance = Math.hypot(
+    event.clientX - introDragState.startClientX,
+    event.clientY - introDragState.startClientY,
+  );
+
+  if (movedDistance > 4) {
+    introDragState.hasMoved = true;
+  }
+
+  const world = introPointerToWorld(event.clientX, event.clientY);
+  introDragTarget.copy(world).add(introDragOffset);
+  clampIntroCatPosition(introDragTarget);
+};
+
+const finishIntroCatDrag = (event) => {
+  if (!introDragState.isDragging) return;
+
+  introDragState.isDragging = false;
+  introDragState.pointerId = null;
+  catCanvas.style.cursor = 'grab';
+
+  try {
+    if (event?.pointerId !== undefined) {
+      catCanvas.releasePointerCapture(event.pointerId);
+    }
+  } catch {}
+};    
 
 const drawBubbles = (dt) => {
   if (!bubbleContext) return;
@@ -1697,15 +1813,39 @@ const drawBubbles = (dt) => {
         ? Math.sin((catFallElapsed - 0.67) * 20) * Math.exp(-(catFallElapsed - 0.67) * 5) * 0.10
         : 0;
 
-      introCatGroup.position.set(
-        0,
-        lerp(startY, targetY, easedFall) + bounce,
-        0,
-      );
-      introCatGroup.rotation.x = Math.sin(elapsed * 6.5) * 0.045;
-      introCatGroup.rotation.y = Math.sin(elapsed * 4.7) * 0.16;
-      introCatGroup.rotation.z = (1 - easedFall) * -0.28 + Math.sin(elapsed * 9) * 0.035;
-      introCatGroup.scale.setScalar(1 + Math.max(0, bounce) * 0.18);
+      introHomePosition.set(
+  Math.sin(elapsed * 0.85) * 0.22,
+  lerp(startY, targetY, easedFall) + bounce + Math.sin(elapsed * 1.65) * 0.045,
+  0,
+);
+
+if (introDragState.isDragging) {
+  introCatGroup.position.lerp(
+    introDragTarget,
+    Math.min(1, dt * INTRO_CAT_DRAG_SPEED),
+  );
+} else if (fallProgress < 1) {
+  introCatGroup.position.copy(introHomePosition);
+} else {
+  introCatGroup.position.lerp(
+    introHomePosition,
+    Math.min(1, dt * INTRO_CAT_RETURN_SPEED),
+  );
+}
+
+introCatGroup.rotation.x = introDragState.isDragging
+  ? Math.sin(elapsed * 8.0) * 0.07
+  : Math.sin(elapsed * 6.5) * 0.045;
+
+introCatGroup.rotation.y = introDragState.isDragging
+  ? clampNumber(introCatGroup.position.x * -0.16, -0.42, 0.42)
+  : Math.sin(elapsed * 4.7) * 0.16;
+
+introCatGroup.rotation.z = introDragState.isDragging
+  ? clampNumber(introCatGroup.position.x * -0.045, -0.18, 0.18)
+  : (1 - easedFall) * -0.28 + Math.sin(elapsed * 9) * 0.035;
+
+introCatGroup.scale.setScalar(1 + Math.max(0, bounce) * 0.18);
 
       introMixers.forEach((mixer) => mixer.update(dt));
       renderer.render(introScene, introCamera);
@@ -1738,18 +1878,33 @@ const canFadeToMain =
       resizeCatCanvas();
     };
 
-    handleResize();
-    animationFrame = requestAnimationFrame(animate);
-    window.addEventListener('resize', handleResize);
+handleResize();
+animationFrame = requestAnimationFrame(animate);
+window.addEventListener('resize', handleResize);
 
+catCanvas.style.touchAction = 'none';
+catCanvas.style.cursor = 'grab';
+catCanvas.addEventListener('pointerdown', onIntroCatPointerDown);
+catCanvas.addEventListener('pointermove', onIntroCatPointerMove);
+window.addEventListener('pointerup', finishIntroCatDrag);
+window.addEventListener('pointercancel', finishIntroCatDrag);
+    
     return () => {
-      disposed = true;
-      cancelAnimationFrame(animationFrame);
-      window.removeEventListener('resize', handleResize);
-      introMixers.forEach((mixer) => mixer.stopAllAction());
-      disposeObject(introScene);
-      renderer.dispose();
-    };
+  disposed = true;
+  cancelAnimationFrame(animationFrame);
+
+  window.removeEventListener('resize', handleResize);
+  catCanvas.removeEventListener('pointerdown', onIntroCatPointerDown);
+  catCanvas.removeEventListener('pointermove', onIntroCatPointerMove);
+  window.removeEventListener('pointerup', finishIntroCatDrag);
+  window.removeEventListener('pointercancel', finishIntroCatDrag);
+  catCanvas.style.cursor = '';
+  catCanvas.style.touchAction = '';
+  introMixers.forEach((mixer) => mixer.stopAllAction());
+
+  disposeObject(introScene);
+  renderer.dispose();
+};
   }, [onFinished, preloadStore]);
 
   useEffect(() => {
