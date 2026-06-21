@@ -288,20 +288,29 @@ button {
   pointer-events: auto;
 }
 
+.shoppingIntroLogoLink,
 .logoLink {
-  position: relative;
-  z-index: 81;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  text-decoration: none;
-  cursor: pointer;
   pointer-events: auto;
-  -webkit-tap-highlight-color: transparent;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
 }
 
-.logoLink .logoImage,
-.logoImage {
+.shoppingIntroLogoLink .shoppingIntroLogo,
+.logoLink .logoImage {
+  pointer-events: auto;
+}
+
+.logoContainer {
+  left: 50%;
+  transform: translateX(-50%);
+  pointer-events: auto;
+}
+
+.ui .logoContainer,
+.ui .logoLink {
   pointer-events: auto;
 }
 
