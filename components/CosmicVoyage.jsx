@@ -2144,12 +2144,18 @@ side: source.side ?? THREE.FrontSide,
       />
 
       <div className="shoppingIntroPreviewText">
-        <img
-          src="/images/almostmadeinjapan.png"
-          alt={languageCopy.logoAlt}
-          className="shoppingIntroLogo"
-          draggable="false"
-        />
+  <a
+    href="https://www.almostmadeinjapan.com/home"
+    className="shoppingIntroLogoLink"
+    aria-label={languageCopy.logoAlt}
+  >
+    <img
+      src="/images/almostmadeinjapan.png"
+      alt={languageCopy.logoAlt}
+      className="shoppingIntroLogo"
+      draggable="false"
+    />
+  </a>
 
         <button
   type="button"
