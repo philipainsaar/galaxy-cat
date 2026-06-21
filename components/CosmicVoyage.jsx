@@ -3643,12 +3643,18 @@ if (state.landed) {
 
       <div className="ui">
         <div className="logoContainer">
-            <img
-                src="/images/almostmadeinjapan.png"
-                    alt={copy.logoAlt}
-                        className="logoImage"
-                          />
-        </div>
+  <a
+    href="https://www.almostmadeinjapan.com/home"
+    className="logoLink"
+    aria-label={copy.logoAlt}
+  >
+    <img
+      src="/images/almostmadeinjapan.png"
+      alt={copy.logoAlt}
+      className="logoImage"
+    />
+  </a>
+</div>
 
         <button
           type="button"
