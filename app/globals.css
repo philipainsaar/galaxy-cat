@@ -279,9 +279,26 @@ button {
 
 /* Make intro + main logo clickable without changing their position */
 
+/* Same centered clickable logo position on intro and main page */
+
 .shoppingIntroLogoLink,
+.logoContainer {
+  position: fixed;
+  top: max(14px, calc(env(safe-area-inset-top) + 10px));
+  left: 50%;
+  right: auto;
+  z-index: 90;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: fit-content;
+  max-width: min(86vw, 520px);
+  pointer-events: auto;
+}
+
 .logoLink {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   justify-content: center;
   width: fit-content;
@@ -293,15 +310,20 @@ button {
   -webkit-tap-highlight-color: transparent;
 }
 
-.shoppingIntroLogoLink .shoppingIntroLogo,
-.logoLink .logoImage {
+.shoppingIntroLogoLink {
+  line-height: 0;
+  text-decoration: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.shoppingIntroLogo,
+.logoImage {
   display: block;
   pointer-events: auto;
 }
 
-/* Keep the original logo positions. Only enable clicking. */
-.shoppingIntroPreviewText,
-.logoContainer,
+/* If .ui has pointer-events: none, this re-enables only the logo */
 .ui .logoContainer,
 .ui .logoLink {
   pointer-events: auto;
