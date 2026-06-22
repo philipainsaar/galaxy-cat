@@ -36,7 +36,7 @@ const SITE_TRANSLATIONS = {
     "chooseTranslationLanguage": "Välj översättningsspråk",
     "chooseLanguage": "Välj språk",
     "loadingGlossyJewelry": "Laddar glansigt smycke...",
-    "couldNotLoadGlb": "Kunde inte ladda GLB",
+    "couldNotLoadGlb": "Kunde inte ladda .GLB",
     "introLine1": "EN ALIENKATT KOM",
     "introLine2": "FÖR ATT HÄMTA DIG TILL SHOPPING",
     "enterWebsite": "Gå in på webbplatsen",
