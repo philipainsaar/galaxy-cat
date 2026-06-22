@@ -6,7 +6,7 @@ import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 
 export default function CosmicRunnerOverlay({
   modelPath = "/models/alien-cat.glb",
-  buttonText = "Start Runner Game",
+  buttonText = "♥",
 }) {
   const [open, setOpen] = useState(false);
   const mountRef = useRef(null);
