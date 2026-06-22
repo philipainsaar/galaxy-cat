@@ -68,69 +68,6 @@ export default function CosmicRunnerOverlay({
       runner.add(visual);
     }
 
-    function makeFallbackRunner() {
-      const group = new THREE.Group();
-      const bodyMat = new THREE.MeshStandardMaterial({ color: colors.pink, roughness: 0.38 });
-      const blueMat = new THREE.MeshStandardMaterial({ color: colors.blue, roughness: 0.35 });
-      const whiteMat = new THREE.MeshStandardMaterial({ color: colors.white, roughness: 0.55 });
-      const eyeMat = new THREE.MeshStandardMaterial({ color: colors.ink, roughness: 0.25 });
-
-      const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.42, 0.84, 14, 26), bodyMat);
-      body.position.y = 0.86;
-      body.castShadow = true;
-      group.add(body);
-
-      const belly = new THREE.Mesh(new THREE.SphereGeometry(0.28, 24, 16), whiteMat);
-      belly.position.set(0.05, 0.78, 0.38);
-      belly.scale.set(1, 1.2, 0.35);
-      group.add(belly);
-
-      const head = new THREE.Mesh(new THREE.SphereGeometry(0.48, 28, 20), bodyMat);
-      head.position.set(0.09, 1.52, 0);
-      head.scale.set(1.08, 0.9, 1);
-      head.castShadow = true;
-      group.add(head);
-
-      const earGeo = new THREE.ConeGeometry(0.19, 0.46, 4);
-      const earL = new THREE.Mesh(earGeo, bodyMat);
-      earL.position.set(-0.26, 1.95, 0);
-      earL.rotation.set(0.05, Math.PI / 4, 0.28);
-      group.add(earL);
-      const earR = earL.clone();
-      earR.position.x = 0.42;
-      earR.rotation.z = -0.28;
-      group.add(earR);
-
-      const eyeGeo = new THREE.SphereGeometry(0.065, 12, 8);
-      const eyeL = new THREE.Mesh(eyeGeo, eyeMat);
-      eyeL.position.set(-0.11, 1.6, 0.41);
-      group.add(eyeL);
-      const eyeR = eyeL.clone();
-      eyeR.position.x = 0.28;
-      group.add(eyeR);
-
-      const nose = new THREE.Mesh(new THREE.SphereGeometry(0.052, 12, 8), blueMat);
-      nose.position.set(0.085, 1.49, 0.455);
-      group.add(nose);
-
-      const legGeo = new THREE.CapsuleGeometry(0.105, 0.38, 8, 12);
-      const legL = new THREE.Mesh(legGeo, bodyMat);
-      legL.position.set(-0.18, 0.28, 0.04);
-      group.add(legL);
-      const legR = legL.clone();
-      legR.position.x = 0.26;
-      group.add(legR);
-
-      const tail = new THREE.Mesh(new THREE.TorusGeometry(0.27, 0.052, 10, 32, Math.PI * 1.35), blueMat);
-      tail.position.set(-0.42, 0.84, -0.08);
-      tail.rotation.set(1.32, 0.2, 0.72);
-      group.add(tail);
-
-      group.scale.setScalar(1.12);
-      group.rotation.y = -0.24;
-      return group;
-    }
-
     function fitGLB(object) {
       const wrap = new THREE.Group();
       wrap.add(object);
@@ -159,7 +96,7 @@ export default function CosmicRunnerOverlay({
     }
 
     setVisual(makeFallbackRunner());
-    setStatus("Loading GLB runner...");
+    setStatus("Loading alien cat...");
 
     if (modelPath) {
       new GLTFLoader().load(
@@ -170,13 +107,13 @@ export default function CosmicRunnerOverlay({
           if (gltf.animations?.length) {
             mixer = new THREE.AnimationMixer(gltf.scene);
             mixer.clipAction(gltf.animations[0]).play();
-            setStatus("GLB runner loaded with animation.");
+            setStatus("Alien cat loaded with animation.");
           } else {
-            setStatus("GLB runner loaded.");
+            setStatus("");
           }
         },
         undefined,
-        () => setStatus("GLB not found, using built-in runner.")
+        () => setStatus("Model not found, using built-in")
       );
     }
 
@@ -382,7 +319,8 @@ export default function CosmicRunnerOverlay({
           }
         }
       } else {
-        runner.rotation.z += delta * 1.8;
+  runner.rotation.z = -Math.PI / 2;
+  runner.position.y = 0;
       }
 
       renderer.render(scene, camera);
