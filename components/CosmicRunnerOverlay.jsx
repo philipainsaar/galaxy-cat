@@ -108,7 +108,7 @@ export default function CosmicRunnerOverlay({
             mixer.clipAction(gltf.animations[0]).play();
             setStatus("Alien cat loaded with animation.");
           } else {
-            setStatus("Alien cat loaded.");
+            setStatus("");
           }
         },
         undefined,
@@ -318,7 +318,7 @@ export default function CosmicRunnerOverlay({
           }
         }
       } else {
-  runner.rotation.z = -Math.PI / 2;
+  runner.rotation.z = Math.PI / 2;
   runner.position.y = 0;
       }
 
@@ -368,16 +368,15 @@ export default function CosmicRunnerOverlay({
               <span>Score: <b ref={scoreRef}>0</b></span>
               <span>Best: <b ref={bestRef}>0</b></span>
             </div>
-            <button type="button" onClick={() => window.dispatchEvent(new KeyboardEvent("keydown", { code: "Space" }))}>Jump</button>
             <button type="button" onClick={() => onClose?.()}>Close</button>
           </div>
 
           <div ref={statusRef} className="cosmicRunnerGlass cosmicRunnerStatus">Loading runner...</div>
-          <div className="cosmicRunnerGlass cosmicRunnerHint">Tap / click / Space to jump.</div>
+          <div className="cosmicRunnerGlass cosmicRunnerHint">Tap to jump.</div>
 
           <div ref={overRef} className="cosmicRunnerGlass cosmicRunnerGameOver">
-            <h2>bonk!</h2>
-            <p>The runner crashed into a crystal.</p>
+            <h2>Oh no!</h2>
+            <p>The alien cat crashed into a crystal.</p>
             <button type="button" onClick={() => window.dispatchEvent(new KeyboardEvent("keydown", { code: "Space" }))}>
               Play again
             </button>
