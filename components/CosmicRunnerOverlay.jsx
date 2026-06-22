@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 
 export default function CosmicRunnerOverlay({
+  open,
+  onClose,
   modelPath = "/models/alien-cat.glb",
-  buttonText = "♥",
 }) {
   const [open, setOpen] = useState(false);
   const mountRef = useRef(null);
@@ -359,11 +360,6 @@ export default function CosmicRunnerOverlay({
 
   return (
     <>
-      {!open && (
-        <button className="cosmicRunnerStart" type="button" onClick={() => setOpen(true)}>
-          {buttonText}
-        </button>
-      )}
 
       {open && (
         <div className="cosmicRunnerOverlay">
@@ -375,14 +371,14 @@ export default function CosmicRunnerOverlay({
               <span>Best: <b ref={bestRef}>0</b></span>
             </div>
             <button type="button" onClick={() => window.dispatchEvent(new KeyboardEvent("keydown", { code: "Space" }))}>Jump</button>
-            <button type="button" onClick={() => setOpen(false)}>Close</button>
+            <button type="button" onClick={() => onClose?.()}>Close</button>
           </div>
 
           <div ref={statusRef} className="cosmicRunnerGlass cosmicRunnerStatus">Loading runner...</div>
           <div className="cosmicRunnerGlass cosmicRunnerHint">Tap / click / Space to jump.</div>
 
           <div ref={overRef} className="cosmicRunnerGlass cosmicRunnerGameOver">
-            <h2>bonk!</h2>
+            <h2>😱</h2>
             <p>The runner crashed into a crystal.</p>
             <button type="button" onClick={() => window.dispatchEvent(new KeyboardEvent("keydown", { code: "Space" }))}>
               Play again
@@ -392,21 +388,7 @@ export default function CosmicRunnerOverlay({
       )}
 
       <style jsx>{`
-        .cosmicRunnerStart {
-          position: fixed;
-          right: max(16px, env(safe-area-inset-right));
-          bottom: calc(max(18px, env(safe-area-inset-bottom)) + 86px);
-          z-index: 9999;
-          border: 0;
-          border-radius: 999px;
-          padding: 14px 18px;
-          color: #714184;
-          font-weight: 900;
-          letter-spacing: 0.03em;
-          background: linear-gradient(135deg, #ffd2f5, #ccefff);
-          box-shadow: 0 14px 38px rgba(168, 100, 220, 0.26), inset 0 0 0 1px rgba(255, 255, 255, 0.78);
-          cursor: pointer;
-        }
+        
         .cosmicRunnerOverlay {
           position: fixed;
           inset: 0;
