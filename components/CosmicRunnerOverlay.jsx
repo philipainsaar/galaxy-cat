@@ -368,7 +368,7 @@ export default function CosmicRunnerOverlay({
               <span>Score: <b ref={scoreRef}>0</b></span>
               <span>Best: <b ref={bestRef}>0</b></span>
             </div>
-            <button type="button" onClick={() => onClose?.()}>Close</button>
+            <button type="button" onClick={() => onClose?.()}>×</button>
           </div>
 
   
