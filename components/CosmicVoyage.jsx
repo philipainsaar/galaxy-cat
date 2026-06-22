@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { clone as cloneSkeleton } from 'three/examples/jsm/utils/SkeletonUtils.js';
+import CosmicRunnerOverlay from "./CosmicRunnerOverlay";
 
 const CAT_MODEL_URL = '/models/alien-cat.glb';
 const BOAT_MODEL_URL = '/models/cosmic-boat.glb';
@@ -2624,125 +2625,7 @@ function CosmicRunnerGameOverlay({ modelPath = CAT_MODEL_URL, onClose }) {
       runner.add(runnerVisual);
     };
 
-    const makeFallbackRunner = () => {
-      const group = new THREE.Group();
 
-      const bodyMat = new THREE.MeshStandardMaterial({
-        color: runnerColors.pink,
-        roughness: 0.38,
-        metalness: 0.04,
-        emissive: '#ff8fe7',
-        emissiveIntensity: 0.05,
-      });
-
-      const bellyMat = new THREE.MeshStandardMaterial({
-        color: runnerColors.white,
-        roughness: 0.55,
-      });
-
-      const blueMat = new THREE.MeshStandardMaterial({
-        color: runnerColors.blue,
-        roughness: 0.35,
-        metalness: 0.06,
-        emissive: '#9ee8ff',
-        emissiveIntensity: 0.08,
-      });
-
-      const eyeMat = new THREE.MeshStandardMaterial({
-        color: runnerColors.ink,
-        roughness: 0.25,
-      });
-
-      const body = new THREE.Mesh(
-        new THREE.CapsuleGeometry(0.42, 0.84, 14, 26),
-        bodyMat,
-      );
-      body.position.y = 0.86;
-      body.rotation.z = -0.08;
-      body.castShadow = true;
-      group.add(body);
-
-      const belly = new THREE.Mesh(new THREE.SphereGeometry(0.28, 24, 16), bellyMat);
-      belly.position.set(0.06, 0.78, 0.38);
-      belly.scale.set(1.0, 1.22, 0.34);
-      belly.castShadow = true;
-      group.add(belly);
-
-      const head = new THREE.Mesh(new THREE.SphereGeometry(0.48, 28, 20), bodyMat);
-      head.position.set(0.1, 1.52, 0);
-      head.scale.set(1.08, 0.9, 1);
-      head.castShadow = true;
-      group.add(head);
-
-      const earGeo = new THREE.ConeGeometry(0.19, 0.46, 4);
-      const leftEar = new THREE.Mesh(earGeo, bodyMat);
-      leftEar.position.set(-0.26, 1.95, 0);
-      leftEar.rotation.set(0.05, Math.PI / 4, 0.28);
-      leftEar.castShadow = true;
-      group.add(leftEar);
-
-      const rightEar = leftEar.clone();
-      rightEar.position.x = 0.42;
-      rightEar.rotation.z = -0.28;
-      group.add(rightEar);
-
-      const eyeGeo = new THREE.SphereGeometry(0.065, 12, 8);
-      const eyeL = new THREE.Mesh(eyeGeo, eyeMat);
-      eyeL.position.set(-0.11, 1.6, 0.41);
-      group.add(eyeL);
-
-      const eyeR = eyeL.clone();
-      eyeR.position.x = 0.28;
-      group.add(eyeR);
-
-      const nose = new THREE.Mesh(new THREE.SphereGeometry(0.052, 12, 8), blueMat);
-      nose.position.set(0.085, 1.49, 0.455);
-      nose.scale.set(1, 0.75, 0.75);
-      group.add(nose);
-
-      const legGeo = new THREE.CapsuleGeometry(0.105, 0.38, 8, 12);
-      const legL = new THREE.Mesh(legGeo, bodyMat);
-      legL.position.set(-0.18, 0.28, 0.04);
-      legL.castShadow = true;
-      group.add(legL);
-
-      const legR = legL.clone();
-      legR.position.x = 0.26;
-      group.add(legR);
-
-      const tail = new THREE.Mesh(
-        new THREE.TorusGeometry(0.27, 0.052, 10, 32, Math.PI * 1.35),
-        blueMat,
-      );
-      tail.position.set(-0.42, 0.84, -0.08);
-      tail.rotation.set(1.32, 0.2, 0.72);
-      tail.castShadow = true;
-      group.add(tail);
-
-      const antennaMat = new THREE.MeshStandardMaterial({
-        color: runnerColors.yellow,
-        roughness: 0.3,
-        emissive: runnerColors.yellow,
-        emissiveIntensity: 0.35,
-      });
-
-      const orb = new THREE.Mesh(new THREE.SphereGeometry(0.085, 16, 12), antennaMat);
-      orb.position.set(0.08, 2.18, 0.02);
-      orb.castShadow = true;
-      group.add(orb);
-
-      const stem = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.018, 0.018, 0.32, 8),
-        antennaMat,
-      );
-      stem.position.set(0.08, 2.02, 0.01);
-      stem.rotation.z = 0.12;
-      group.add(stem);
-
-      group.scale.setScalar(1.12);
-      group.rotation.y = -0.24;
-      return group;
-    };
 
     const fitGLBToRunner = (object) => {
       const wrapper = new THREE.Group();
@@ -3098,8 +2981,9 @@ function CosmicRunnerGameOverlay({ modelPath = CAT_MODEL_URL, onClose }) {
           }
         }
       } else {
-        runner.rotation.z += delta * 1.8;
-      }
+  runner.rotation.z = -Math.PI / 2;
+  runner.position.y = 0;
+	  }
 
       renderer.render(scene, camera);
     };
@@ -3227,7 +3111,7 @@ function CosmicRunnerGameOverlay({ modelPath = CAT_MODEL_URL, onClose }) {
           boxShadow: '0 14px 46px rgba(168,100,220,.18)',
         }}
       >
-        Loading runner...
+        Loading alien cat...
       </div>
 
       <div
@@ -3275,9 +3159,9 @@ function CosmicRunnerGameOverlay({ modelPath = CAT_MODEL_URL, onClose }) {
         }}
       >
         <style>{`.cosmicRunnerGameOver.show { display: block !important; }`}</style>
-        <h2 style={{ margin: '0 0 8px', color: '#703b8f', fontSize: 34 }}>bonk!</h2>
+        <h2 style={{ margin: '0 0 8px', color: '#703b8f', fontSize: 34 }}>Oh no!</h2>
         <p style={{ margin: '0 0 14px', fontWeight: 800 }}>
-          The runner crashed into a crystal.
+          The alien cat crashed into a crystal.
         </p>
         <button
           type="button"
@@ -3334,6 +3218,7 @@ export default function CosmicVoyage() {
   const [loading, setLoading] = useState(false);
   const [loadingPercent, setLoadingPercent] = useState(0);
   const [popupOpen, setPopupOpen] = useState(false);
+const [runnerGameOpen, setRunnerGameOpen] = useState(false);
   const [runnerGameOpen, setRunnerGameOpen] = useState(false);
   const [ringPopupOpen, setRingPopupOpen] = useState(false);
   const [ringPopupPlacement, setRingPopupPlacement] = useState({
@@ -5100,11 +4985,12 @@ if (state.landed) {
 )}
 
       {runnerGameOpen && (
-        <CosmicRunnerGameOverlay
-          modelPath={CAT_MODEL_URL}
-          onClose={() => setRunnerGameOpen(false)}
-        />
-      )}
+  <CosmicRunnerOverlay
+    open={runnerGameOpen}
+    onClose={() => setRunnerGameOpen(false)}
+    modelPath={CAT_MODEL_URL}
+  />
+)}
 	          
 
 	      {popupOpen && (
@@ -5123,7 +5009,7 @@ if (state.landed) {
 <button
   type="button"
   className="collectionMiniGlobeOverlay collectionMiniGlobeGameButton"
-  aria-label="Start runner game"
+  aria-label="Start alien cat game"
   onClick={(event) => {
     event.preventDefault();
     event.stopPropagation();
