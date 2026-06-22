@@ -1808,7 +1808,7 @@ const drawBubbles = (dt) => {
         : 0;
 
       introHomePosition.set(
-  0.32 + Math.sin(elapsed * 0.85) * 0.45,
+  0.65 + Math.sin(elapsed * 0.85) * 0.65,
   lerp(startY, targetY, easedFall) + bounce + Math.sin(elapsed * 1.65) * 0.045,
   0,
 );
