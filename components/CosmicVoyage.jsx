@@ -2535,6 +2535,793 @@ function CollectionMiniGlobe() {
   return <canvas className="collectionMiniGlobeCanvas" ref={canvasRef} />;
 }
 
+
+function CosmicRunnerGameOverlay({ modelPath = CAT_MODEL_URL, onClose }) {
+  const mountRef = useRef(null);
+  const scoreTextRef = useRef(null);
+  const bestTextRef = useRef(null);
+  const statusTextRef = useRef(null);
+  const gameOverRef = useRef(null);
+  const restartRef = useRef(null);
+  const jumpRef = useRef(null);
+
+  useEffect(() => {
+    const mount = mountRef.current;
+    if (!mount) return undefined;
+
+    let disposed = false;
+    let frameId = 0;
+
+    const scene = new THREE.Scene();
+    scene.fog = new THREE.Fog(0xfff6ff, 10, 42);
+
+    const camera = new THREE.PerspectiveCamera(58, 1, 0.01, 100);
+
+    const renderer = new THREE.WebGLRenderer({
+      antialias: true,
+      alpha: true,
+      powerPreference: 'high-performance',
+    });
+
+    renderer.setClearColor(0x000000, 0);
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    mount.appendChild(renderer.domElement);
+
+    const hemi = new THREE.HemisphereLight(0xffffff, 0xd8c4ff, 2.8);
+    scene.add(hemi);
+
+    const sun = new THREE.DirectionalLight(0xffffff, 3.2);
+    sun.position.set(4, 8, 6);
+    sun.castShadow = true;
+    sun.shadow.mapSize.set(1024, 1024);
+    sun.shadow.camera.near = 0.1;
+    sun.shadow.camera.far = 40;
+    sun.shadow.camera.left = -12;
+    sun.shadow.camera.right = 12;
+    sun.shadow.camera.top = 12;
+    sun.shadow.camera.bottom = -12;
+    scene.add(sun);
+
+    const runnerColors = {
+      pink: '#ff75dc',
+      hotPink: '#ff3fc9',
+      blue: '#6fdfff',
+      purple: '#b184ff',
+      yellow: '#fff0a3',
+      white: '#fff8ff',
+      ink: '#4b2864',
+    };
+
+    const RUNNER_X = -1.15;
+    const OBSTACLE_START_X = 5.2;
+    const OBSTACLE_REMOVE_X = -4.4;
+
+    const runner = new THREE.Group();
+    runner.position.set(RUNNER_X, 0, 0);
+    scene.add(runner);
+
+    let runnerVisual = null;
+    let mixer = null;
+    const mixerClock = new THREE.Clock();
+
+    const setStatus = (text) => {
+      if (statusTextRef.current) statusTextRef.current.textContent = text;
+    };
+
+    const clearRunnerVisual = () => {
+      if (!runnerVisual) return;
+      runner.remove(runnerVisual);
+      disposeObject(runnerVisual);
+      runnerVisual = null;
+      mixer = null;
+    };
+
+    const setRunnerVisual = (object) => {
+      clearRunnerVisual();
+      runnerVisual = object;
+      runner.add(runnerVisual);
+    };
+
+    const makeFallbackRunner = () => {
+      const group = new THREE.Group();
+
+      const bodyMat = new THREE.MeshStandardMaterial({
+        color: runnerColors.pink,
+        roughness: 0.38,
+        metalness: 0.04,
+        emissive: '#ff8fe7',
+        emissiveIntensity: 0.05,
+      });
+
+      const bellyMat = new THREE.MeshStandardMaterial({
+        color: runnerColors.white,
+        roughness: 0.55,
+      });
+
+      const blueMat = new THREE.MeshStandardMaterial({
+        color: runnerColors.blue,
+        roughness: 0.35,
+        metalness: 0.06,
+        emissive: '#9ee8ff',
+        emissiveIntensity: 0.08,
+      });
+
+      const eyeMat = new THREE.MeshStandardMaterial({
+        color: runnerColors.ink,
+        roughness: 0.25,
+      });
+
+      const body = new THREE.Mesh(
+        new THREE.CapsuleGeometry(0.42, 0.84, 14, 26),
+        bodyMat,
+      );
+      body.position.y = 0.86;
+      body.rotation.z = -0.08;
+      body.castShadow = true;
+      group.add(body);
+
+      const belly = new THREE.Mesh(new THREE.SphereGeometry(0.28, 24, 16), bellyMat);
+      belly.position.set(0.06, 0.78, 0.38);
+      belly.scale.set(1.0, 1.22, 0.34);
+      belly.castShadow = true;
+      group.add(belly);
+
+      const head = new THREE.Mesh(new THREE.SphereGeometry(0.48, 28, 20), bodyMat);
+      head.position.set(0.1, 1.52, 0);
+      head.scale.set(1.08, 0.9, 1);
+      head.castShadow = true;
+      group.add(head);
+
+      const earGeo = new THREE.ConeGeometry(0.19, 0.46, 4);
+      const leftEar = new THREE.Mesh(earGeo, bodyMat);
+      leftEar.position.set(-0.26, 1.95, 0);
+      leftEar.rotation.set(0.05, Math.PI / 4, 0.28);
+      leftEar.castShadow = true;
+      group.add(leftEar);
+
+      const rightEar = leftEar.clone();
+      rightEar.position.x = 0.42;
+      rightEar.rotation.z = -0.28;
+      group.add(rightEar);
+
+      const eyeGeo = new THREE.SphereGeometry(0.065, 12, 8);
+      const eyeL = new THREE.Mesh(eyeGeo, eyeMat);
+      eyeL.position.set(-0.11, 1.6, 0.41);
+      group.add(eyeL);
+
+      const eyeR = eyeL.clone();
+      eyeR.position.x = 0.28;
+      group.add(eyeR);
+
+      const nose = new THREE.Mesh(new THREE.SphereGeometry(0.052, 12, 8), blueMat);
+      nose.position.set(0.085, 1.49, 0.455);
+      nose.scale.set(1, 0.75, 0.75);
+      group.add(nose);
+
+      const legGeo = new THREE.CapsuleGeometry(0.105, 0.38, 8, 12);
+      const legL = new THREE.Mesh(legGeo, bodyMat);
+      legL.position.set(-0.18, 0.28, 0.04);
+      legL.castShadow = true;
+      group.add(legL);
+
+      const legR = legL.clone();
+      legR.position.x = 0.26;
+      group.add(legR);
+
+      const tail = new THREE.Mesh(
+        new THREE.TorusGeometry(0.27, 0.052, 10, 32, Math.PI * 1.35),
+        blueMat,
+      );
+      tail.position.set(-0.42, 0.84, -0.08);
+      tail.rotation.set(1.32, 0.2, 0.72);
+      tail.castShadow = true;
+      group.add(tail);
+
+      const antennaMat = new THREE.MeshStandardMaterial({
+        color: runnerColors.yellow,
+        roughness: 0.3,
+        emissive: runnerColors.yellow,
+        emissiveIntensity: 0.35,
+      });
+
+      const orb = new THREE.Mesh(new THREE.SphereGeometry(0.085, 16, 12), antennaMat);
+      orb.position.set(0.08, 2.18, 0.02);
+      orb.castShadow = true;
+      group.add(orb);
+
+      const stem = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.018, 0.018, 0.32, 8),
+        antennaMat,
+      );
+      stem.position.set(0.08, 2.02, 0.01);
+      stem.rotation.z = 0.12;
+      group.add(stem);
+
+      group.scale.setScalar(1.12);
+      group.rotation.y = -0.24;
+      return group;
+    };
+
+    const fitGLBToRunner = (object) => {
+      const wrapper = new THREE.Group();
+      wrapper.add(object);
+
+      object.updateMatrixWorld(true);
+
+      const box = new THREE.Box3().setFromObject(object);
+      const size = new THREE.Vector3();
+      const center = new THREE.Vector3();
+      box.getSize(size);
+      box.getCenter(center);
+
+      object.position.sub(center);
+
+      const maxAxis = Math.max(size.x, size.y, size.z) || 1;
+      const targetHeight = 2.15;
+      const scale = targetHeight / maxAxis;
+
+      wrapper.scale.setScalar(scale);
+      wrapper.position.y = targetHeight * 0.5;
+      wrapper.rotation.y = Math.PI / 2;
+
+      wrapper.traverse((child) => {
+        if (!child.isMesh) return;
+        child.castShadow = true;
+        child.receiveShadow = true;
+
+        if (child.material) {
+          child.material = child.material.clone();
+          child.material.roughness = Math.min(0.9, child.material.roughness ?? 0.55);
+        }
+      });
+
+      return wrapper;
+    };
+
+    setRunnerVisual(makeFallbackRunner());
+    setStatus('Loading alien cat runner...');
+
+    if (modelPath) {
+      const loader = new GLTFLoader();
+      loader.load(
+        modelPath,
+        (gltf) => {
+          if (disposed) return;
+
+          const fitted = fitGLBToRunner(gltf.scene);
+          setRunnerVisual(fitted);
+
+          if (gltf.animations?.length) {
+            mixer = new THREE.AnimationMixer(gltf.scene);
+            mixer.clipAction(gltf.animations[0]).play();
+            setStatus('Alien cat GLB loaded with animation.');
+          } else {
+            setStatus('Alien cat GLB loaded.');
+          }
+        },
+        undefined,
+        () => {
+          if (!disposed) setStatus('GLB missing, using built-in runner.');
+        },
+      );
+    }
+
+    const groundGroup = new THREE.Group();
+    scene.add(groundGroup);
+
+    const groundMat = new THREE.MeshStandardMaterial({
+      color: runnerColors.blue,
+      roughness: 0.64,
+      metalness: 0.02,
+    });
+
+    for (let i = 0; i < 3; i += 1) {
+      const ground = new THREE.Mesh(new THREE.BoxGeometry(22, 0.22, 5.4), groundMat);
+      ground.position.set(i * 22 - 22, -0.13, 0);
+      ground.receiveShadow = true;
+      groundGroup.add(ground);
+    }
+
+    const stripeMat = new THREE.MeshStandardMaterial({
+      color: runnerColors.pink,
+      roughness: 0.52,
+    });
+
+    const stripes = [];
+    for (let i = 0; i < 18; i += 1) {
+      const stripe = new THREE.Mesh(new THREE.BoxGeometry(0.92, 0.045, 0.12), stripeMat);
+      stripe.position.set(i * 2.2 - 12, 0.025, 2.12);
+      stripe.receiveShadow = true;
+      scene.add(stripe);
+      stripes.push(stripe);
+    }
+
+    const obstacleGroup = new THREE.Group();
+    const obstacles = [];
+    scene.add(obstacleGroup);
+
+    const randomItem = (items) => items[Math.floor(Math.random() * items.length)];
+
+    const makeObstacle = () => {
+      const group = new THREE.Group();
+      const obstacleHeight = THREE.MathUtils.randFloat(0.68, 1.22);
+      const obstacleWidth = THREE.MathUtils.randFloat(0.28, 0.48);
+
+      const mat = new THREE.MeshStandardMaterial({
+        color: randomItem([
+          runnerColors.hotPink,
+          runnerColors.purple,
+          runnerColors.blue,
+          runnerColors.yellow,
+        ]),
+        roughness: 0.31,
+        metalness: 0.08,
+        emissive: '#ffffff',
+        emissiveIntensity: 0.08,
+      });
+
+      const crystal = new THREE.Mesh(new THREE.ConeGeometry(obstacleWidth, obstacleHeight, 5), mat);
+      crystal.position.y = obstacleHeight / 2;
+      crystal.rotation.y = Math.random() * Math.PI;
+      crystal.castShadow = true;
+      crystal.receiveShadow = true;
+      group.add(crystal);
+
+      const base = new THREE.Mesh(new THREE.SphereGeometry(obstacleWidth * 0.62, 12, 8), mat);
+      base.position.y = 0.16;
+      base.scale.y = 0.42;
+      base.castShadow = true;
+      group.add(base);
+
+      group.userData.width = obstacleWidth * 1.1;
+      group.userData.height = obstacleHeight;
+      group.userData.spin = THREE.MathUtils.randFloat(-2, 2);
+
+      return group;
+    };
+
+    const spawnObstacle = (x = OBSTACLE_START_X) => {
+      const obstacle = makeObstacle();
+      obstacle.position.set(x, 0, THREE.MathUtils.randFloat(-0.18, 0.18));
+      obstacleGroup.add(obstacle);
+      obstacles.push(obstacle);
+    };
+
+    const sparkles = [];
+    const sparkleMat = new THREE.MeshStandardMaterial({
+      color: '#ffffff',
+      roughness: 0.3,
+      emissive: runnerColors.pink,
+      emissiveIntensity: 0.62,
+    });
+
+    for (let i = 0; i < 30; i += 1) {
+      const sparkle = new THREE.Mesh(new THREE.OctahedronGeometry(0.075, 0), sparkleMat);
+      sparkle.position.set(
+        THREE.MathUtils.randFloat(-5.5, 8),
+        THREE.MathUtils.randFloat(2.1, 5.5),
+        THREE.MathUtils.randFloat(-2.4, 1.3),
+      );
+      sparkle.userData.speed = THREE.MathUtils.randFloat(0.7, 1.8);
+      sparkle.userData.spin = THREE.MathUtils.randFloat(1, 4);
+      scene.add(sparkle);
+      sparkles.push(sparkle);
+    }
+
+    let velocityY = 0;
+    let grounded = true;
+    let running = true;
+    let speed = 4.3;
+    let score = 0;
+    let best = Number(window.localStorage.getItem('cosmicRunnerBest') || 0);
+    let elapsed = 0;
+    let nextSpawn = 1.1;
+    let last = performance.now();
+
+    const playerBox = new THREE.Box3();
+    const obstacleBox = new THREE.Box3();
+
+    const updateScoreText = () => {
+      if (scoreTextRef.current) scoreTextRef.current.textContent = String(score);
+      if (bestTextRef.current) bestTextRef.current.textContent = String(best);
+    };
+
+    const restart = () => {
+      running = true;
+      speed = 4.3;
+      score = 0;
+      elapsed = 0;
+      nextSpawn = 1.1;
+      velocityY = 0;
+      grounded = true;
+
+      runner.position.set(RUNNER_X, 0, 0);
+      runner.rotation.set(0, 0, 0);
+      runner.scale.set(1, 1, 1);
+
+      if (gameOverRef.current) gameOverRef.current.classList.remove('show');
+
+      for (const obstacle of obstacles) {
+        obstacleGroup.remove(obstacle);
+        disposeObject(obstacle);
+      }
+
+      obstacles.length = 0;
+      spawnObstacle(4.8);
+      updateScoreText();
+    };
+
+    const endGame = () => {
+      running = false;
+
+      if (gameOverRef.current) gameOverRef.current.classList.add('show');
+
+      if (score > best) {
+        best = score;
+        window.localStorage.setItem('cosmicRunnerBest', String(best));
+        updateScoreText();
+      }
+    };
+
+    const jump = () => {
+      if (!running) {
+        restart();
+        return;
+      }
+
+      if (!grounded) return;
+
+      velocityY = 0.26;
+      grounded = false;
+    };
+
+    restartRef.current = restart;
+    jumpRef.current = jump;
+
+    const intersectsObstacle = (obstacle) => {
+      playerBox.setFromCenterAndSize(
+        new THREE.Vector3(runner.position.x, runner.position.y + 0.92, runner.position.z),
+        new THREE.Vector3(0.72, 1.55, 0.82),
+      );
+
+      obstacleBox.setFromCenterAndSize(
+        new THREE.Vector3(
+          obstacle.position.x,
+          obstacle.position.y + obstacle.userData.height / 2,
+          obstacle.position.z,
+        ),
+        new THREE.Vector3(obstacle.userData.width, obstacle.userData.height, 0.76),
+      );
+
+      return playerBox.intersectsBox(obstacleBox);
+    };
+
+    const updateGround = (delta) => {
+      groundGroup.children.forEach((ground) => {
+        ground.position.x -= speed * delta;
+        if (ground.position.x < -22) ground.position.x += 66;
+      });
+
+      stripes.forEach((stripe) => {
+        stripe.position.x -= speed * delta;
+        if (stripe.position.x < -12) stripe.position.x += 39.6;
+      });
+    };
+
+    const updateSparkles = (delta) => {
+      sparkles.forEach((sparkle) => {
+        sparkle.position.x -= sparkle.userData.speed * delta;
+        sparkle.rotation.x += sparkle.userData.spin * delta;
+        sparkle.rotation.y += sparkle.userData.spin * delta * 0.8;
+
+        if (sparkle.position.x < -5.8) {
+          sparkle.position.x = THREE.MathUtils.randFloat(5.8, 8.8);
+          sparkle.position.y = THREE.MathUtils.randFloat(2.1, 5.5);
+          sparkle.position.z = THREE.MathUtils.randFloat(-2.4, 1.3);
+        }
+      });
+    };
+
+    const resize = () => {
+      const viewWidth = mount.clientWidth || window.innerWidth || 390;
+      const viewHeight = mount.clientHeight || window.innerHeight || 844;
+
+      camera.aspect = viewWidth / viewHeight;
+      camera.updateProjectionMatrix();
+
+      if (viewHeight >= viewWidth) {
+        camera.position.set(0, 2.95, 6.65);
+      } else {
+        camera.position.set(0, 2.65, 6.2);
+      }
+
+      camera.lookAt(-0.35, 1.12, 0);
+
+      renderer.setSize(viewWidth, viewHeight);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.75));
+    };
+
+    const animate = (now) => {
+      if (disposed) return;
+
+      frameId = requestAnimationFrame(animate);
+
+      const delta = Math.min(0.033, (now - last) / 1000);
+      last = now;
+
+      if (mixer) mixer.update(mixerClock.getDelta());
+
+      updateSparkles(delta);
+
+      if (running) {
+        elapsed += delta;
+        speed += delta * 0.11;
+        score = Math.floor(elapsed * 10);
+        updateScoreText();
+
+        velocityY -= 0.62 * delta;
+        runner.position.y += velocityY;
+
+        if (runner.position.y <= 0) {
+          runner.position.y = 0;
+          velocityY = 0;
+          grounded = true;
+        }
+
+        const bounce = Math.sin(now * 0.018) * 0.025;
+        runner.scale.set(1 + bounce, 1 - bounce * 0.7, 1 + bounce);
+        runner.rotation.z = grounded ? Math.sin(now * 0.014) * 0.035 : -0.18;
+
+        updateGround(delta);
+
+        nextSpawn -= delta;
+
+        if (nextSpawn <= 0) {
+          spawnObstacle(OBSTACLE_START_X);
+          nextSpawn =
+            THREE.MathUtils.randFloat(0.86, 1.48) * Math.max(0.72, 5.0 / speed);
+        }
+
+        for (let i = obstacles.length - 1; i >= 0; i -= 1) {
+          const obstacle = obstacles[i];
+          obstacle.position.x -= speed * delta;
+          obstacle.rotation.y += obstacle.userData.spin * delta;
+
+          if (intersectsObstacle(obstacle)) endGame();
+
+          if (obstacle.position.x < OBSTACLE_REMOVE_X) {
+            obstacleGroup.remove(obstacle);
+            disposeObject(obstacle);
+            obstacles.splice(i, 1);
+          }
+        }
+      } else {
+        runner.rotation.z += delta * 1.8;
+      }
+
+      renderer.render(scene, camera);
+    };
+
+    const onPointerDown = (event) => {
+      if (event.target.closest('button')) return;
+      jump();
+    };
+
+    const onKeyDown = (event) => {
+      if (event.code === 'Space' || event.code === 'ArrowUp') {
+        event.preventDefault();
+        jump();
+      }
+
+      if (event.code === 'Escape') {
+        event.preventDefault();
+        onClose?.();
+      }
+    };
+
+    restart();
+    resize();
+
+    window.addEventListener('resize', resize);
+    window.addEventListener('keydown', onKeyDown);
+    mount.addEventListener('pointerdown', onPointerDown);
+
+    frameId = requestAnimationFrame(animate);
+
+    return () => {
+      disposed = true;
+      cancelAnimationFrame(frameId);
+      window.removeEventListener('resize', resize);
+      window.removeEventListener('keydown', onKeyDown);
+      mount.removeEventListener('pointerdown', onPointerDown);
+
+      clearRunnerVisual();
+      disposeObject(scene);
+
+      if (renderer.domElement?.parentNode) {
+        renderer.domElement.parentNode.removeChild(renderer.domElement);
+      }
+
+      renderer.dispose();
+      renderer.forceContextLoss?.();
+    };
+  }, [modelPath, onClose]);
+
+  return (
+    <div
+      className="cosmicRunnerGameOverlay"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Runner game"
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 999999,
+        overflow: 'hidden',
+        background:
+          'radial-gradient(circle at 18% 18%, rgba(255,175,237,.9), transparent 32%), radial-gradient(circle at 82% 12%, rgba(160,225,255,.9), transparent 34%), radial-gradient(circle at 50% 100%, rgba(206,177,255,.75), transparent 42%), linear-gradient(180deg, #fff8ff 0%, #f4fbff 52%, #fff0fb 100%)',
+      }}
+    >
+      <div ref={mountRef} style={{ position: 'absolute', inset: 0 }} />
+
+      <div
+        style={{
+          position: 'fixed',
+          top: 'max(14px, env(safe-area-inset-top))',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          width: 'min(94vw, 560px)',
+          zIndex: 2,
+          display: 'grid',
+          gridTemplateColumns: '1fr auto auto',
+          gap: 8,
+          alignItems: 'center',
+        }}
+      >
+        <div style={cosmicRunnerGlassHudStyle}>
+          <span>
+            Score: <b ref={scoreTextRef}>0</b>
+          </span>
+          <span>
+            Best: <b ref={bestTextRef}>0</b>
+          </span>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => jumpRef.current?.()}
+          style={cosmicRunnerPillButtonStyle}
+        >
+          Jump
+        </button>
+
+        <button
+          type="button"
+          onClick={onClose}
+          style={cosmicRunnerPillButtonStyle}
+        >
+          Close
+        </button>
+      </div>
+
+      <div
+        ref={statusTextRef}
+        style={{
+          position: 'fixed',
+          left: '50%',
+          top: 76,
+          transform: 'translateX(-50%)',
+          zIndex: 2,
+          width: 'min(92vw, 560px)',
+          padding: '10px 14px',
+          textAlign: 'center',
+          fontSize: 12,
+          fontWeight: 800,
+          color: '#75468f',
+          border: '1px solid rgba(255,255,255,.76)',
+          background: 'rgba(255,255,255,.42)',
+          backdropFilter: 'blur(18px)',
+          borderRadius: 22,
+          boxShadow: '0 14px 46px rgba(168,100,220,.18)',
+        }}
+      >
+        Loading runner...
+      </div>
+
+      <div
+        style={{
+          position: 'fixed',
+          left: '50%',
+          bottom: 'calc(max(16px, env(safe-area-inset-bottom)) + 18px)',
+          transform: 'translateX(-50%)',
+          zIndex: 2,
+          width: 'min(92vw, 560px)',
+          padding: '13px 16px',
+          textAlign: 'center',
+          fontSize: 14,
+          fontWeight: 800,
+          color: '#87589c',
+          border: '1px solid rgba(255,255,255,.76)',
+          background: 'rgba(255,255,255,.42)',
+          backdropFilter: 'blur(18px)',
+          borderRadius: 22,
+          boxShadow: '0 14px 46px rgba(168,100,220,.18)',
+        }}
+      >
+        Tap / click / Space to jump.
+      </div>
+
+      <div
+        ref={gameOverRef}
+        className="cosmicRunnerGameOver"
+        style={{
+          position: 'fixed',
+          left: '50%',
+          top: '50%',
+          transform: 'translate(-50%, -50%)',
+          zIndex: 3,
+          display: 'none',
+          width: 'min(86vw, 420px)',
+          padding: 24,
+          textAlign: 'center',
+          color: '#75468f',
+          border: '1px solid rgba(255,255,255,.76)',
+          background: 'rgba(255,255,255,.5)',
+          backdropFilter: 'blur(18px)',
+          borderRadius: 24,
+          boxShadow: '0 14px 46px rgba(168,100,220,.18)',
+        }}
+      >
+        <style>{`.cosmicRunnerGameOver.show { display: block !important; }`}</style>
+        <h2 style={{ margin: '0 0 8px', color: '#703b8f', fontSize: 34 }}>bonk!</h2>
+        <p style={{ margin: '0 0 14px', fontWeight: 800 }}>
+          The runner crashed into a crystal.
+        </p>
+        <button
+          type="button"
+          onClick={() => restartRef.current?.()}
+          style={cosmicRunnerPillButtonStyle}
+        >
+          Play again
+        </button>
+      </div>
+    </div>
+  );
+}
+
+const cosmicRunnerGlassHudStyle = {
+  pointerEvents: 'auto',
+  border: '1px solid rgba(255,255,255,.76)',
+  background: 'rgba(255,255,255,.42)',
+  backdropFilter: 'blur(18px)',
+  borderRadius: 22,
+  boxShadow: '0 14px 46px rgba(168,100,220,.18)',
+  color: '#75468f',
+  padding: '12px 16px',
+  fontSize: 14,
+  fontWeight: 900,
+  display: 'flex',
+  justifyContent: 'space-between',
+  gap: 14,
+  letterSpacing: '.04em',
+  textTransform: 'uppercase',
+};
+
+const cosmicRunnerPillButtonStyle = {
+  border: 0,
+  borderRadius: 999,
+  padding: '12px 14px',
+  fontSize: 12,
+  fontWeight: 900,
+  color: '#714184',
+  background: 'linear-gradient(135deg, #ffd2f5, #ccefff)',
+  boxShadow: 'inset 0 0 0 1px rgba(255,255,255,.8)',
+  cursor: 'pointer',
+  whiteSpace: 'nowrap',
+};
+
 export default function CosmicVoyage() {
   const canvasRef = useRef(null);
   const stateRef = useRef(null);
@@ -2547,6 +3334,7 @@ export default function CosmicVoyage() {
   const [loading, setLoading] = useState(false);
   const [loadingPercent, setLoadingPercent] = useState(0);
   const [popupOpen, setPopupOpen] = useState(false);
+  const [runnerGameOpen, setRunnerGameOpen] = useState(false);
   const [ringPopupOpen, setRingPopupOpen] = useState(false);
   const [ringPopupPlacement, setRingPopupPlacement] = useState({
     left: 72,
@@ -3062,6 +3850,7 @@ side: source.side ?? THREE.FrontSide,
     setLoading(false);
     setLoadingPercent(0);
     setPopupOpen(false);
+    setRunnerGameOpen(false);
     setRingPopupOpen(false);
     setLandedUI(false);
   };
@@ -4307,11 +5096,17 @@ if (state.landed) {
         {loadingPercent}%
       </div>
     </div>
-  </div>
-)}
-          
+	)}
 
-      {popupOpen && (
+      {runnerGameOpen && (
+        <CosmicRunnerGameOverlay
+          modelPath={CAT_MODEL_URL}
+          onClose={() => setRunnerGameOpen(false)}
+        />
+      )}
+	          
+
+	      {popupOpen && (
         <div className="popupWindow">
           <div className="popupWindow missionGalleryWindow">
               <div className="termHeader">
@@ -4324,9 +5119,27 @@ if (state.landed) {
                                     <div className="missionGalleryIntro">
 </div>
 
-<div className="collectionMiniGlobeOverlay" aria-hidden="true">
+<button
+  type="button"
+  className="collectionMiniGlobeOverlay collectionMiniGlobeGameButton"
+  aria-label="Start runner game"
+  onClick={(event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setRunnerGameOpen(true);
+  }}
+  style={{
+    border: 0,
+    padding: 0,
+    background: 'transparent',
+    cursor: 'pointer',
+    pointerEvents: 'auto',
+    lineHeight: 0,
+    WebkitTapHighlightColor: 'transparent',
+  }}
+>
   <CollectionMiniGlobe />
-</div>
+</button>
 
                                                     <div className="missionImageGrid">
                                                         {MISSION_LINK_IMAGES.map((item) => {
