@@ -5,11 +5,10 @@ import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 
 export default function CosmicRunnerOverlay({
-  open,
+  open = false,
   onClose,
   modelPath = "/models/alien-cat.glb",
 }) {
-  const [open, setOpen] = useState(false);
   const mountRef = useRef(null);
   const scoreRef = useRef(null);
   const bestRef = useRef(null);
@@ -96,8 +95,7 @@ export default function CosmicRunnerOverlay({
       return wrap;
     }
 
-    setVisual(makeFallbackRunner());
-    setStatus("Loading alien cat...");
+    setStatus("Loading alien cat GLB...");
 
     if (modelPath) {
       new GLTFLoader().load(
@@ -110,11 +108,11 @@ export default function CosmicRunnerOverlay({
             mixer.clipAction(gltf.animations[0]).play();
             setStatus("Alien cat loaded with animation.");
           } else {
-            setStatus("");
+            setStatus("Alien cat loaded.");
           }
         },
         undefined,
-        () => setStatus("Model not found, using built-in")
+        () => setStatus("Could not load alien-cat.glb.")
       );
     }
 
@@ -378,7 +376,7 @@ export default function CosmicRunnerOverlay({
           <div className="cosmicRunnerGlass cosmicRunnerHint">Tap / click / Space to jump.</div>
 
           <div ref={overRef} className="cosmicRunnerGlass cosmicRunnerGameOver">
-            <h2>😱</h2>
+            <h2>bonk!</h2>
             <p>The runner crashed into a crystal.</p>
             <button type="button" onClick={() => window.dispatchEvent(new KeyboardEvent("keydown", { code: "Space" }))}>
               Play again
@@ -388,7 +386,6 @@ export default function CosmicRunnerOverlay({
       )}
 
       <style jsx>{`
-        
         .cosmicRunnerOverlay {
           position: fixed;
           inset: 0;
