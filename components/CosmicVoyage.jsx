@@ -1807,20 +1807,39 @@ const drawBubbles = (dt) => {
         ? Math.sin((catFallElapsed - 0.67) * 20) * Math.exp(-(catFallElapsed - 0.67) * 5) * 0.10
         : 0;
 
-const walkCycle = (elapsed * 0.16) % 1;
-const edgeDistance = Math.max(1.65, viewportWidth * 0.36);
+const walkCycle = (elapsed * 0.085) % 1;
+const edgeDistance = Math.min(
+  Math.max(1.85, viewportWidth * 0.42),
+  viewportWidth * 0.5 - 0.95,
+);
+
 let introWalkX = 0;
 
-if (walkCycle < 0.28) {
-  introWalkX = lerp(0, edgeDistance, walkCycle / 0.28);
-} else if (walkCycle < 0.42) {
+if (walkCycle < 0.24) {
+  // Long pause in the middle
+  introWalkX = 0;
+} else if (walkCycle < 0.38) {
+  // Middle to right edge
+  const t = smoothstep(0, 1, (walkCycle - 0.24) / 0.14);
+  introWalkX = lerp(0, edgeDistance, t);
+} else if (walkCycle < 0.46) {
+  // Short pause near right edge
   introWalkX = edgeDistance;
-} else if (walkCycle < 0.70) {
-  introWalkX = lerp(edgeDistance, -edgeDistance, (walkCycle - 0.42) / 0.28);
-} else if (walkCycle < 0.84) {
-  introWalkX = -edgeDistance;
+} else if (walkCycle < 0.60) {
+  // Right edge back to middle
+  const t = smoothstep(0, 1, (walkCycle - 0.46) / 0.14);
+  introWalkX = lerp(edgeDistance, 0, t);
+} else if (walkCycle < 0.78) {
+  // Long pause in the middle again
+  introWalkX = 0;
+} else if (walkCycle < 0.92) {
+  // Middle to left edge
+  const t = smoothstep(0, 1, (walkCycle - 0.78) / 0.14);
+  introWalkX = lerp(0, -edgeDistance, t);
 } else {
-  introWalkX = lerp(-edgeDistance, 0, (walkCycle - 0.84) / 0.16);
+  // Left edge back to middle
+  const t = smoothstep(0, 1, (walkCycle - 0.92) / 0.08);
+  introWalkX = lerp(-edgeDistance, 0, t);
 }
 
 introHomePosition.set(
