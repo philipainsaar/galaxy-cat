@@ -2566,6 +2566,8 @@ export default function CosmicVoyage() {
     return window.localStorage.getItem('amij-language-code') || DEFAULT_LANGUAGE_CODE;
   });
   const [showMainTranslateModal, setShowMainTranslateModal] = useState(false);
+  const mainTranslateGlbStageRef = useRef(null);
+  const [mainTranslateGlbStatusKey, setMainTranslateGlbStatusKey] = useState('chooseLanguage');
   const copy = useMemo(() => getSiteCopy(selectedLanguageCode), [selectedLanguageCode]);
   const selectedMainTranslateLanguage =
     TRANSLATE_LANGUAGE_OPTIONS.find((language) => language.code === selectedLanguageCode) ||
@@ -2612,6 +2614,368 @@ export default function CosmicVoyage() {
       document.documentElement.lang = getDocumentLangCode(selectedLanguageCode);
     }
   }, [selectedLanguageCode]);
+
+
+  useEffect(() => {
+    if (!showMainTranslateModal || !mainTranslateGlbStageRef.current) return undefined;
+
+    const stage = mainTranslateGlbStageRef.current;
+
+    let disposed = false;
+    let animationFrame = 0;
+    let renderer = null;
+    let scene = null;
+    let camera = null;
+    let heartGroup = null;
+    let resizeObserver = null;
+    let jewelryEnvironmentTexture = null;
+
+    let pointerDown = false;
+    let lastX = 0;
+    let lastY = 0;
+    let targetRotX = -0.12;
+    let targetRotY = 0.35;
+    let currentRotX = targetRotX;
+    let currentRotY = targetRotY;
+
+    const createJewelryEnvironmentTexture = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = 512;
+      canvas.height = 256;
+
+      const ctx = canvas.getContext('2d');
+      const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+
+      gradient.addColorStop(0.0, '#ffffff');
+      gradient.addColorStop(0.18, '#ffe4f6');
+      gradient.addColorStop(0.38, '#dff4ff');
+      gradient.addColorStop(0.58, '#f2e4ff');
+      gradient.addColorStop(0.78, '#fff8fe');
+      gradient.addColorStop(1.0, '#c7edff');
+
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      ctx.globalAlpha = 0.7;
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 42, canvas.width, 18);
+      ctx.fillRect(0, 126, canvas.width, 12);
+      ctx.fillRect(0, 198, canvas.width, 22);
+
+      ctx.globalAlpha = 0.45;
+      ctx.fillStyle = '#ffb7dc';
+      ctx.fillRect(0, 82, canvas.width, 16);
+
+      ctx.globalAlpha = 0.38;
+      ctx.fillStyle = '#aedbff';
+      ctx.fillRect(0, 164, canvas.width, 14);
+
+      const texture = new THREE.CanvasTexture(canvas);
+      texture.mapping = THREE.EquirectangularReflectionMapping;
+      texture.colorSpace = THREE.SRGBColorSpace;
+      texture.needsUpdate = true;
+
+      return texture;
+    };
+
+    const makeGlossyJewelryMaterial = (sourceMaterial, meshName = '') => {
+      const source = sourceMaterial || {};
+      const lowerName = meshName.toLowerCase();
+      const looksLikeGem =
+        /sparkle|gem|crystal|diamond|star|jewel|shine|light/i.test(lowerName);
+
+      const sourceColor = source.color?.clone?.() || new THREE.Color(looksLikeGem ? '#fff6fd' : '#ff9fce');
+      const targetColor = looksLikeGem
+        ? new THREE.Color('#fff8ff')
+        : new THREE.Color('#ffabd1');
+
+      sourceColor.lerp(targetColor, looksLikeGem ? 0.72 : 0.38);
+
+      const material = new THREE.MeshStandardMaterial({
+        name: `${source.name || meshName || 'sparkle'}_glossy_jewelry`,
+        color: sourceColor,
+
+        map: source.map || null,
+        normalMap: source.normalMap || null,
+        roughnessMap: source.roughnessMap || null,
+        metalnessMap: source.metalnessMap || null,
+        emissiveMap: source.emissiveMap || null,
+        aoMap: source.aoMap || null,
+
+        metalness: 0.45,
+roughness: 0.18,
+
+        emissive: new THREE.Color(looksLikeGem ? '#ffe6f6' : '#ff7fbd'),
+        emissiveIntensity: looksLikeGem ? 0.24 : 0.1,
+
+        envMapIntensity: looksLikeGem ? 2.6 : 2.15,
+        flatShading: false,
+        transparent: true,
+
+// Fully solid SparkleHeart, no opacity/transparency
+transparent: false,
+opacity: 1,
+alphaTest: 0,
+depthWrite: true,
+depthTest: true,
+side: source.side ?? THREE.FrontSide,
+      });
+
+      [
+        material.map,
+        material.normalMap,
+        material.roughnessMap,
+        material.metalnessMap,
+        material.emissiveMap,
+        material.aoMap,
+      ].forEach((texture) => {
+        if (!texture) return;
+
+        texture.colorSpace = texture === material.map || texture === material.emissiveMap
+          ? THREE.SRGBColorSpace
+          : texture.colorSpace;
+
+        texture.magFilter = THREE.LinearFilter;
+        texture.minFilter = THREE.LinearMipmapLinearFilter;
+        texture.generateMipmaps = true;
+        texture.needsUpdate = true;
+      });
+
+      return material;
+    };
+
+    setMainTranslateGlbStatusKey('loadingGlossyJewelry');
+
+    scene = new THREE.Scene();
+    scene.fog = new THREE.FogExp2(0xffffff, 0.035);
+
+    camera = new THREE.PerspectiveCamera(34, 1, 0.1, 80);
+    camera.position.set(0, 0.12, 8.2);
+
+    renderer = new THREE.WebGLRenderer({
+      antialias: true,
+      alpha: true,
+      powerPreference: 'high-performance',
+    });
+
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.35));
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.42;
+    renderer.domElement.className = 'shoppingIntroTranslateGlbCanvas';
+
+    stage.appendChild(renderer.domElement);
+
+    jewelryEnvironmentTexture = createJewelryEnvironmentTexture();
+    scene.environment = jewelryEnvironmentTexture;
+
+    scene.add(new THREE.HemisphereLight(0xffffff, 0xd4c4ff, 2.8));
+
+    const keyLight = new THREE.DirectionalLight(0xffffff, 5.2);
+    keyLight.position.set(3.6, 4.8, 5.8);
+    scene.add(keyLight);
+
+    const frontShineLight = new THREE.DirectionalLight(0xffffff, 2.8);
+    frontShineLight.position.set(-1.8, 1.2, 6.2);
+    scene.add(frontShineLight);
+
+    const rimLight = new THREE.DirectionalLight(0xffffff, 3.0);
+    rimLight.position.set(-4.8, 3.0, -3.2);
+    scene.add(rimLight);
+
+    const pinkLight = new THREE.PointLight(0xff9fce, 10.5, 16);
+    pinkLight.position.set(-3.2, 2.2, 3.6);
+    scene.add(pinkLight);
+
+    const blueLight = new THREE.PointLight(0xb7dcff, 9.2, 16);
+    blueLight.position.set(3.4, -0.4, 3.9);
+    scene.add(blueLight);
+
+    const purpleLight = new THREE.PointLight(0xd5b8ff, 8.4, 16);
+    purpleLight.position.set(0, 4.0, -2.8);
+    scene.add(purpleLight);
+
+    const whiteSparkLight = new THREE.PointLight(0xffffff, 5.8, 10);
+    whiteSparkLight.position.set(0, 0.4, 4.6);
+    scene.add(whiteSparkLight);
+
+    heartGroup = new THREE.Group();
+    heartGroup.name = 'MainExperienceTranslateHeartGroup';
+    heartGroup.scale.setScalar(1.0);
+    scene.add(heartGroup);
+
+    const starGeometry = new THREE.IcosahedronGeometry(0.022, 0);
+    const starMaterial = new THREE.MeshBasicMaterial({
+      color: 0xffffff,
+      transparent: true,
+      opacity: 0.82,
+    });
+
+    const stars = new THREE.Group();
+    stars.name = 'MainExperienceTranslateSparkles';
+
+    for (let i = 0; i < 110; i += 1) {
+      const star = new THREE.Mesh(starGeometry, starMaterial);
+
+      star.position.set(
+        (Math.random() - 0.5) * 12,
+        (Math.random() - 0.5) * 8,
+        -4 - Math.random() * 4,
+      );
+
+      star.scale.setScalar(0.6 + Math.random() * 2.2);
+      stars.add(star);
+    }
+
+    scene.add(stars);
+
+    const resizeTranslateRenderer = () => {
+      if (!renderer || !camera || !stage) return;
+
+      const rect = stage.getBoundingClientRect();
+      const width = Math.max(1, Math.floor(rect.width));
+      const height = Math.max(1, Math.floor(rect.height));
+
+      renderer.setSize(width, height, false);
+      camera.aspect = width / height;
+      camera.updateProjectionMatrix();
+    };
+
+    const onTranslatePointerDown = (event) => {
+      if (event.target.closest?.('.shoppingIntroTranslateFlagButton')) return;
+
+      pointerDown = true;
+      lastX = event.clientX;
+      lastY = event.clientY;
+
+      try {
+        renderer.domElement.setPointerCapture(event.pointerId);
+      } catch {}
+    };
+
+    const onTranslatePointerMove = (event) => {
+      if (!pointerDown) return;
+
+      const dx = event.clientX - lastX;
+      const dy = event.clientY - lastY;
+
+      lastX = event.clientX;
+      lastY = event.clientY;
+
+      targetRotY += dx * 0.008;
+      targetRotX += dy * 0.006;
+      targetRotX = clampNumber(targetRotX, -0.75, 0.65);
+    };
+
+    const onTranslatePointerUp = () => {
+      pointerDown = false;
+    };
+
+    const animateTranslateHeart = (time) => {
+      if (disposed || !renderer || !scene || !camera || !heartGroup) return;
+
+      const t = time * 0.001;
+
+      currentRotX += (targetRotX - currentRotX) * 0.07;
+      currentRotY += (targetRotY - currentRotY) * 0.07;
+
+      if (!pointerDown) {
+        targetRotY += 0.0024;
+      }
+
+      whiteSparkLight.intensity = 5.3 + Math.sin(t * 3.2) * 1.2;
+      whiteSparkLight.position.x = Math.sin(t * 1.1) * 1.3;
+
+      heartGroup.rotation.x = currentRotX + Math.sin(t * 1.7) * 0.02;
+      heartGroup.rotation.y = currentRotY;
+      heartGroup.rotation.z = Math.sin(t * 1.25) * 0.02;
+      heartGroup.position.y = Math.sin(t * 2.1) * 0.045;
+
+      renderer.render(scene, camera);
+      animationFrame = requestAnimationFrame(animateTranslateHeart);
+    };
+
+    renderer.domElement.addEventListener('pointerdown', onTranslatePointerDown);
+    renderer.domElement.addEventListener('pointermove', onTranslatePointerMove);
+    window.addEventListener('pointerup', onTranslatePointerUp);
+
+    resizeObserver = new ResizeObserver(resizeTranslateRenderer);
+    resizeObserver.observe(stage);
+
+    resizeTranslateRenderer();
+    animationFrame = requestAnimationFrame(animateTranslateHeart);
+
+    loadSceneGLTF(preloadStoreRef.current, SPARKLE_HEART_MODEL_URL)
+      .then((gltf) => {
+        if (disposed || !gltf?.scene || !heartGroup) return;
+
+        const heartModel = gltf.scene;
+        heartModel.name = 'MainExperienceTranslateSparkleHeart';
+
+        heartModel.traverse((child) => {
+          if (!child.isMesh) return;
+
+          child.castShadow = false;
+          child.receiveShadow = false;
+
+          if (child.geometry && !child.geometry.attributes.normal) {
+            child.geometry.computeVertexNormals();
+          }
+
+          if (Array.isArray(child.material)) {
+            child.material = child.material.map((material) =>
+              makeGlossyJewelryMaterial(material, child.name),
+            );
+          } else {
+            child.material = makeGlossyJewelryMaterial(child.material, child.name);
+          }
+        });
+
+        const box = new THREE.Box3().setFromObject(heartModel);
+        const size = box.getSize(new THREE.Vector3());
+        const center = box.getCenter(new THREE.Vector3());
+
+        heartModel.position.sub(center);
+
+        if (size.y > 0) {
+          heartModel.scale.multiplyScalar(1.45 / size.y);
+        }
+
+        heartGroup.add(heartModel);
+        setMainTranslateGlbStatusKey('chooseLanguage');
+      })
+      .catch((error) => {
+        console.error('Could not load main translate sparkle heart GLB:', error);
+        setMainTranslateGlbStatusKey('couldNotLoadGlb');
+      });
+
+    return () => {
+      disposed = true;
+
+      if (animationFrame) {
+        cancelAnimationFrame(animationFrame);
+      }
+
+      resizeObserver?.disconnect?.();
+
+      renderer?.domElement?.removeEventListener('pointerdown', onTranslatePointerDown);
+      renderer?.domElement?.removeEventListener('pointermove', onTranslatePointerMove);
+      window.removeEventListener('pointerup', onTranslatePointerUp);
+
+      if (scene) {
+        disposeObject(scene);
+      }
+
+      jewelryEnvironmentTexture?.dispose?.();
+
+      if (renderer?.domElement?.parentNode) {
+        renderer.domElement.parentNode.removeChild(renderer.domElement);
+      }
+
+      renderer?.dispose?.();
+      renderer?.forceContextLoss?.();
+    };
+  }, [showMainTranslateModal]);
 
 
   const placeRingPopupFromPointer = useCallback((clientX, clientY) => {
@@ -3908,9 +4272,9 @@ if (state.landed) {
               })}
             </div>
 
-            <div className="shoppingIntroTranslateGlbStage">
+            <div ref={mainTranslateGlbStageRef} className="shoppingIntroTranslateGlbStage">
               <div className="shoppingIntroTranslateGlbLoading">
-                {copy.chooseLanguage}
+                {copy[mainTranslateGlbStatusKey] || copy.chooseLanguage}
               </div>
             </div>
           </div>
