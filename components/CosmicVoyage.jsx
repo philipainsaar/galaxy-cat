@@ -1807,8 +1807,24 @@ const drawBubbles = (dt) => {
         ? Math.sin((catFallElapsed - 0.67) * 20) * Math.exp(-(catFallElapsed - 0.67) * 5) * 0.10
         : 0;
 
-      introHomePosition.set(
-  0.45 + Math.sin(elapsed * 0.95) * 0.65,
+const walkCycle = (elapsed * 0.16) % 1;
+const edgeDistance = Math.max(1.65, viewportWidth * 0.36);
+let introWalkX = 0;
+
+if (walkCycle < 0.28) {
+  introWalkX = lerp(0, edgeDistance, walkCycle / 0.28);
+} else if (walkCycle < 0.42) {
+  introWalkX = edgeDistance;
+} else if (walkCycle < 0.70) {
+  introWalkX = lerp(edgeDistance, -edgeDistance, (walkCycle - 0.42) / 0.28);
+} else if (walkCycle < 0.84) {
+  introWalkX = -edgeDistance;
+} else {
+  introWalkX = lerp(-edgeDistance, 0, (walkCycle - 0.84) / 0.16);
+}
+
+introHomePosition.set(
+  introWalkX,
   lerp(startY, targetY, easedFall) + bounce + Math.sin(elapsed * 1.65) * 0.045,
   0,
 );
