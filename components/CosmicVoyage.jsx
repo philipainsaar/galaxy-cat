@@ -5096,7 +5096,8 @@ if (state.landed) {
         {loadingPercent}%
       </div>
     </div>
-	)}
+  </div>
+)}
 
       {runnerGameOpen && (
         <CosmicRunnerGameOverlay
