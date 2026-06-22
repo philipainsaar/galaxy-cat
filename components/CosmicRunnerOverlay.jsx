@@ -371,7 +371,7 @@ export default function CosmicRunnerOverlay({
             <button type="button" onClick={() => onClose?.()}>Close</button>
           </div>
 
-          <div ref={statusRef} className="cosmicRunnerGlass cosmicRunnerStatus">Loading runner...</div>
+  
           <div className="cosmicRunnerGlass cosmicRunnerHint">Tap to jump.</div>
 
           <div ref={overRef} className="cosmicRunnerGlass cosmicRunnerGameOver">
