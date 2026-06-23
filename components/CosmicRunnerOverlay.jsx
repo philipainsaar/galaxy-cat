@@ -40,12 +40,12 @@ export default function CosmicRunnerOverlay({
     scene.add(sun);
 
     const colors = {
-      pink: "#ff75dc",
-      hotPink: "#ff3fc9",
-      blue: "#6fdfff",
-      purple: "#b184ff",
+      pink: "#ffb7dc",
+      hotPink: "#ff8fc9",
+      blue: "#aedbff",
+      purple: "#8269c7",
       yellow: "#fff0a3",
-      white: "#fff8ff",
+      white: "#ffffff",
       ink: "#4b2864",
     };
 
