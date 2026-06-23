@@ -51,7 +51,7 @@ const SITE_TRANSLATIONS = {
     "close": "STÄNG",
     "modelErrorBody1": "Filerna kan finnas, men modellinställningen kan ändå misslyckas.",
     "modelErrorBody2": "Öppna webbläsarkonsolen för exakt fel.",
-    "ringTerminalMessage": "• Modellering: £50 per timme.\n\n• Make-up: £50\n\n• Styling: £50\n\n• Videoredigering: £15 per video.\n\n• Art Director: £150",
+    "ringTerminalMessage": "• Modellering\n\n• Make-up\n\n• Styling\n\n• Videoredigering\n\n• Art Director",
     "collectionNames": {
       "dreamy": "DRÖM",
       "emo": "EMO",
@@ -84,7 +84,7 @@ const SITE_TRANSLATIONS = {
     "close": "CLOSE",
     "modelErrorBody1": "The files may exist, but model setup can still fail.",
     "modelErrorBody2": "Open the browser console for the exact error.",
-    "ringTerminalMessage": "• Modeling: £50 an hour.\n\n• Make-up: £50\n\n• Styling: £50\n\n• Video editing: £15 per video.\n\n• Art Director: £150",
+    "ringTerminalMessage": "• Modeling\n\n• Make-up\n\n• Styling\n\n• Video editing\n\n• Art Director",
     "collectionNames": {
       "dreamy": "DREAMY",
       "emo": "EMO",
@@ -117,7 +117,7 @@ const SITE_TRANSLATIONS = {
     "close": "閉じる",
     "modelErrorBody1": "ファイルが存在していても、モデル設定で失敗する場合があります。",
     "modelErrorBody2": "正確なエラーはブラウザのコンソールで確認してください。",
-    "ringTerminalMessage": "• モデリング：1時間 £50\n\n• メイクアップ：£50\n\n• スタイリング：£50\n\n• 動画編集：1本 £15\n\n• アートディレクター：£150",
+    "ringTerminalMessage": "• モデリング\n\n• メイクアップ\n\n• スタイリング\n\n• 動画編集\n\n• アートディレクター",
     "collectionNames": {
       "dreamy": "ドリーミー",
       "emo": "エモ",
@@ -150,7 +150,7 @@ const SITE_TRANSLATIONS = {
     "close": "닫기",
     "modelErrorBody1": "파일이 있어도 모델 설정은 실패할 수 있습니다.",
     "modelErrorBody2": "정확한 오류는 브라우저 콘솔에서 확인하세요.",
-    "ringTerminalMessage": "• 모델링: 시간당 £50\n\n• 메이크업: £50\n\n• 스타일링: £50\n\n• 영상 편집: 영상당 £15\n\n• 아트 디렉터: £150",
+    "ringTerminalMessage": "• 모델링\n\n• 메이크업\n\n• 스타일링\n\n• 영상 편집\n\n• 아트 디렉터",
     "collectionNames": {
       "dreamy": "드리미",
       "emo": "이모",
@@ -183,7 +183,7 @@ const SITE_TRANSLATIONS = {
     "close": "关闭",
     "modelErrorBody1": "文件可能存在，但模型设置仍然可能失败。",
     "modelErrorBody2": "请打开浏览器控制台查看准确错误。",
-    "ringTerminalMessage": "• 建模：每小时 £50\n\n• 化妆：£50\n\n• 造型：£50\n\n• 视频剪辑：每个视频 £15\n\n• 艺术指导：£150",
+    "ringTerminalMessage": "• 建模\n\n• 化妆\n\n• 造型\n\n• 视频剪辑\n\n• 艺术指导",
     "collectionNames": {
       "dreamy": "梦幻",
       "emo": "EMO",
@@ -216,7 +216,7 @@ const SITE_TRANSLATIONS = {
     "close": "FERMER",
     "modelErrorBody1": "Les fichiers peuvent exister, mais la configuration du modèle peut encore échouer.",
     "modelErrorBody2": "Ouvre la console du navigateur pour voir l’erreur exacte.",
-    "ringTerminalMessage": "• Modélisation : £50 de l’heure.\n\n• Maquillage : £50\n\n• Stylisme : £50\n\n• Montage vidéo : £15 par vidéo.\n\n• Directeur artistique : £150",
+    "ringTerminalMessage": "• Modélisation\n\n• Maquillage\n\n• Stylisme\n\n• Montage vidéo\n\n• Directeur artistique",
     "collectionNames": {
       "dreamy": "RÊVE",
       "emo": "EMO",
@@ -249,7 +249,7 @@ const SITE_TRANSLATIONS = {
     "close": "SCHLIESSEN",
     "modelErrorBody1": "Die Dateien können vorhanden sein, aber die Modelleinrichtung kann trotzdem fehlschlagen.",
     "modelErrorBody2": "Öffne die Browser-Konsole für den genauen Fehler.",
-    "ringTerminalMessage": "• Modeling: £50 pro Stunde.\n\n• Make-up: £50\n\n• Styling: £50\n\n• Videobearbeitung: £15 pro Video.\n\n• Art Director: £150",
+    "ringTerminalMessage": "• Modeling\n\n• Make-up\n\n• Styling\n\n• Videobearbeitung\n\n• Art Director",
     "collectionNames": {
       "dreamy": "TRÄUMERISCH",
       "emo": "EMO",
@@ -282,7 +282,7 @@ const SITE_TRANSLATIONS = {
     "close": "CERRAR",
     "modelErrorBody1": "Los archivos pueden existir, pero la configuración del modelo aún puede fallar.",
     "modelErrorBody2": "Abre la consola del navegador para ver el error exacto.",
-    "ringTerminalMessage": "• Modelaje: £50 por hora.\n\n• Maquillaje: £50\n\n• Estilismo: £50\n\n• Edición de video: £15 por video.\n\n• Director de arte: £150",
+    "ringTerminalMessage": "• Modelaje\n\n• Maquillaje\n\n• Estilismo\n\n• Edición de video\n\n• Director de arte",
     "collectionNames": {
       "dreamy": "ENSUEÑO",
       "emo": "EMO",
@@ -315,7 +315,7 @@ const SITE_TRANSLATIONS = {
     "close": "CHIUDI",
     "modelErrorBody1": "I file possono esistere, ma la configurazione del modello può comunque fallire.",
     "modelErrorBody2": "Apri la console del browser per l’errore esatto.",
-    "ringTerminalMessage": "• Modellazione: £50 all’ora.\n\n• Make-up: £50\n\n• Styling: £50\n\n• Montaggio video: £15 per video.\n\n• Art Director: £150",
+    "ringTerminalMessage": "• Modellazione\n\n• Make-up\n\n• Styling\n\n• Montaggio video\n\n• Art Director",
     "collectionNames": {
       "dreamy": "SOGNO",
       "emo": "EMO",
@@ -348,7 +348,7 @@ const SITE_TRANSLATIONS = {
     "close": "FECHAR",
     "modelErrorBody1": "Os arquivos podem existir, mas a configuração do modelo ainda pode falhar.",
     "modelErrorBody2": "Abra o console do navegador para ver o erro exato.",
-    "ringTerminalMessage": "• Modelagem: £50 por hora.\n\n• Maquiagem: £50\n\n• Styling: £50\n\n• Edição de vídeo: £15 por vídeo.\n\n• Diretor de arte: £150",
+    "ringTerminalMessage": "• Modelagem\n\n• Maquiagem\n\n• Styling\n\n• Edição de vídeo\n\n• Diretor de arte",
     "collectionNames": {
       "dreamy": "SONHO",
       "emo": "EMO",
