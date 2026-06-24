@@ -11,6 +11,21 @@ const BOAT_MODEL_URL = '/models/cosmic-boat.glb';
 const FLOAT_RING_MODEL_URL = '/models/float-ring.glb';
 const FLOAT_RING_FALLBACK_MODEL_URL = '/models/floatring.glb';
 const SPARKLE_HEART_MODEL_URL = '/models/SparkleHeart_LowPoly.glb';
+
+// Button sounds live in /public/sounds/.
+// Add the matching .mp3 files there, for example:
+// public/sounds/intro-enter.mp3 -> browser URL '/sounds/intro-enter.mp3'
+const BUTTON_SOUND_BASE_PATH = '/sounds/';
+const BUTTON_PRESS_SOUND_VOLUME = 0.78;
+const BUTTON_PRESS_TARGET_SELECTOR = [
+  '[data-button-sound]',
+  'button',
+  '[role="button"]',
+  'a.ringSocialButton',
+  'a.missionImageLink',
+  'a.logoLink',
+  'a.shoppingIntroLogoLink',
+].join(', ');
 const TRANSLATE_LANGUAGE_OPTIONS = [
   { code: 'sv', name: 'Swedish', nativeName: 'Svenska', short: 'SV', flag: '/images/flags/flag-sweden.png' },
   { code: 'en', name: 'English', nativeName: 'English', short: 'EN', flag: '/images/flags/flag-united-kingdom.png' },
@@ -460,24 +475,28 @@ const MISSION_LINK_IMAGES = [
         titleKey: 'dreamy',
             image: '/images/covers/dreamy.jpg',
                 url: 'https://www.almostmadeinjapan.com/collections/dreamy',
+                sound: '/sounds/collection-dreamy.mp3',
                   },
                     {
                         title: 'EMO',
                             titleKey: 'emo',
                             image: '/images/covers/emo.jpg',
                                 url: 'https://www.almostmadeinjapan.com/collections/emo',
+                                sound: '/sounds/collection-emo.mp3',
                                   },
                                    {
                                        title: 'NATURE',
                                            titleKey: 'nature',
                                            image: '/images/covers/nature.jpg',
                                                url: 'https://www.almostmadeinjapan.com/collections/frontpage',
+                                               sound: '/sounds/collection-nature.mp3',
                                                  },
                                                   {
                                                       title: 'CYBER',
                                                       titleKey: 'cyber',
                                                           image: '/images/covers/cyber.jpg',
                                                               url: 'https://www.almostmadeinjapan.com/collections/cyber',
+                                                              sound: '/sounds/collection-cyber.mp3',
                                                                 },
                                                                 ];
 
@@ -1328,6 +1347,118 @@ function loadBlurredSpriteTexture(url, blurPx = 3.0) {
 }
 
 
+
+
+function slugifyButtonSoundKey(value) {
+  return String(value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 72);
+}
+
+function normalizeButtonSoundUrl(value) {
+  if (!value) return '';
+  const soundPath = String(value).trim();
+  if (!soundPath) return '';
+  if (soundPath.startsWith('/') || soundPath.startsWith('http')) return soundPath;
+  return `${BUTTON_SOUND_BASE_PATH}${soundPath}`;
+}
+
+function getButtonSoundUrl(button) {
+  const assignedSound = normalizeButtonSoundUrl(button.getAttribute('data-button-sound'));
+  if (assignedSound) return assignedSound;
+
+  const fallbackKey = slugifyButtonSoundKey(
+    button.getAttribute('data-button-sound-key') ||
+      button.getAttribute('aria-label') ||
+      button.getAttribute('title') ||
+      button.textContent ||
+      [...button.classList].join('-') ||
+      button.tagName,
+  );
+
+  return `${BUTTON_SOUND_BASE_PATH}${fallbackKey || 'button-default'}.mp3`;
+}
+
+function useButtonPressSound() {
+  const buttonAudioCacheRef = useRef(new Map());
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof document === 'undefined') return undefined;
+
+    const makeAudio = (url) => {
+      const audio = new Audio(url);
+      audio.preload = 'auto';
+      audio.volume = BUTTON_PRESS_SOUND_VOLUME;
+      return audio;
+    };
+
+    const findPressedButton = (event) => {
+      const target = event.target;
+      if (!(target instanceof Element)) return null;
+
+      const button = target.closest(BUTTON_PRESS_TARGET_SELECTOR);
+      if (!button || !document.documentElement.contains(button)) return null;
+
+      const isDisabled =
+        button.hasAttribute('disabled') ||
+        button.getAttribute('aria-disabled') === 'true';
+
+      return isDisabled ? null : button;
+    };
+
+    const playButtonSound = (button) => {
+      try {
+        const soundUrl = getButtonSoundUrl(button);
+        if (!soundUrl) return;
+
+        const audioCache = buttonAudioCacheRef.current;
+        let baseAudio = audioCache.get(soundUrl);
+
+        if (!baseAudio) {
+          baseAudio = makeAudio(soundUrl);
+          audioCache.set(soundUrl, baseAudio);
+        }
+
+        const audio = baseAudio.cloneNode(true);
+        audio.volume = BUTTON_PRESS_SOUND_VOLUME;
+        audio.currentTime = 0;
+
+        const playPromise = audio.play();
+        playPromise?.catch?.(() => {
+          // Missing/blocked sound files should never stop the button action.
+        });
+      } catch {
+        // Audio support is optional decoration, not a blocker.
+      }
+    };
+
+    const onPointerDown = (event) => {
+      if ('button' in event && event.button !== 0) return;
+      const button = findPressedButton(event);
+      if (!button) return;
+      playButtonSound(button);
+    };
+
+    const onKeyDown = (event) => {
+      if (event.key !== 'Enter' && event.key !== ' ') return;
+      const button = findPressedButton(event);
+      if (!button) return;
+      playButtonSound(button);
+    };
+
+    document.addEventListener('pointerdown', onPointerDown, true);
+    document.addEventListener('keydown', onKeyDown, true);
+
+    return () => {
+      document.removeEventListener('pointerdown', onPointerDown, true);
+      document.removeEventListener('keydown', onKeyDown, true);
+      buttonAudioCacheRef.current.clear();
+    };
+  }, []);
+}
 
 function ShoppingIntroSplash({ onFinished, preloadStore, coreModelsReady, selectedLanguageCode, onLanguageChange }) {
   const bubbleCanvasRef = useRef(null);
@@ -2335,6 +2466,7 @@ side: source.side ?? THREE.FrontSide,
     href="https://www.almostmadeinjapan.com/home"
     className="shoppingIntroLogoLink"
     aria-label={languageCopy.logoAlt}
+    data-button-sound="/sounds/intro-logo.mp3"
   >
     <img
       src="/images/almostmadeinjapan.png"
@@ -2348,6 +2480,7 @@ side: source.side ?? THREE.FrontSide,
   type="button"
   className="shoppingIntroTranslateButton"
   aria-label={languageCopy.translate}
+  data-button-sound="/sounds/intro-translate-open.mp3"
   aria-expanded={showTranslateModal}
   onClick={() => setShowTranslateModal(true)}
 >
@@ -2370,6 +2503,7 @@ side: source.side ?? THREE.FrontSide,
   ref={enterButtonRef}
   type="button"
   className="shoppingIntroEnterButton"
+  data-button-sound="/sounds/intro-enter.mp3"
   onClick={() => requestIntroExitRef.current?.()}
   disabled={introExitRequested}
   aria-label={languageCopy.enterWebsite}
@@ -2401,6 +2535,7 @@ side: source.side ?? THREE.FrontSide,
                 type="button"
                 className="shoppingIntroTranslateModalClose"
                 aria-label={languageCopy.closeTranslatePopup}
+                data-button-sound="/sounds/intro-translate-close.mp3"
                 onClick={() => setShowTranslateModal(false)}
               >
                 ×
@@ -2426,6 +2561,7 @@ side: source.side ?? THREE.FrontSide,
                     }}
                     aria-label={formatCopy(languageCopy.translateToLanguage, { language: language.nativeName || language.name })}
                     aria-pressed={selectedTranslateLanguageCode === language.code}
+                    data-button-sound={`/sounds/intro-language-${language.code}.mp3`}
                     onClick={() => onLanguageChange?.(language.code)}
                   >
                     <img
@@ -2538,6 +2674,8 @@ function CollectionMiniGlobe() {
 
 
 export default function CosmicVoyage() {
+  useButtonPressSound();
+
   const canvasRef = useRef(null);
   const stateRef = useRef(null);
   const preloadStoreRef = useRef(null);
@@ -4171,6 +4309,7 @@ if (state.landed) {
     href="https://www.almostmadeinjapan.com/home"
     className="logoLink"
     aria-label={copy.logoAlt}
+    data-button-sound="/sounds/main-logo.mp3"
   >
     <img
       src="/images/almostmadeinjapan.png"
@@ -4184,6 +4323,7 @@ if (state.landed) {
           type="button"
           className="shoppingIntroTranslateButton mainExperienceTranslateButton"
           aria-label={copy.translate}
+          data-button-sound="/sounds/main-translate-open.mp3"
           aria-expanded={showMainTranslateModal}
           onClick={() => setShowMainTranslateModal(true)}
           style={{
@@ -4234,6 +4374,7 @@ if (state.landed) {
                 type="button"
                 className="shoppingIntroTranslateModalClose"
                 aria-label={copy.closeTranslatePopup}
+                data-button-sound="/sounds/main-translate-close.mp3"
                 onClick={() => setShowMainTranslateModal(false)}
               >
                 ×
@@ -4261,6 +4402,7 @@ if (state.landed) {
                       language: language.nativeName || language.name,
                     })}
                     aria-pressed={selectedLanguageCode === language.code}
+                    data-button-sound={`/sounds/main-language-${language.code}.mp3`}
                     onClick={() => setSelectedLanguageCode(language.code)}
                   >
                     <img
@@ -4328,7 +4470,7 @@ if (state.landed) {
           <div className="popupWindow missionGalleryWindow">
               <div className="termHeader">
                   <span>{copy.collectionsTitle}</span>
-                      <button type="button" onClick={resetExperience}>
+                      <button type="button" data-button-sound="/sounds/mission-close.mp3" onClick={resetExperience}>
                             •
                                 </button>
                                   </div>
@@ -4340,6 +4482,7 @@ if (state.landed) {
   type="button"
   className="collectionMiniGlobeOverlay collectionMiniGlobeGameButton"
   aria-label="Start alien cat game"
+  data-button-sound="/sounds/start-alien-cat-game.mp3"
   onClick={(event) => {
     event.preventDefault();
     event.stopPropagation();
@@ -4371,6 +4514,7 @@ if (state.landed) {
                                                               key={item.title}
                                                               className="missionImageLink"
                                                               href={item.url}
+                                                              data-button-sound={item.sound}
                                                               target="_blank"
                                                               rel="noreferrer"
                                                               aria-label={openCollectionLabel}
@@ -4445,6 +4589,7 @@ if (state.landed) {
   <a
     className="ringSocialButton ringSocialButtonTikTok"
     href="https://www.tiktok.com/@almostmadeinjapan"
+    data-button-sound="/sounds/social-tiktok.mp3"
     target="_blank"
     rel="noreferrer"
     aria-label="TikTok"
@@ -4457,6 +4602,7 @@ if (state.landed) {
   <a
     className="ringSocialButton ringSocialButtonInstagram"
     href="https://www.instagram.com/almostmadeinjapan/"
+    data-button-sound="/sounds/social-instagram.mp3"
     target="_blank"
     rel="noreferrer"
     aria-label="Instagram"
@@ -4469,6 +4615,7 @@ if (state.landed) {
   <a
     className="ringSocialButton ringSocialButtonEmail"
     href="mailto:almostmadeinjapan@gmail.com?subject=Almost Made in Japan&body=https://www.almostmadeinjapan.com/"
+    data-button-sound="/sounds/social-email.mp3"
     aria-label="Email"
   >
     <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -4480,6 +4627,7 @@ if (state.landed) {
     type="button"
     className="ringSocialButton ringSocialButtonShare"
     aria-label="Share"
+    data-button-sound="/sounds/social-share.mp3"
     onClick={shareWebsite}
   >
     <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -4498,6 +4646,7 @@ if (state.landed) {
             <span>{copy.modelLoadError}</span>
             <button
               type="button"
+              data-button-sound="/sounds/model-error-close.mp3"
               onClick={() => setModelError('')}
             >
               {copy.close}
