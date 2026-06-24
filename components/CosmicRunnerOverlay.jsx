@@ -368,7 +368,7 @@ export default function CosmicRunnerOverlay({
               <span>Score: <b ref={scoreRef}>0</b></span>
               <span>Best: <b ref={bestRef}>0</b></span>
             </div>
-            <button type="button" onClick={() => onClose?.()}>×</button>
+            <button type="button" data-button-sound="/sounds/runner-close.mp3" onClick={() => onClose?.()}>×</button>
           </div>
 
   
@@ -377,7 +377,7 @@ export default function CosmicRunnerOverlay({
           <div ref={overRef} className="cosmicRunnerGlass cosmicRunnerGameOver">
             <h2>Oh no!</h2>
             <p>The alien cat crashed into a crystal.</p>
-            <button type="button" onClick={() => window.dispatchEvent(new KeyboardEvent("keydown", { code: "Space" }))}>
+            <button type="button" data-button-sound="/sounds/runner-play-again.mp3" onClick={() => window.dispatchEvent(new KeyboardEvent("keydown", { code: "Space" }))}>
               Play again
             </button>
           </div>
