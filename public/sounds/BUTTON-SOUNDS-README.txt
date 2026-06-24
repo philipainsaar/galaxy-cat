@@ -41,6 +41,7 @@ intro-language-en.mp3
 intro-language-ja.mp3
 intro-language-ko.mp3
 intro-language-zh.mp3
+intro-language-th.mp3
 intro-language-fr.mp3
 intro-language-de.mp3
 intro-language-es.mp3
@@ -54,6 +55,7 @@ main-language-en.mp3
 main-language-ja.mp3
 main-language-ko.mp3
 main-language-zh.mp3
+main-language-th.mp3
 main-language-fr.mp3
 main-language-de.mp3
 main-language-es.mp3
