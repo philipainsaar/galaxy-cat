@@ -16,6 +16,7 @@ const SPARKLE_HEART_MODEL_URL = '/models/SparkleHeart_LowPoly.glb';
 // Add the matching .mp3 files there, for example:
 // public/sounds/intro-enter.mp3 -> browser URL '/sounds/intro-enter.mp3'
 const BUTTON_SOUND_BASE_PATH = '/sounds/';
+const BUTTON_PRESS_FALLBACK_SOUND_URL = `${BUTTON_SOUND_BASE_PATH}SOUND.mp3`;
 const BUTTON_PRESS_SOUND_VOLUME = 0.78;
 const BUTTON_PRESS_TARGET_SELECTOR = [
   '[data-button-sound]',
@@ -1379,7 +1380,11 @@ function getButtonSoundUrl(button) {
       button.tagName,
   );
 
-  return `${BUTTON_SOUND_BASE_PATH}${fallbackKey || 'button-default'}.mp3`;
+  return fallbackKey ? `${BUTTON_SOUND_BASE_PATH}${fallbackKey}.mp3` : BUTTON_PRESS_FALLBACK_SOUND_URL;
+}
+
+function isFallbackButtonSoundUrl(url) {
+  return normalizeButtonSoundUrl(url) === BUTTON_PRESS_FALLBACK_SOUND_URL;
 }
 
 function useButtonPressSound() {
@@ -1409,27 +1414,36 @@ function useButtonPressSound() {
       return isDisabled ? null : button;
     };
 
+    const playUrl = (url, allowFallback = true) => {
+      if (!url) return;
+
+      const audioCache = buttonAudioCacheRef.current;
+      let baseAudio = audioCache.get(url);
+
+      if (!baseAudio) {
+        baseAudio = makeAudio(url);
+        audioCache.set(url, baseAudio);
+      }
+
+      const audio = baseAudio.cloneNode(true);
+      audio.volume = BUTTON_PRESS_SOUND_VOLUME;
+      audio.currentTime = 0;
+
+      const playFallback = () => {
+        if (!allowFallback || isFallbackButtonSoundUrl(url)) return;
+        playUrl(BUTTON_PRESS_FALLBACK_SOUND_URL, false);
+      };
+
+      audio.addEventListener('error', playFallback, { once: true });
+
+      const playPromise = audio.play();
+      playPromise?.catch?.(playFallback);
+    };
+
     const playButtonSound = (button) => {
       try {
         const soundUrl = getButtonSoundUrl(button);
-        if (!soundUrl) return;
-
-        const audioCache = buttonAudioCacheRef.current;
-        let baseAudio = audioCache.get(soundUrl);
-
-        if (!baseAudio) {
-          baseAudio = makeAudio(soundUrl);
-          audioCache.set(soundUrl, baseAudio);
-        }
-
-        const audio = baseAudio.cloneNode(true);
-        audio.volume = BUTTON_PRESS_SOUND_VOLUME;
-        audio.currentTime = 0;
-
-        const playPromise = audio.play();
-        playPromise?.catch?.(() => {
-          // Missing/blocked sound files should never stop the button action.
-        });
+        playUrl(soundUrl || BUTTON_PRESS_FALLBACK_SOUND_URL);
       } catch {
         // Audio support is optional decoration, not a blocker.
       }
