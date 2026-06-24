@@ -5,16 +5,17 @@ Upload your .mp3 files into this folder:
 
 public/sounds/
 
-Fast loading update
--------------------
+Fast mobile loading update
+--------------------------
 
-The website now preloads the known button sound files when the page starts.
+The website now preloads the known button sound files when the page starts and uses normal /sounds/*.mp3 URLs instead of blob/object URLs.
 
 That means:
-- Each custom button MP3 is fetched early instead of waiting for the first button press.
+- Each custom button MP3 is downloaded into the browser cache early instead of waiting for the first button press.
 - Buttons that appear later on the page are also preloaded automatically.
 - If a custom MP3 is missing or cannot load, the site remembers that and uses SOUND.mp3 instead.
 - SOUND.mp3 is also preloaded as the universal fallback.
+- Mobile taps are handled with touchstart/pointerdown so iPhone and Android browsers can play inside the real tap event.
 
 Important: the included SOUND.mp3 may be only a tiny placeholder. Replace it with a real MP3.
 
