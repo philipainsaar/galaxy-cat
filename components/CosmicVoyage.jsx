@@ -1424,53 +1424,81 @@ function isFallbackButtonSoundUrl(url) {
 function useButtonPressSound() {
   const buttonAudioCacheRef = useRef(new Map());
   const buttonAudioStatusRef = useRef(new Map());
-  const buttonAudioObjectUrlsRef = useRef(new Set());
+  const lastButtonSoundRef = useRef({ time: 0, button: null, type: '' });
 
   useEffect(() => {
     if (typeof window === 'undefined' || typeof document === 'undefined') return undefined;
 
     const audioCache = buttonAudioCacheRef.current;
     const audioStatus = buttonAudioStatusRef.current;
-    const audioObjectUrls = buttonAudioObjectUrlsRef.current;
     const preloadAbortController = new AbortController();
     let destroyed = false;
 
     const makeAudio = (sourceUrl) => {
-      const audio = new Audio(sourceUrl);
+      const audio = new Audio();
       audio.preload = 'auto';
       audio.volume = BUTTON_PRESS_SOUND_VOLUME;
+      audio.src = sourceUrl;
       audio.load?.();
       return audio;
     };
 
-    const preloadButtonSoundUrl = async (url) => {
-      const normalizedUrl = normalizeButtonSoundUrl(url);
-      if (!normalizedUrl || audioStatus.has(normalizedUrl)) return;
+    const rememberReady = (normalizedUrl) => {
+      if (!destroyed) audioStatus.set(normalizedUrl, 'ready');
+    };
 
-      audioStatus.set(normalizedUrl, 'loading');
+    const rememberError = (normalizedUrl) => {
+      if (!destroyed) audioStatus.set(normalizedUrl, 'error');
+    };
 
-      try {
-        const response = await fetch(normalizedUrl, {
-          cache: 'force-cache',
-          signal: preloadAbortController.signal,
-        });
+    const ensureAudioPool = (url) => {
+      const normalizedUrl = normalizeButtonSoundUrl(url || BUTTON_PRESS_FALLBACK_SOUND_URL);
+      if (!normalizedUrl) return null;
 
-        if (!response.ok) {
-          throw new Error(`Could not preload ${normalizedUrl}`);
-        }
-
-        const blob = await response.blob();
-        if (destroyed) return;
-
-        const objectUrl = URL.createObjectURL(blob);
-        audioObjectUrls.add(objectUrl);
-        audioCache.set(normalizedUrl, makeAudio(objectUrl));
-        audioStatus.set(normalizedUrl, 'ready');
-      } catch {
-        if (!destroyed) {
-          audioStatus.set(normalizedUrl, 'error');
-        }
+      let pool = audioCache.get(normalizedUrl);
+      if (!pool) {
+        pool = [];
+        audioCache.set(normalizedUrl, pool);
       }
+
+      if (pool.length === 0) {
+        const audio = makeAudio(normalizedUrl);
+        audio.addEventListener('canplaythrough', () => rememberReady(normalizedUrl));
+        audio.addEventListener('loadeddata', () => rememberReady(normalizedUrl));
+        audio.addEventListener('error', () => rememberError(normalizedUrl));
+        pool.push(audio);
+      }
+
+      return pool;
+    };
+
+    const preloadButtonSoundUrl = (url) => {
+      const normalizedUrl = normalizeButtonSoundUrl(url);
+      if (!normalizedUrl || audioStatus.get(normalizedUrl) === 'error') return;
+
+      if (!audioStatus.has(normalizedUrl)) {
+        audioStatus.set(normalizedUrl, 'loading');
+      }
+
+      ensureAudioPool(normalizedUrl);
+
+      // Download the MP3 into the browser cache early. We still play the normal
+      // /sounds/*.mp3 URL later because mobile browsers are happier with real URLs
+      // than blob/object URLs.
+      fetch(normalizedUrl, {
+        cache: 'force-cache',
+        signal: preloadAbortController.signal,
+      })
+        .then((response) => {
+          if (!response.ok) throw new Error(`Missing button sound: ${normalizedUrl}`);
+          return response.blob();
+        })
+        .then(() => {
+          rememberReady(normalizedUrl);
+        })
+        .catch(() => {
+          rememberError(normalizedUrl);
+        });
     };
 
     const preloadButton = (button) => {
@@ -1499,6 +1527,32 @@ function useButtonPressSound() {
       return isDisabled ? null : button;
     };
 
+    const shouldSkipDuplicateMobileEvent = (button, eventType) => {
+      const now = performance.now();
+      const previous = lastButtonSoundRef.current;
+      const duplicate = previous.button === button && now - previous.time < 180;
+      lastButtonSoundRef.current = { time: now, button, type: eventType };
+      return duplicate;
+    };
+
+    const getPlayableAudio = (url) => {
+      const normalizedUrl = normalizeButtonSoundUrl(url || BUTTON_PRESS_FALLBACK_SOUND_URL);
+      if (!normalizedUrl) return null;
+
+      const pool = ensureAudioPool(normalizedUrl);
+      if (!pool) return null;
+
+      const reusableAudio = pool.find((audio) => audio.paused || audio.ended);
+      if (reusableAudio) return reusableAudio;
+
+      const extraAudio = makeAudio(normalizedUrl);
+      extraAudio.addEventListener('canplaythrough', () => rememberReady(normalizedUrl));
+      extraAudio.addEventListener('loadeddata', () => rememberReady(normalizedUrl));
+      extraAudio.addEventListener('error', () => rememberError(normalizedUrl));
+      pool.push(extraAudio);
+      return extraAudio;
+    };
+
     const playUrl = (url, allowFallback = true) => {
       const normalizedUrl = normalizeButtonSoundUrl(url || BUTTON_PRESS_FALLBACK_SOUND_URL);
       if (!normalizedUrl) return;
@@ -1512,38 +1566,47 @@ function useButtonPressSound() {
         return;
       }
 
-      let baseAudio = audioCache.get(normalizedUrl);
+      const audio = getPlayableAudio(normalizedUrl);
+      if (!audio) return;
 
-      if (!baseAudio) {
-        if (status === 'loading' && allowFallback && !isFallbackButtonSoundUrl(normalizedUrl)) {
-          playUrl(BUTTON_PRESS_FALLBACK_SOUND_URL, false);
-          return;
-        }
+      audio.volume = BUTTON_PRESS_SOUND_VOLUME;
+      audio.muted = false;
 
-        baseAudio = makeAudio(normalizedUrl);
-        audioCache.set(normalizedUrl, baseAudio);
-        preloadButtonSoundUrl(normalizedUrl);
+      try {
+        audio.pause();
+        audio.currentTime = 0;
+      } catch {
+        // Some mobile browsers reject currentTime before metadata exists. The sound can still play.
       }
 
-      const audio = baseAudio.cloneNode(true);
-      audio.volume = BUTTON_PRESS_SOUND_VOLUME;
-      audio.currentTime = 0;
-
       const playFallback = () => {
-        audioStatus.set(normalizedUrl, 'error');
+        rememberError(normalizedUrl);
         if (!allowFallback || isFallbackButtonSoundUrl(normalizedUrl)) return;
         playUrl(BUTTON_PRESS_FALLBACK_SOUND_URL, false);
       };
 
+      audio.removeEventListener('error', playFallback);
       audio.addEventListener('error', playFallback, { once: true });
 
       const playPromise = audio.play();
-      playPromise?.catch?.(playFallback);
+      playPromise
+        ?.then?.(() => rememberReady(normalizedUrl))
+        ?.catch?.(playFallback);
     };
 
-    const playButtonSound = (button) => {
+    const playButtonSound = (button, eventType) => {
       try {
+        if (shouldSkipDuplicateMobileEvent(button, eventType)) return;
+
         const soundUrl = getButtonSoundUrl(button);
+        const normalizedSoundUrl = normalizeButtonSoundUrl(soundUrl);
+        const customStatus = buttonAudioStatusRef.current.get(normalizedSoundUrl);
+
+        if (customStatus === 'error' && !isFallbackButtonSoundUrl(normalizedSoundUrl)) {
+          playUrl(BUTTON_PRESS_FALLBACK_SOUND_URL, false);
+          return;
+        }
+
         playUrl(soundUrl || BUTTON_PRESS_FALLBACK_SOUND_URL);
       } catch {
         // Audio support is optional decoration, not a blocker.
@@ -1554,14 +1617,27 @@ function useButtonPressSound() {
       if ('button' in event && event.button !== 0) return;
       const button = findPressedButton(event);
       if (!button) return;
-      playButtonSound(button);
+      playButtonSound(button, event.type);
+    };
+
+    const onTouchStart = (event) => {
+      const button = findPressedButton(event);
+      if (!button) return;
+      playButtonSound(button, event.type);
+    };
+
+    const onMouseDown = (event) => {
+      if (event.button !== 0) return;
+      const button = findPressedButton(event);
+      if (!button) return;
+      playButtonSound(button, event.type);
     };
 
     const onKeyDown = (event) => {
       if (event.key !== 'Enter' && event.key !== ' ') return;
       const button = findPressedButton(event);
       if (!button) return;
-      playButtonSound(button);
+      playButtonSound(button, event.type);
     };
 
     BUTTON_SOUND_PRELOAD_URLS.forEach(preloadButtonSoundUrl);
@@ -1571,6 +1647,8 @@ function useButtonPressSound() {
     preloadObserver.observe(document.body, { childList: true, subtree: true });
 
     document.addEventListener('pointerdown', onPointerDown, true);
+    document.addEventListener('touchstart', onTouchStart, { capture: true, passive: true });
+    document.addEventListener('mousedown', onMouseDown, true);
     document.addEventListener('keydown', onKeyDown, true);
 
     return () => {
@@ -1578,11 +1656,11 @@ function useButtonPressSound() {
       preloadAbortController.abort();
       preloadObserver.disconnect();
       document.removeEventListener('pointerdown', onPointerDown, true);
+      document.removeEventListener('touchstart', onTouchStart, true);
+      document.removeEventListener('mousedown', onMouseDown, true);
       document.removeEventListener('keydown', onKeyDown, true);
       audioCache.clear();
       audioStatus.clear();
-      audioObjectUrls.forEach((objectUrl) => URL.revokeObjectURL(objectUrl));
-      audioObjectUrls.clear();
     };
   }, []);
 }
