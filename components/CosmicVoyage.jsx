@@ -40,6 +40,40 @@ const TRANSLATE_LANGUAGE_OPTIONS = [
   { code: 'pt', name: 'Portuguese', nativeName: 'Português', short: 'PT', flag: '/images/flags/flag-portugal.png' },
 ];
 
+const CORE_BUTTON_SOUND_FILES = [
+  'SOUND.mp3',
+  'intro-logo.mp3',
+  'intro-translate-open.mp3',
+  'intro-translate-close.mp3',
+  'intro-enter.mp3',
+  'main-logo.mp3',
+  'main-translate-open.mp3',
+  'main-translate-close.mp3',
+  'mission-close.mp3',
+  'start-alien-cat-game.mp3',
+  'collection-dreamy.mp3',
+  'collection-emo.mp3',
+  'collection-nature.mp3',
+  'collection-cyber.mp3',
+  'social-tiktok.mp3',
+  'social-instagram.mp3',
+  'social-email.mp3',
+  'social-share.mp3',
+  'model-error-close.mp3',
+  'runner-close.mp3',
+  'runner-play-again.mp3',
+];
+
+const BUTTON_SOUND_PRELOAD_URLS = [
+  ...CORE_BUTTON_SOUND_FILES,
+  ...TRANSLATE_LANGUAGE_OPTIONS.flatMap((language) => [
+    `intro-language-${language.code}.mp3`,
+    `main-language-${language.code}.mp3`,
+  ]),
+]
+  .map(normalizeButtonSoundUrl)
+  .filter(Boolean);
+
 const DEFAULT_LANGUAGE_CODE = 'en';
 const SITE_TRANSLATIONS = {
   "sv": {
@@ -1389,15 +1423,66 @@ function isFallbackButtonSoundUrl(url) {
 
 function useButtonPressSound() {
   const buttonAudioCacheRef = useRef(new Map());
+  const buttonAudioStatusRef = useRef(new Map());
+  const buttonAudioObjectUrlsRef = useRef(new Set());
 
   useEffect(() => {
     if (typeof window === 'undefined' || typeof document === 'undefined') return undefined;
 
-    const makeAudio = (url) => {
-      const audio = new Audio(url);
+    const audioCache = buttonAudioCacheRef.current;
+    const audioStatus = buttonAudioStatusRef.current;
+    const audioObjectUrls = buttonAudioObjectUrlsRef.current;
+    const preloadAbortController = new AbortController();
+    let destroyed = false;
+
+    const makeAudio = (sourceUrl) => {
+      const audio = new Audio(sourceUrl);
       audio.preload = 'auto';
       audio.volume = BUTTON_PRESS_SOUND_VOLUME;
+      audio.load?.();
       return audio;
+    };
+
+    const preloadButtonSoundUrl = async (url) => {
+      const normalizedUrl = normalizeButtonSoundUrl(url);
+      if (!normalizedUrl || audioStatus.has(normalizedUrl)) return;
+
+      audioStatus.set(normalizedUrl, 'loading');
+
+      try {
+        const response = await fetch(normalizedUrl, {
+          cache: 'force-cache',
+          signal: preloadAbortController.signal,
+        });
+
+        if (!response.ok) {
+          throw new Error(`Could not preload ${normalizedUrl}`);
+        }
+
+        const blob = await response.blob();
+        if (destroyed) return;
+
+        const objectUrl = URL.createObjectURL(blob);
+        audioObjectUrls.add(objectUrl);
+        audioCache.set(normalizedUrl, makeAudio(objectUrl));
+        audioStatus.set(normalizedUrl, 'ready');
+      } catch {
+        if (!destroyed) {
+          audioStatus.set(normalizedUrl, 'error');
+        }
+      }
+    };
+
+    const preloadButton = (button) => {
+      try {
+        preloadButtonSoundUrl(getButtonSoundUrl(button));
+      } catch {
+        // Missing decorative audio must never block the page.
+      }
+    };
+
+    const preloadMountedButtons = () => {
+      document.querySelectorAll(BUTTON_PRESS_TARGET_SELECTOR).forEach(preloadButton);
     };
 
     const findPressedButton = (event) => {
@@ -1415,14 +1500,29 @@ function useButtonPressSound() {
     };
 
     const playUrl = (url, allowFallback = true) => {
-      if (!url) return;
+      const normalizedUrl = normalizeButtonSoundUrl(url || BUTTON_PRESS_FALLBACK_SOUND_URL);
+      if (!normalizedUrl) return;
 
-      const audioCache = buttonAudioCacheRef.current;
-      let baseAudio = audioCache.get(url);
+      const status = audioStatus.get(normalizedUrl);
+
+      if (status === 'error') {
+        if (allowFallback && !isFallbackButtonSoundUrl(normalizedUrl)) {
+          playUrl(BUTTON_PRESS_FALLBACK_SOUND_URL, false);
+        }
+        return;
+      }
+
+      let baseAudio = audioCache.get(normalizedUrl);
 
       if (!baseAudio) {
-        baseAudio = makeAudio(url);
-        audioCache.set(url, baseAudio);
+        if (status === 'loading' && allowFallback && !isFallbackButtonSoundUrl(normalizedUrl)) {
+          playUrl(BUTTON_PRESS_FALLBACK_SOUND_URL, false);
+          return;
+        }
+
+        baseAudio = makeAudio(normalizedUrl);
+        audioCache.set(normalizedUrl, baseAudio);
+        preloadButtonSoundUrl(normalizedUrl);
       }
 
       const audio = baseAudio.cloneNode(true);
@@ -1430,7 +1530,8 @@ function useButtonPressSound() {
       audio.currentTime = 0;
 
       const playFallback = () => {
-        if (!allowFallback || isFallbackButtonSoundUrl(url)) return;
+        audioStatus.set(normalizedUrl, 'error');
+        if (!allowFallback || isFallbackButtonSoundUrl(normalizedUrl)) return;
         playUrl(BUTTON_PRESS_FALLBACK_SOUND_URL, false);
       };
 
@@ -1463,13 +1564,25 @@ function useButtonPressSound() {
       playButtonSound(button);
     };
 
+    BUTTON_SOUND_PRELOAD_URLS.forEach(preloadButtonSoundUrl);
+    preloadMountedButtons();
+
+    const preloadObserver = new MutationObserver(preloadMountedButtons);
+    preloadObserver.observe(document.body, { childList: true, subtree: true });
+
     document.addEventListener('pointerdown', onPointerDown, true);
     document.addEventListener('keydown', onKeyDown, true);
 
     return () => {
+      destroyed = true;
+      preloadAbortController.abort();
+      preloadObserver.disconnect();
       document.removeEventListener('pointerdown', onPointerDown, true);
       document.removeEventListener('keydown', onKeyDown, true);
-      buttonAudioCacheRef.current.clear();
+      audioCache.clear();
+      audioStatus.clear();
+      audioObjectUrls.forEach((objectUrl) => URL.revokeObjectURL(objectUrl));
+      audioObjectUrls.clear();
     };
   }, []);
 }
