@@ -4,6 +4,41 @@ import { useEffect, useRef } from "react";
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 
+const SITE_SOUND_EVENT_NAME = "galaxy-cat:play-sound";
+const SITE_MUSIC_EVENT_NAME = "galaxy-cat:music";
+const RUNNER_JUMP_SOUND_URL = "/sounds/runner-jump.mp3";
+const RUNNER_GAME_OVER_SOUND_URL = "/sounds/runner-game-over.mp3";
+const RUNNER_GAME_MUSIC_URL = "/sounds/runner-game-music.mp3";
+const RUNNER_GAME_MUSIC_VOLUME = 0.38;
+
+function requestRunnerSound(sound, options = {}) {
+  if (typeof window === "undefined" || !sound) return;
+
+  window.dispatchEvent(
+    new CustomEvent(SITE_SOUND_EVENT_NAME, {
+      detail: {
+        sound,
+        allowFallback: options.allowFallback !== false,
+      },
+    }),
+  );
+}
+
+function requestRunnerMusic(action, options = {}) {
+  if (typeof window === "undefined") return;
+
+  window.dispatchEvent(
+    new CustomEvent(SITE_MUSIC_EVENT_NAME, {
+      detail: {
+        action,
+        sound: RUNNER_GAME_MUSIC_URL,
+        volume: options.volume ?? RUNNER_GAME_MUSIC_VOLUME,
+        reset: options.reset,
+      },
+    }),
+  );
+}
+
 export default function CosmicRunnerOverlay({
   open = false,
   onClose,
@@ -194,6 +229,15 @@ export default function CosmicRunnerOverlay({
     const playerBox = new THREE.Box3();
     const obstacleBox = new THREE.Box3();
 
+    function startGameMusic() {
+      if (dead || !running) return;
+      requestRunnerMusic("play");
+    }
+
+    function stopGameMusic(reset = false) {
+      requestRunnerMusic("stop", { reset });
+    }
+
     function text() {
       if (scoreRef.current) scoreRef.current.textContent = String(score);
       if (bestRef.current) bestRef.current.textContent = String(best);
@@ -215,10 +259,14 @@ export default function CosmicRunnerOverlay({
       obstacles.length = 0;
       spawnObstacle(4.8);
       text();
+      startGameMusic();
     }
 
     function endGame() {
+      if (!running) return;
       running = false;
+      stopGameMusic();
+      requestRunnerSound(RUNNER_GAME_OVER_SOUND_URL);
       overRef.current?.classList.add("show");
       if (score > best) {
         best = score;
@@ -233,6 +281,8 @@ export default function CosmicRunnerOverlay({
         return;
       }
       if (!grounded) return;
+      requestRunnerSound(RUNNER_JUMP_SOUND_URL);
+      startGameMusic();
       velocityY = 0.26;
       grounded = false;
     }
@@ -351,6 +401,7 @@ export default function CosmicRunnerOverlay({
       window.removeEventListener("resize", resize);
       window.removeEventListener("keydown", onKey);
       mount.removeEventListener("pointerdown", onPointer);
+      stopGameMusic(true);
       renderer.dispose();
       renderer.domElement.remove();
     };
