@@ -27,6 +27,15 @@ const BUTTON_PRESS_TARGET_SELECTOR = [
   'a.logoLink',
   'a.shoppingIntroLogoLink',
 ].join(', ');
+const SITE_SOUND_EVENT_NAME = 'galaxy-cat:play-sound';
+const SITE_MUSIC_EVENT_NAME = 'galaxy-cat:music';
+const FLOATING_RING_PRESS_SOUND_FILE = 'floating-ring-press.mp3';
+const CAT_TO_BOAT_LOADING_SOUND_FILE = 'cat-to-boat-loading.mp3';
+const RUNNER_JUMP_SOUND_FILE = 'runner-jump.mp3';
+const RUNNER_GAME_OVER_SOUND_FILE = 'runner-game-over.mp3';
+const RUNNER_GAME_MUSIC_FILE = 'runner-game-music.mp3';
+const RUNNER_GAME_MUSIC_VOLUME = 0.38;
+
 const TRANSLATE_LANGUAGE_OPTIONS = [
   { code: 'sv', name: 'Swedish', nativeName: 'Svenska', short: 'SV', flag: '/images/flags/flag-sweden.png' },
   { code: 'en', name: 'English', nativeName: 'English', short: 'EN', flag: '/images/flags/flag-united-kingdom.png' },
@@ -63,6 +72,11 @@ const CORE_BUTTON_SOUND_FILES = [
   'model-error-close.mp3',
   'runner-close.mp3',
   'runner-play-again.mp3',
+  FLOATING_RING_PRESS_SOUND_FILE,
+  CAT_TO_BOAT_LOADING_SOUND_FILE,
+  RUNNER_JUMP_SOUND_FILE,
+  RUNNER_GAME_OVER_SOUND_FILE,
+  RUNNER_GAME_MUSIC_FILE,
 ];
 
 const BUTTON_SOUND_PRELOAD_URLS = [
@@ -1455,10 +1469,39 @@ function isFallbackButtonSoundUrl(url) {
   return normalizeButtonSoundUrl(url) === BUTTON_PRESS_FALLBACK_SOUND_URL;
 }
 
+function requestSiteSound(sound, options = {}) {
+  if (typeof window === 'undefined' || !sound) return;
+
+  window.dispatchEvent(
+    new CustomEvent(SITE_SOUND_EVENT_NAME, {
+      detail: {
+        sound,
+        allowFallback: options.allowFallback !== false,
+      },
+    }),
+  );
+}
+
+function requestSiteMusic(action, sound = RUNNER_GAME_MUSIC_FILE, options = {}) {
+  if (typeof window === 'undefined') return;
+
+  window.dispatchEvent(
+    new CustomEvent(SITE_MUSIC_EVENT_NAME, {
+      detail: {
+        action,
+        sound,
+        volume: options.volume,
+        reset: options.reset,
+      },
+    }),
+  );
+}
+
 function useButtonPressSound() {
   const buttonAudioCacheRef = useRef(new Map());
   const buttonAudioStatusRef = useRef(new Map());
   const lastButtonSoundRef = useRef({ time: 0, button: null, type: '' });
+  const siteMusicRef = useRef(null);
 
   useEffect(() => {
     if (typeof window === 'undefined' || typeof document === 'undefined') return undefined;
@@ -1674,6 +1717,71 @@ function useButtonPressSound() {
       playButtonSound(button, event.type);
     };
 
+    const stopSiteMusic = (reset = false) => {
+      const music = siteMusicRef.current;
+      if (!music) return;
+
+      try {
+        music.pause();
+        if (reset) music.currentTime = 0;
+      } catch {
+        // Optional music must never block the page.
+      }
+    };
+
+    const playSiteMusic = (url, volume = RUNNER_GAME_MUSIC_VOLUME) => {
+      const normalizedUrl = normalizeButtonSoundUrl(url || RUNNER_GAME_MUSIC_FILE);
+      if (!normalizedUrl) return;
+
+      try {
+        const absoluteUrl = new URL(normalizedUrl, window.location.href).href;
+        let music = siteMusicRef.current;
+
+        if (!music || music.src !== absoluteUrl) {
+          stopSiteMusic(true);
+          music = new Audio(normalizedUrl);
+          music.preload = 'auto';
+          music.loop = true;
+          music.volume = volume;
+          music.load?.();
+          siteMusicRef.current = music;
+        }
+
+        music.loop = true;
+        music.volume = volume;
+        music.muted = false;
+        music.play?.().catch?.(() => {
+          // Mobile may wait for the next tap; later play requests retry.
+        });
+      } catch {
+        // Missing optional music must never block the page.
+      }
+    };
+
+    const onSiteSoundRequest = (event) => {
+      try {
+        const detail = event?.detail || {};
+        const soundUrl = detail.sound || detail.soundUrl || detail.url || BUTTON_PRESS_FALLBACK_SOUND_URL;
+        playUrl(soundUrl, detail.allowFallback !== false);
+      } catch {
+        // Event audio is optional decoration, not a blocker.
+      }
+    };
+
+    const onSiteMusicRequest = (event) => {
+      try {
+        const detail = event?.detail || {};
+        if (detail.action === 'stop' || detail.action === 'pause') {
+          stopSiteMusic(detail.reset !== false);
+          return;
+        }
+
+        playSiteMusic(detail.sound || detail.soundUrl || detail.url || RUNNER_GAME_MUSIC_FILE, detail.volume || RUNNER_GAME_MUSIC_VOLUME);
+      } catch {
+        // Optional music must never block the page.
+      }
+    };
+
     BUTTON_SOUND_PRELOAD_URLS.forEach(preloadButtonSoundUrl);
     preloadMountedButtons();
 
@@ -1684,6 +1792,8 @@ function useButtonPressSound() {
     document.addEventListener('touchstart', onTouchStart, { capture: true, passive: true });
     document.addEventListener('mousedown', onMouseDown, true);
     document.addEventListener('keydown', onKeyDown, true);
+    window.addEventListener(SITE_SOUND_EVENT_NAME, onSiteSoundRequest);
+    window.addEventListener(SITE_MUSIC_EVENT_NAME, onSiteMusicRequest);
 
     return () => {
       destroyed = true;
@@ -1693,6 +1803,11 @@ function useButtonPressSound() {
       document.removeEventListener('touchstart', onTouchStart, true);
       document.removeEventListener('mousedown', onMouseDown, true);
       document.removeEventListener('keydown', onKeyDown, true);
+      window.removeEventListener(SITE_SOUND_EVENT_NAME, onSiteSoundRequest);
+      window.removeEventListener(SITE_MUSIC_EVENT_NAME, onSiteMusicRequest);
+      stopSiteMusic(true);
+      if (siteMusicRef.current) siteMusicRef.current.src = '';
+      siteMusicRef.current = null;
       audioCache.clear();
       audioStatus.clear();
     };
@@ -3976,6 +4091,7 @@ scene.add(pinkWireframeGlobe);
       const ringIntersections = raycaster.intersectObject(floatRingGroup, true);
 
       if (ringIntersections.length > 0) {
+        requestSiteSound(FLOATING_RING_PRESS_SOUND_FILE);
         placeRingPopupFromPointer(clientX, clientY);
         setRingPopupOpen(true);
         document.body.style.cursor = '';
@@ -4102,6 +4218,7 @@ scene.add(pinkWireframeGlobe);
         );
 
         // Keep the cat visible throughout the loading sequence.
+        requestSiteSound(CAT_TO_BOAT_LOADING_SOUND_FILE);
         setLandedUI(true);
         setLoading(true);
         setLoadingPercent(0);
@@ -4698,7 +4815,10 @@ if (state.landed) {
       {runnerGameOpen && (
         <CosmicRunnerOverlay
           open={runnerGameOpen}
-          onClose={() => setRunnerGameOpen(false)}
+          onClose={() => {
+            requestSiteMusic('stop', RUNNER_GAME_MUSIC_FILE, { reset: true });
+            setRunnerGameOpen(false);
+          }}
           modelPath={CAT_MODEL_URL}
         />
       )}
@@ -4725,6 +4845,7 @@ if (state.landed) {
   onClick={(event) => {
     event.preventDefault();
     event.stopPropagation();
+    requestSiteMusic('play', RUNNER_GAME_MUSIC_FILE, { volume: RUNNER_GAME_MUSIC_VOLUME });
     setRunnerGameOpen(true);
   }}
   style={{
