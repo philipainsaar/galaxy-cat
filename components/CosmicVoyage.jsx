@@ -33,6 +33,7 @@ const TRANSLATE_LANGUAGE_OPTIONS = [
   { code: 'ja', name: 'Japanese', nativeName: '日本語', short: 'JA', flag: '/images/flags/flag-japan.png' },
   { code: 'ko', name: 'Korean', nativeName: '한국어', short: 'KO', flag: '/images/flags/flag-south-korea.png' },
   { code: 'zh', name: 'Chinese', nativeName: '中文', short: 'ZH', flag: '/images/flags/flag-china.png' },
+  { code: 'th', name: 'Thai', nativeName: 'ไทย', short: 'TH', flag: '/images/flags/flag-thailand.png' },
   { code: 'fr', name: 'French', nativeName: 'Français', short: 'FR', flag: '/images/flags/flag-france.png' },
   { code: 'de', name: 'German', nativeName: 'Deutsch', short: 'DE', flag: '/images/flags/flag-germany.png' },
   { code: 'es', name: 'Spanish', nativeName: 'Español', short: 'ES', flag: '/images/flags/flag-spain.png' },
@@ -239,6 +240,39 @@ const SITE_TRANSLATIONS = {
       "emo": "EMO",
       "nature": "自然",
       "cyber": "赛博"
+    }
+  },
+  "th": {
+    "languageNativeName": "ไทย",
+    "logoAlt": "Almost Made in Japan",
+    "translate": "แปล",
+    "translateTo": "แปลเป็น{language}",
+    "translateToLanguage": "แปลเป็น{language}",
+    "closeTranslatePopup": "ปิดหน้าต่างแปลภาษา",
+    "chooseTranslationLanguage": "เลือกภาษาที่จะแปล",
+    "chooseLanguage": "เลือกภาษา",
+    "loadingGlossyJewelry": "กำลังโหลดเครื่องประดับแวววาว...",
+    "couldNotLoadGlb": "ไม่สามารถโหลด GLB ได้",
+    "introLine1": "แมวเอเลี่ยนมาแล้ว",
+    "introLine2": "เพื่อพาคุณไปช้อปปิง",
+    "enterWebsite": "เข้าสู่เว็บไซต์",
+    "enterPortal": "คลิกที่นี่เพื่อเข้าสู่พอร์ทัล",
+    "entering": "กำลังเข้าสู่...",
+    "dragHint": "↑ วางแมวเอเลี่ยนบนเรือ ↑",
+    "loadingTicker": "กำลังเชื่อมต่อกับ CYBER-NETWORK...",
+    "loadingTitle": "กำลังโหลด...",
+    "collectionsTitle": "อยากลงจอดที่ดาวดวงไหนก่อน?",
+    "openCollection": "เปิด {title}",
+    "modelLoadError": "เกิดข้อผิดพลาดในการโหลดโมเดล",
+    "close": "ปิด",
+    "modelErrorBody1": "ไฟล์อาจมีอยู่แล้ว แต่การตั้งค่าโมเดลยังอาจล้มเหลวได้",
+    "modelErrorBody2": "เปิดคอนโซลของเบราว์เซอร์เพื่อดูข้อผิดพลาดที่แน่นอน",
+    "ringTerminalMessage": "• โมเดลลิง\n\n• แต่งหน้า\n\n• สไตลิง\n\n• ตัดต่อวิดีโอ\n\n• อาร์ตไดเรกเตอร์",
+    "collectionNames": {
+      "dreamy": "ดรีมมี",
+      "emo": "อีโม",
+      "nature": "เนเจอร์",
+      "cyber": "ไซเบอร์"
     }
   },
   "fr": {
