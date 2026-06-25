@@ -75,6 +75,7 @@ social-share.mp3
 model-error-close.mp3
 runner-close.mp3
 runner-play-again.mp3
+runner-save-score.mp3
 
 Current custom event filenames used by the site
 -----------------------------------------------
@@ -95,3 +96,11 @@ Event timing
 - runner-game-music.mp3 loops while the mini-game is playing and stops when the game-over window appears or the game closes.
 
 You do not need every file immediately. Missing button/event files fall back to SOUND.mp3. Missing runner-game-music.mp3 simply means no game music.
+
+
+Scoreboard sound
+----------------
+
+- runner-save-score.mp3 plays when the Save score button is pressed. If it is missing, SOUND.mp3 plays instead.
+
+runner-scoreboard.mp3 - trophy scoreboard button in the runner game
