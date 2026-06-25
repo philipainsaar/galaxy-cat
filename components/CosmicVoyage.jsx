@@ -72,6 +72,7 @@ const CORE_BUTTON_SOUND_FILES = [
   'model-error-close.mp3',
   'runner-close.mp3',
   'runner-play-again.mp3',
+  'runner-save-score.mp3',
   FLOATING_RING_PRESS_SOUND_FILE,
   CAT_TO_BOAT_LOADING_SOUND_FILE,
   RUNNER_JUMP_SOUND_FILE,
