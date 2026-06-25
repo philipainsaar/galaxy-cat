@@ -157,7 +157,7 @@ export default function CosmicRunnerOverlay({
     } catch {
       setLeaderboard(readLocalLeaderboard());
       setLeaderboardMode("local");
-      setLeaderboardMessage("Local scores on this device.");
+      setLeaderboardMessage("Local scores on this device. Add REDIS_URL on Vercel for everyone.");
     }
   }, []);
 
@@ -216,7 +216,7 @@ export default function CosmicRunnerOverlay({
       };
       setLeaderboard(saveLocalScore(localEntry));
       setLeaderboardMode("local");
-      setLeaderboardMessage("Score saved locally.");
+      setLeaderboardMessage("Score saved locally. Add REDIS_URL on Vercel to share it with everyone.");
       setScoreSubmitted(true);
       setScoreboardOpen(true);
     } finally {
@@ -641,6 +641,16 @@ export default function CosmicRunnerOverlay({
           </div>
 
           {scoreboardOpen && (
+            <button
+              type="button"
+              className="cosmicRunnerScoreboardBackdrop"
+              data-button-sound="/sounds/runner-close.mp3"
+              aria-label="Close scoreboard"
+              onClick={() => setScoreboardOpen(false)}
+            />
+          )}
+
+          {scoreboardOpen && (
             <aside className="cosmicRunnerGlass cosmicRunnerLeaderboard" aria-live="polite">
               <div className="cosmicRunnerLeaderboardTop">
                 <div>
@@ -777,12 +787,24 @@ export default function CosmicRunnerOverlay({
           font-size: 17px !important;
           line-height: 1;
         }
+        .cosmicRunnerScoreboardBackdrop {
+          position: fixed;
+          inset: 0;
+          z-index: 2;
+          border: 0;
+          padding: 0;
+          background: rgba(255, 240, 252, 0.26);
+          backdrop-filter: blur(16px) saturate(1.08);
+          -webkit-backdrop-filter: blur(16px) saturate(1.08);
+          cursor: pointer;
+          touch-action: manipulation;
+        }
         .cosmicRunnerLeaderboard {
           position: fixed;
           top: calc(max(14px, env(safe-area-inset-top)) + 62px);
           left: 50%;
           transform: translateX(-50%);
-          z-index: 3;
+          z-index: 4;
           width: min(94vw, 560px);
           max-height: min(62vh, 520px);
           padding: 13px 14px 14px;
