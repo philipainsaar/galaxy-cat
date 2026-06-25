@@ -468,7 +468,6 @@ export default function CosmicRunnerOverlay({
           } catch {
             playerNameInputRef.current.value = "";
           }
-          playerNameInputRef.current.focus({ preventScroll: true });
         }
       });
       refreshLeaderboard();
@@ -697,6 +696,7 @@ export default function CosmicRunnerOverlay({
                 type="text"
                 inputMode="text"
                 autoComplete="nickname"
+                autoFocus={false}
                 maxLength={MAX_PLAYER_NAME_LENGTH}
                 placeholder="Alien Cat"
                 aria-label="Name for scoreboard"
