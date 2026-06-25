@@ -157,7 +157,7 @@ export default function CosmicRunnerOverlay({
     } catch {
       setLeaderboard(readLocalLeaderboard());
       setLeaderboardMode("local");
-      setLeaderboardMessage("Local scores on this device. Add REDIS_URL on Vercel for everyone.");
+      setLeaderboardMessage("Local scores on this device.");
     }
   }, []);
 
@@ -216,7 +216,7 @@ export default function CosmicRunnerOverlay({
       };
       setLeaderboard(saveLocalScore(localEntry));
       setLeaderboardMode("local");
-      setLeaderboardMessage("Score saved locally. Add REDIS_URL on Vercel to share it with everyone.");
+      setLeaderboardMessage("Score saved locally.");
       setScoreSubmitted(true);
       setScoreboardOpen(true);
     } finally {
