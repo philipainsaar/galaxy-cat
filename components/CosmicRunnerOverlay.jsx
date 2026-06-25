@@ -101,6 +101,103 @@ function requestRunnerSound(sound, options = {}) {
   );
 }
 
+
+function createMovingRainbowTexture() {
+  const canvas = document.createElement("canvas");
+  canvas.width = 768;
+  canvas.height = 384;
+
+  const ctx = canvas.getContext("2d", { alpha: true });
+  const palette = [
+    "rgba(255, 182, 223, 0.94)",
+    "rgba(164, 246, 204, 0.88)",
+    "rgba(183, 166, 255, 0.9)",
+    "rgba(146, 221, 255, 0.84)",
+  ];
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.minFilter = THREE.LinearFilter;
+  texture.magFilter = THREE.LinearFilter;
+  texture.generateMipmaps = false;
+
+  function drawRibbonLine(centerOffset, time, lineWidth, color, alpha = 1, glow = 0) {
+    const width = canvas.width;
+    const height = canvas.height;
+    const diagonalLift = 0.58;
+    const samples = 96;
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    ctx.strokeStyle = color.replace(/0\.[0-9]+\)/, `${Math.max(0.06, Math.min(0.98, alpha)).toFixed(2)})`);
+    ctx.lineWidth = lineWidth;
+    ctx.shadowColor = color;
+    ctx.shadowBlur = glow;
+
+    for (let step = 0; step <= samples; step += 1) {
+      const t = step / samples;
+      const x = t * width;
+      const spine = height * 0.9 - t * height * diagonalLift;
+      const waveA = Math.sin(t * 7.4 + time * 1.05 + centerOffset * 0.018) * 22;
+      const waveB = Math.sin(t * 20.0 - time * 1.6 + centerOffset * 0.05) * 8;
+      const waveC = Math.sin(t * 43.0 + time * 2.2 + centerOffset * 0.1) * 3;
+      const drift = centerOffset * (0.82 + Math.sin(t * 6.5 + time * 0.7) * 0.06);
+      const y = spine + drift + waveA + waveB + waveC;
+
+      if (step === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function update(time = 0) {
+    const width = canvas.width;
+    const height = canvas.height;
+    ctx.clearRect(0, 0, width, height);
+
+    // faint airy wisps around the ribbon
+    for (let wisp = 0; wisp < 5; wisp += 1) {
+      const offset = -74 + wisp * 37;
+      drawRibbonLine(offset - 120, time * 0.9, 3.5, "rgba(163, 213, 255, 0.12)", 0.12, 14);
+      drawRibbonLine(offset + 118, time * 1.07, 3, "rgba(228, 167, 255, 0.1)", 0.1, 12);
+    }
+
+    // blurred base body
+    for (let index = 0; index < 22; index += 1) {
+      const lineT = index / 21;
+      const centerOffset = (lineT - 0.5) * 156;
+      const color = palette[index % palette.length];
+      const weight = 12.5 - Math.abs(lineT - 0.5) * 7.4;
+      drawRibbonLine(centerOffset, time, weight, color, 0.28, 16);
+    }
+
+    // crisp glowing contour lines on top
+    for (let index = 0; index < 32; index += 1) {
+      const lineT = index / 31;
+      const centerOffset = (lineT - 0.5) * 170;
+      const color = palette[index % palette.length];
+      const weight = 8.5 - Math.abs(lineT - 0.5) * 5.7;
+      drawRibbonLine(centerOffset, time, weight, color, 0.92, 8);
+    }
+
+    texture.needsUpdate = true;
+  }
+
+  update(0);
+
+  return {
+    texture,
+    update,
+    dispose() {
+      texture.dispose();
+    },
+  };
+}
+
 function requestRunnerMusic(action, options = {}) {
   if (typeof window === "undefined") return;
 
@@ -154,7 +251,7 @@ export default function CosmicRunnerOverlay({
     } catch {
       setLeaderboard(readLocalLeaderboard());
       setLeaderboardMode("local");
-      setLeaderboardMessage("Local scores on this device. Add Redis env vars on Vercel for everyone.");
+      setLeaderboardMessage("Local scores on this device. Add REDIS_URL on Vercel for everyone.");
     }
   }, []);
 
@@ -212,7 +309,7 @@ export default function CosmicRunnerOverlay({
       };
       setLeaderboard(saveLocalScore(localEntry));
       setLeaderboardMode("local");
-      setLeaderboardMessage("Score saved locally. Add Redis env vars on Vercel to share it with everyone.");
+      setLeaderboardMessage("Score saved locally. Add REDIS_URL on Vercel to share it with everyone.");
       setScoreSubmitted(true);
     } finally {
       setSubmittingScore(false);
@@ -252,6 +349,35 @@ export default function CosmicRunnerOverlay({
       white: "#ffffff",
       ink: "#4b2864",
     };
+
+    const backPlate = new THREE.Mesh(
+      new THREE.PlaneGeometry(28, 18),
+      new THREE.MeshBasicMaterial({ color: 0x04020a, depthWrite: false })
+    );
+    backPlate.position.set(1.1, 2.35, -11.8);
+    scene.add(backPlate);
+
+    const rainbowController = createMovingRainbowTexture();
+    const rainbowMaterial = new THREE.MeshBasicMaterial({
+      map: rainbowController.texture,
+      transparent: true,
+      opacity: 0.98,
+      depthWrite: false,
+    });
+    const rainbowPlane = new THREE.Mesh(new THREE.PlaneGeometry(18.2, 9.6), rainbowMaterial);
+    rainbowPlane.position.set(1.2, 2.35, -11.2);
+    scene.add(rainbowPlane);
+
+    const rainbowGlowMaterial = new THREE.MeshBasicMaterial({
+      map: rainbowController.texture,
+      transparent: true,
+      opacity: 0.34,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+    });
+    const rainbowGlowPlane = new THREE.Mesh(new THREE.PlaneGeometry(19.3, 10.4), rainbowGlowMaterial);
+    rainbowGlowPlane.position.set(1.2, 2.34, -11.35);
+    scene.add(rainbowGlowPlane);
 
     const runnerX = -1.15;
     const runner = new THREE.Group();
@@ -503,6 +629,17 @@ export default function CosmicRunnerOverlay({
 
       if (mixer) mixer.update(mixerClock.getDelta());
 
+      if (!animate.lastRainbowUpdate || now - animate.lastRainbowUpdate > 33) {
+        rainbowController.update(now * 0.001);
+        animate.lastRainbowUpdate = now;
+      }
+      rainbowPlane.position.x = 1.2 + Math.sin(now * 0.00023) * 0.12;
+      rainbowPlane.position.y = 2.35 + Math.sin(now * 0.00031) * 0.08;
+      rainbowPlane.rotation.z = Math.sin(now * 0.00014) * 0.02;
+      rainbowGlowPlane.position.x = 1.2 + Math.sin(now * 0.0002) * 0.16;
+      rainbowGlowPlane.position.y = 2.35 + Math.sin(now * 0.00027 + 1.2) * 0.11;
+      rainbowGlowPlane.rotation.z = Math.sin(now * 0.00011 + 0.7) * 0.028;
+
       for (const sparkle of sparkles) {
         sparkle.position.x -= sparkle.userData.speed * delta;
         sparkle.rotation.x += 2 * delta;
@@ -591,6 +728,13 @@ export default function CosmicRunnerOverlay({
       window.removeEventListener("keydown", onKey);
       mount.removeEventListener("pointerdown", onPointer);
       stopGameMusic(true);
+      rainbowController.dispose();
+      rainbowMaterial.dispose();
+      rainbowGlowMaterial.dispose();
+      backPlate.geometry.dispose();
+      backPlate.material.dispose();
+      rainbowPlane.geometry.dispose();
+      rainbowGlowPlane.geometry.dispose();
       renderer.dispose();
       renderer.domElement.remove();
     };
