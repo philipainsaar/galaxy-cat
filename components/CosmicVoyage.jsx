@@ -4975,7 +4975,7 @@ if (state.landed) {
 
   <a
     className="ringSocialButton ringSocialButtonEmail"
-    href="mailto:almostmadeinjapan@gmail.com?subject=Almost Made in Japan&body=https://www.almostmadeinjapan.com/"
+    href="mailto:hello@almostmadeinjapan.com?subject=Almost Made in Japan&body=https://www.almostmadeinjapan.com/"
     data-button-sound="/sounds/social-email.mp3"
     aria-label="Email"
   >
