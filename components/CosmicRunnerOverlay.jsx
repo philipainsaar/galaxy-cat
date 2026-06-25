@@ -102,50 +102,44 @@ function requestRunnerSound(sound, options = {}) {
 }
 
 
-function createMovingRainbowTexture() {
+
+
+function createFastRainbowTexture() {
   const canvas = document.createElement("canvas");
-  canvas.width = 768;
-  canvas.height = 384;
+  canvas.width = 512;
+  canvas.height = 256;
 
   const ctx = canvas.getContext("2d", { alpha: true });
-  const palette = [
-    "rgba(255, 182, 223, 0.94)",
-    "rgba(164, 246, 204, 0.88)",
-    "rgba(183, 166, 255, 0.9)",
-    "rgba(146, 221, 255, 0.84)",
-  ];
-
   const texture = new THREE.CanvasTexture(canvas);
   texture.colorSpace = THREE.SRGBColorSpace;
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.RepeatWrapping;
   texture.minFilter = THREE.LinearFilter;
   texture.magFilter = THREE.LinearFilter;
   texture.generateMipmaps = false;
 
-  function drawRibbonLine(centerOffset, time, lineWidth, color, alpha = 1, glow = 0) {
-    const width = canvas.width;
-    const height = canvas.height;
-    const diagonalLift = 0.58;
-    const samples = 96;
+  const palette = [
+    "rgba(255, 183, 220, 0.78)",
+    "rgba(171, 247, 204, 0.72)",
+    "rgba(184, 167, 255, 0.76)",
+    "rgba(145, 222, 255, 0.7)",
+  ];
 
+  function drawRibbonLine(baseOffset, color, width, glow) {
+    const samples = 40;
     ctx.save();
     ctx.beginPath();
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
-    ctx.strokeStyle = color.replace(/0\.[0-9]+\)/, `${Math.max(0.06, Math.min(0.98, alpha)).toFixed(2)})`);
-    ctx.lineWidth = lineWidth;
+    ctx.strokeStyle = color;
+    ctx.lineWidth = width;
     ctx.shadowColor = color;
     ctx.shadowBlur = glow;
 
     for (let step = 0; step <= samples; step += 1) {
       const t = step / samples;
-      const x = t * width;
-      const spine = height * 0.9 - t * height * diagonalLift;
-      const waveA = Math.sin(t * 7.4 + time * 1.05 + centerOffset * 0.018) * 22;
-      const waveB = Math.sin(t * 20.0 - time * 1.6 + centerOffset * 0.05) * 8;
-      const waveC = Math.sin(t * 43.0 + time * 2.2 + centerOffset * 0.1) * 3;
-      const drift = centerOffset * (0.82 + Math.sin(t * 6.5 + time * 0.7) * 0.06);
-      const y = spine + drift + waveA + waveB + waveC;
-
+      const x = t * canvas.width;
+      const y = canvas.height * 0.86 - t * canvas.height * 0.56 + baseOffset + Math.sin(t * 9.2 + baseOffset * 0.045) * 15;
       if (step === 0) ctx.moveTo(x, y);
       else ctx.lineTo(x, y);
     }
@@ -154,48 +148,24 @@ function createMovingRainbowTexture() {
     ctx.restore();
   }
 
-  function update(time = 0) {
-    const width = canvas.width;
-    const height = canvas.height;
-    ctx.clearRect(0, 0, width, height);
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // faint airy wisps around the ribbon
-    for (let wisp = 0; wisp < 5; wisp += 1) {
-      const offset = -74 + wisp * 37;
-      drawRibbonLine(offset - 120, time * 0.9, 3.5, "rgba(163, 213, 255, 0.12)", 0.12, 14);
-      drawRibbonLine(offset + 118, time * 1.07, 3, "rgba(228, 167, 255, 0.1)", 0.1, 12);
-    }
-
-    // blurred base body
-    for (let index = 0; index < 22; index += 1) {
-      const lineT = index / 21;
-      const centerOffset = (lineT - 0.5) * 156;
+  // Draw the ribbon three times so texture-offset movement loops smoothly.
+  for (let repeat = -1; repeat <= 1; repeat += 1) {
+    const repeatedLift = repeat * canvas.height * 0.72;
+    for (let index = 0; index < 18; index += 1) {
+      const offset = -76 + index * 9.2 + repeatedLift;
       const color = palette[index % palette.length];
-      const weight = 12.5 - Math.abs(lineT - 0.5) * 7.4;
-      drawRibbonLine(centerOffset, time, weight, color, 0.28, 16);
+      drawRibbonLine(offset, color, 9.5, 10);
     }
-
-    // crisp glowing contour lines on top
-    for (let index = 0; index < 32; index += 1) {
-      const lineT = index / 31;
-      const centerOffset = (lineT - 0.5) * 170;
-      const color = palette[index % palette.length];
-      const weight = 8.5 - Math.abs(lineT - 0.5) * 5.7;
-      drawRibbonLine(centerOffset, time, weight, color, 0.92, 8);
+    for (let index = 0; index < 10; index += 1) {
+      const offset = -62 + index * 16 + repeatedLift;
+      drawRibbonLine(offset, "rgba(255, 255, 255, 0.22)", 2.2, 6);
     }
-
-    texture.needsUpdate = true;
   }
 
-  update(0);
-
-  return {
-    texture,
-    update,
-    dispose() {
-      texture.dispose();
-    },
-  };
+  texture.needsUpdate = true;
+  return texture;
 }
 
 function requestRunnerMusic(action, options = {}) {
@@ -350,33 +320,30 @@ export default function CosmicRunnerOverlay({
       ink: "#4b2864",
     };
 
-    const backPlate = new THREE.Mesh(
-      new THREE.PlaneGeometry(28, 18),
-      new THREE.MeshBasicMaterial({ color: 0x04020a, depthWrite: false })
-    );
-    backPlate.position.set(1.1, 2.35, -11.8);
-    scene.add(backPlate);
-
-    const rainbowController = createMovingRainbowTexture();
+    const rainbowTexture = createFastRainbowTexture();
     const rainbowMaterial = new THREE.MeshBasicMaterial({
-      map: rainbowController.texture,
+      map: rainbowTexture,
       transparent: true,
-      opacity: 0.98,
+      opacity: 0.72,
       depthWrite: false,
+      depthTest: false,
     });
-    const rainbowPlane = new THREE.Mesh(new THREE.PlaneGeometry(18.2, 9.6), rainbowMaterial);
-    rainbowPlane.position.set(1.2, 2.35, -11.2);
+    const rainbowPlane = new THREE.Mesh(new THREE.PlaneGeometry(13.6, 6.8), rainbowMaterial);
+    rainbowPlane.position.set(1.15, 2.55, -9.8);
+    rainbowPlane.renderOrder = -20;
     scene.add(rainbowPlane);
 
     const rainbowGlowMaterial = new THREE.MeshBasicMaterial({
-      map: rainbowController.texture,
+      map: rainbowTexture,
       transparent: true,
-      opacity: 0.34,
+      opacity: 0.22,
       depthWrite: false,
+      depthTest: false,
       blending: THREE.AdditiveBlending,
     });
-    const rainbowGlowPlane = new THREE.Mesh(new THREE.PlaneGeometry(19.3, 10.4), rainbowGlowMaterial);
-    rainbowGlowPlane.position.set(1.2, 2.34, -11.35);
+    const rainbowGlowPlane = new THREE.Mesh(new THREE.PlaneGeometry(15.2, 7.6), rainbowGlowMaterial);
+    rainbowGlowPlane.position.set(1.15, 2.55, -9.9);
+    rainbowGlowPlane.renderOrder = -21;
     scene.add(rainbowGlowPlane);
 
     const runnerX = -1.15;
@@ -629,16 +596,14 @@ export default function CosmicRunnerOverlay({
 
       if (mixer) mixer.update(mixerClock.getDelta());
 
-      if (!animate.lastRainbowUpdate || now - animate.lastRainbowUpdate > 33) {
-        rainbowController.update(now * 0.001);
-        animate.lastRainbowUpdate = now;
-      }
-      rainbowPlane.position.x = 1.2 + Math.sin(now * 0.00023) * 0.12;
-      rainbowPlane.position.y = 2.35 + Math.sin(now * 0.00031) * 0.08;
-      rainbowPlane.rotation.z = Math.sin(now * 0.00014) * 0.02;
-      rainbowGlowPlane.position.x = 1.2 + Math.sin(now * 0.0002) * 0.16;
-      rainbowGlowPlane.position.y = 2.35 + Math.sin(now * 0.00027 + 1.2) * 0.11;
-      rainbowGlowPlane.rotation.z = Math.sin(now * 0.00011 + 0.7) * 0.028;
+      const rainbowTime = now * 0.001;
+      rainbowTexture.offset.x = (rainbowTime * 0.012) % 1;
+      rainbowTexture.offset.y = (rainbowTime * 0.02) % 1;
+      rainbowPlane.position.x = 1.15 + Math.sin(rainbowTime * 0.38) * 0.08;
+      rainbowPlane.position.y = 2.55 + Math.sin(rainbowTime * 0.31) * 0.05;
+      rainbowGlowPlane.position.x = 1.15 + Math.sin(rainbowTime * 0.27 + 1.4) * 0.11;
+      rainbowGlowPlane.position.y = 2.55 + Math.sin(rainbowTime * 0.24 + 0.8) * 0.07;
+      rainbowMaterial.opacity = 0.66 + Math.sin(rainbowTime * 0.6) * 0.06;
 
       for (const sparkle of sparkles) {
         sparkle.position.x -= sparkle.userData.speed * delta;
@@ -728,11 +693,9 @@ export default function CosmicRunnerOverlay({
       window.removeEventListener("keydown", onKey);
       mount.removeEventListener("pointerdown", onPointer);
       stopGameMusic(true);
-      rainbowController.dispose();
+      rainbowTexture.dispose();
       rainbowMaterial.dispose();
       rainbowGlowMaterial.dispose();
-      backPlate.geometry.dispose();
-      backPlate.material.dispose();
       rainbowPlane.geometry.dispose();
       rainbowGlowPlane.geometry.dispose();
       renderer.dispose();
