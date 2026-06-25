@@ -790,7 +790,7 @@ export default function CosmicRunnerOverlay({
 .cosmicRunnerScoreboardBackdrop {
   position: fixed;
   inset: 0;
-  z-index: 2;
+  z-index: 50;
   border: 0;
   padding: 0;
   background: rgba(255, 248, 255, 0.86);
@@ -802,7 +802,7 @@ export default function CosmicRunnerOverlay({
           top: calc(max(14px, env(safe-area-inset-top)) + 62px);
           left: 50%;
           transform: translateX(-50%);
-          z-index: 4;
+          z-index: 51;
           width: min(94vw, 560px);
           max-height: min(62vh, 520px);
           padding: 13px 14px 14px;
