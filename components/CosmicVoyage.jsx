@@ -558,28 +558,28 @@ const MISSION_LINK_IMAGES = [
         title: 'DREAMY',
         titleKey: 'dreamy',
             image: '/images/covers/dreamy.jpg',
-                url: 'https://www.almostmadeinjapan.com/collections/dreamy',
+                url: 'https://shop.almostmadeinjapan.com/collections/dreamy',
                 sound: '/sounds/collection-dreamy.mp3',
                   },
                     {
                         title: 'EMO',
                             titleKey: 'emo',
                             image: '/images/covers/emo.jpg',
-                                url: 'https://www.almostmadeinjapan.com/collections/emo',
+                                url: 'https://shop.almostmadeinjapan.com/collections/emo',
                                 sound: '/sounds/collection-emo.mp3',
                                   },
                                    {
                                        title: 'NATURE',
                                            titleKey: 'nature',
                                            image: '/images/covers/nature.jpg',
-                                               url: 'https://www.almostmadeinjapan.com/collections/frontpage',
+                                               url: 'https://shop.almostmadeinjapan.com/collections/frontpage',
                                                sound: '/sounds/collection-nature.mp3',
                                                  },
                                                   {
                                                       title: 'CYBER',
                                                       titleKey: 'cyber',
                                                           image: '/images/covers/cyber.jpg',
-                                                              url: 'https://www.almostmadeinjapan.com/collections/cyber',
+                                                              url: 'https://shop.almostmadeinjapan.com/collections/cyber',
                                                               sound: '/sounds/collection-cyber.mp3',
                                                                 },
                                                                 ];
@@ -2818,7 +2818,7 @@ side: source.side ?? THREE.FrontSide,
 
       <div className="shoppingIntroPreviewText">
   <a
-    href="https://www.almostmadeinjapan.com/home"
+    href="https://shop.almostmadeinjapan.com/home"
     className="shoppingIntroLogoLink"
     aria-label={languageCopy.logoAlt}
     data-button-sound="/sounds/intro-logo.mp3"
@@ -4663,7 +4663,7 @@ if (state.landed) {
 
         <div className="logoContainer">
   <a
-    href="https://www.almostmadeinjapan.com/home"
+    href="https://shop.almostmadeinjapan.com/home"
     className="logoLink"
     aria-label={copy.logoAlt}
     data-button-sound="/sounds/main-logo.mp3"
