@@ -6,8 +6,8 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 const LEADERBOARD_KEY = "galaxy-cat:runner:leaderboard:v1";
-const MAX_PUBLIC_SCORES = 100;
-const MAX_STORED_SCORES = 100;
+const MAX_PUBLIC_SCORES = 10000;
+const MAX_STORED_SCORES = 10000;
 const MAX_PLAYER_NAME_LENGTH = 18;
 const MAX_SCORE = 999999;
 const REDIS_COMMAND_TIMEOUT_MS = 8000;
