@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 
@@ -10,6 +10,83 @@ const RUNNER_JUMP_SOUND_URL = "/sounds/runner-jump.mp3";
 const RUNNER_GAME_OVER_SOUND_URL = "/sounds/runner-game-over.mp3";
 const RUNNER_GAME_MUSIC_URL = "/sounds/runner-game-music.mp3";
 const RUNNER_GAME_MUSIC_VOLUME = 0.38;
+
+const LEADERBOARD_API_URL = "/api/leaderboard";
+const LOCAL_LEADERBOARD_KEY = "cosmicRunnerLeaderboardLocal";
+const PLAYER_NAME_KEY = "cosmicRunnerPlayerName";
+const DEVICE_ID_KEY = "cosmicRunnerDeviceId";
+const LEADERBOARD_LIMIT = 10;
+const MAX_PLAYER_NAME_LENGTH = 18;
+
+function getDeviceId() {
+  if (typeof window === "undefined") return "server";
+
+  try {
+    let deviceId = window.localStorage.getItem(DEVICE_ID_KEY);
+    if (!deviceId) {
+      const randomPart =
+        typeof crypto !== "undefined" && crypto.randomUUID
+          ? crypto.randomUUID()
+          : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      deviceId = `device-${randomPart}`;
+      window.localStorage.setItem(DEVICE_ID_KEY, deviceId);
+    }
+    return deviceId;
+  } catch {
+    return `device-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  }
+}
+
+function cleanPlayerName(name) {
+  const cleaned = String(name || "")
+    .replace(/[<>]/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, MAX_PLAYER_NAME_LENGTH);
+
+  return cleaned || "Alien Cat";
+}
+
+function normalizeLeaderboardEntries(entries) {
+  if (!Array.isArray(entries)) return [];
+
+  return entries
+    .map((entry, index) => ({
+      id: String(entry?.id || `score-${index}`),
+      name: cleanPlayerName(entry?.name),
+      score: Math.max(0, Math.floor(Number(entry?.score) || 0)),
+      createdAt: entry?.createdAt ? String(entry.createdAt) : new Date().toISOString(),
+    }))
+    .filter((entry) => entry.score >= 0)
+    .sort((a, b) => b.score - a.score || new Date(a.createdAt) - new Date(b.createdAt))
+    .slice(0, LEADERBOARD_LIMIT);
+}
+
+function readLocalLeaderboard() {
+  if (typeof window === "undefined") return [];
+
+  try {
+    return normalizeLeaderboardEntries(JSON.parse(window.localStorage.getItem(LOCAL_LEADERBOARD_KEY) || "[]"));
+  } catch {
+    return [];
+  }
+}
+
+function saveLocalLeaderboard(entries) {
+  if (typeof window === "undefined") return entries;
+
+  const normalized = normalizeLeaderboardEntries(entries);
+  try {
+    window.localStorage.setItem(LOCAL_LEADERBOARD_KEY, JSON.stringify(normalized));
+  } catch {
+    // Local storage can fail in private browsing. The game should keep running anyway.
+  }
+  return normalized;
+}
+
+function saveLocalScore(entry) {
+  return saveLocalLeaderboard([entry, ...readLocalLeaderboard()]);
+}
 
 function requestRunnerSound(sound, options = {}) {
   if (typeof window === "undefined" || !sound) return;
@@ -49,6 +126,98 @@ export default function CosmicRunnerOverlay({
   const bestRef = useRef(null);
   const statusRef = useRef(null);
   const overRef = useRef(null);
+  const playerNameInputRef = useRef(null);
+  const lastScoreRef = useRef(0);
+  const [leaderboard, setLeaderboard] = useState([]);
+  const [leaderboardMode, setLeaderboardMode] = useState("loading");
+  const [leaderboardMessage, setLeaderboardMessage] = useState("Loading global scoreboard...");
+  const [lastScore, setLastScore] = useState(0);
+  const [scoreSubmitted, setScoreSubmitted] = useState(false);
+  const [submittingScore, setSubmittingScore] = useState(false);
+
+  const refreshLeaderboard = useCallback(async () => {
+    if (typeof window === "undefined") return;
+
+    try {
+      const response = await fetch(`${LEADERBOARD_API_URL}?limit=${LEADERBOARD_LIMIT}`, {
+        method: "GET",
+        cache: "no-store",
+      });
+
+      if (!response.ok) throw new Error("Global scoreboard is not configured yet.");
+
+      const data = await response.json();
+      const entries = normalizeLeaderboardEntries(data?.scores);
+      setLeaderboard(entries);
+      setLeaderboardMode(data?.mode === "global" ? "global" : "local");
+      setLeaderboardMessage(data?.mode === "global" ? "Global scoreboard" : "Local scores on this device");
+    } catch {
+      setLeaderboard(readLocalLeaderboard());
+      setLeaderboardMode("local");
+      setLeaderboardMessage("Local scores on this device. Add Redis env vars on Vercel for everyone.");
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!open) return;
+    refreshLeaderboard();
+  }, [open, refreshLeaderboard]);
+
+  const submitScore = useCallback(async (event) => {
+    event?.preventDefault?.();
+    if (submittingScore || scoreSubmitted) return;
+
+    const scoreToSave = Math.max(0, Math.floor(Number(lastScoreRef.current || lastScore) || 0));
+    if (scoreToSave <= 0) {
+      setLeaderboardMessage("Score needs to be above 0 before saving.");
+      return;
+    }
+
+    const name = cleanPlayerName(playerNameInputRef.current?.value || "Alien Cat");
+    try {
+      window.localStorage.setItem(PLAYER_NAME_KEY, name);
+    } catch {
+      // Ignore storage errors. The name still submits for this request.
+    }
+
+    const entry = {
+      name,
+      score: scoreToSave,
+      deviceId: getDeviceId(),
+    };
+
+    setSubmittingScore(true);
+    setLeaderboardMessage("Saving score...");
+
+    try {
+      const response = await fetch(LEADERBOARD_API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(entry),
+      });
+
+      if (!response.ok) throw new Error("Global scoreboard is not configured yet.");
+
+      const data = await response.json();
+      const entries = normalizeLeaderboardEntries(data?.scores);
+      setLeaderboard(entries);
+      setLeaderboardMode(data?.mode === "global" ? "global" : "local");
+      setLeaderboardMessage(data?.mode === "global" ? "Score saved for everyone." : "Score saved on this device.");
+      setScoreSubmitted(true);
+    } catch {
+      const localEntry = {
+        ...entry,
+        id: `local-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+        createdAt: new Date().toISOString(),
+      };
+      setLeaderboard(saveLocalScore(localEntry));
+      setLeaderboardMode("local");
+      setLeaderboardMessage("Score saved locally. Add Redis env vars on Vercel to share it with everyone.");
+      setScoreSubmitted(true);
+    } finally {
+      setSubmittingScore(false);
+    }
+  }, [lastScore, refreshLeaderboard, scoreSubmitted, submittingScore]);
 
   useEffect(() => {
     if (!open || !mountRef.current) return;
@@ -254,6 +423,9 @@ export default function CosmicRunnerOverlay({
       runner.position.set(runnerX, 0, 0);
       runner.rotation.set(0, 0, 0);
       runner.scale.set(1, 1, 1);
+      lastScoreRef.current = 0;
+      setLastScore(0);
+      setScoreSubmitted(false);
       overRef.current?.classList.remove("show");
       for (const obstacle of obstacles) obstacleGroup.remove(obstacle);
       obstacles.length = 0;
@@ -267,7 +439,21 @@ export default function CosmicRunnerOverlay({
       running = false;
       stopGameMusic();
       requestRunnerSound(RUNNER_GAME_OVER_SOUND_URL);
+      lastScoreRef.current = score;
+      setLastScore(score);
+      setScoreSubmitted(false);
       overRef.current?.classList.add("show");
+      requestAnimationFrame(() => {
+        if (playerNameInputRef.current) {
+          try {
+            playerNameInputRef.current.value = window.localStorage.getItem(PLAYER_NAME_KEY) || "";
+          } catch {
+            playerNameInputRef.current.value = "";
+          }
+          playerNameInputRef.current.focus({ preventScroll: true });
+        }
+      });
+      refreshLeaderboard();
       if (score > best) {
         best = score;
         localStorage.setItem("cosmicRunnerBest", String(best));
@@ -376,6 +562,9 @@ export default function CosmicRunnerOverlay({
     }
 
     function onKey(event) {
+      const target = event.target;
+      if (target?.closest?.("input, textarea, select, button, a")) return;
+
       if (event.code === "Space" || event.code === "ArrowUp") {
         event.preventDefault();
         jump();
@@ -383,7 +572,7 @@ export default function CosmicRunnerOverlay({
     }
 
     function onPointer(event) {
-      if (event.target.closest("button")) return;
+      if (event.target.closest("button, input, textarea, select, a, form")) return;
       jump();
     }
 
@@ -405,7 +594,7 @@ export default function CosmicRunnerOverlay({
       renderer.dispose();
       renderer.domElement.remove();
     };
-  }, [open, modelPath]);
+  }, [open, modelPath, refreshLeaderboard]);
 
   return (
     <>
@@ -422,12 +611,54 @@ export default function CosmicRunnerOverlay({
             <button type="button" data-button-sound="/sounds/runner-close.mp3" onClick={() => onClose?.()}>×</button>
           </div>
 
-  
+          <aside className="cosmicRunnerGlass cosmicRunnerLeaderboard" aria-live="polite">
+            <div className="cosmicRunnerLeaderboardTop">
+              <h3>Scoreboard</h3>
+              <span>{leaderboardMode === "global" ? "Everyone" : "This device"}</span>
+            </div>
+            {leaderboard.length > 0 ? (
+              <ol>
+                {leaderboard.map((entry, index) => (
+                  <li key={entry.id || `${entry.name}-${entry.score}-${index}`}>
+                    <span>{index + 1}. {entry.name}</span>
+                    <b>{entry.score}</b>
+                  </li>
+                ))}
+              </ol>
+            ) : (
+              <p className="cosmicRunnerLeaderboardEmpty">No scores yet.</p>
+            )}
+            <p className="cosmicRunnerLeaderboardStatus">{leaderboardMessage}</p>
+          </aside>
+
           <div className="cosmicRunnerGlass cosmicRunnerHint">Tap to jump.</div>
 
           <div ref={overRef} className="cosmicRunnerGlass cosmicRunnerGameOver">
-            <h2>Oh no!</h2>
+            <h2>Try again!</h2>
             <p>The alien cat crashed into a crystal.</p>
+            <p className="cosmicRunnerFinalScore">Score: <b>{lastScore}</b></p>
+            <form className="cosmicRunnerScoreForm" onSubmit={submitScore}>
+              <label htmlFor="cosmicRunnerPlayerName">Name for scoreboard</label>
+              <input
+                ref={playerNameInputRef}
+                id="cosmicRunnerPlayerName"
+                name="playerName"
+                type="text"
+                inputMode="text"
+                autoComplete="nickname"
+                maxLength={MAX_PLAYER_NAME_LENGTH}
+                placeholder="Alien Cat"
+                aria-label="Name for scoreboard"
+              />
+              <button
+                type="submit"
+                data-button-sound="/sounds/runner-save-score.mp3"
+                disabled={submittingScore || scoreSubmitted}
+              >
+                {scoreSubmitted ? "Saved" : submittingScore ? "Saving..." : "Save score"}
+              </button>
+            </form>
+            <p className="cosmicRunnerSubmitStatus">{leaderboardMessage}</p>
             <button type="button" data-button-sound="/sounds/runner-play-again.mp3" onClick={() => window.dispatchEvent(new KeyboardEvent("keydown", { code: "Space" }))}>
               Play again
             </button>
@@ -500,6 +731,68 @@ export default function CosmicRunnerOverlay({
           font-size: 12px;
           font-weight: 800;
         }
+        .cosmicRunnerLeaderboard {
+          position: fixed;
+          top: calc(max(14px, env(safe-area-inset-top)) + 58px);
+          left: 50%;
+          transform: translateX(-50%);
+          z-index: 2;
+          width: min(94vw, 560px);
+          padding: 12px 14px;
+          pointer-events: none;
+        }
+        .cosmicRunnerLeaderboardTop {
+          display: flex;
+          justify-content: space-between;
+          gap: 10px;
+          align-items: center;
+          margin-bottom: 6px;
+        }
+        .cosmicRunnerLeaderboard h3 {
+          margin: 0;
+          color: #703b8f;
+          font-size: 13px;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+        }
+        .cosmicRunnerLeaderboardTop span {
+          border-radius: 999px;
+          padding: 5px 8px;
+          background: rgba(255, 255, 255, 0.5);
+          font-size: 10px;
+          font-weight: 900;
+          letter-spacing: 0.06em;
+          text-transform: uppercase;
+        }
+        .cosmicRunnerLeaderboard ol {
+          display: grid;
+          gap: 4px;
+          margin: 0;
+          padding: 0;
+          list-style: none;
+        }
+        .cosmicRunnerLeaderboard li {
+          display: flex;
+          justify-content: space-between;
+          gap: 10px;
+          border-radius: 12px;
+          padding: 5px 8px;
+          background: rgba(255, 255, 255, 0.34);
+          font-size: 11px;
+          font-weight: 900;
+        }
+        .cosmicRunnerLeaderboard li span {
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+        .cosmicRunnerLeaderboardEmpty,
+        .cosmicRunnerLeaderboardStatus {
+          margin: 4px 0 0;
+          font-size: 10px;
+          font-weight: 800;
+          opacity: 0.82;
+        }
         .cosmicRunnerHint {
           position: fixed;
           left: 50%;
@@ -532,6 +825,59 @@ export default function CosmicRunnerOverlay({
         .cosmicRunnerGameOver p {
           margin: 0 0 14px;
           font-weight: 800;
+        }
+        .cosmicRunnerFinalScore {
+          border-radius: 16px;
+          padding: 10px 12px;
+          background: rgba(255, 255, 255, 0.42);
+          color: #703b8f;
+        }
+        .cosmicRunnerScoreForm {
+          display: grid;
+          gap: 9px;
+          margin: 14px 0;
+        }
+        .cosmicRunnerScoreForm label {
+          color: #75468f;
+          font-size: 11px;
+          font-weight: 900;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+        }
+        .cosmicRunnerScoreForm input {
+          width: 100%;
+          border: 1px solid rgba(255, 255, 255, 0.9);
+          border-radius: 999px;
+          padding: 13px 15px;
+          color: #703b8f;
+          background: rgba(255, 255, 255, 0.62);
+          box-shadow: inset 0 0 0 1px rgba(206, 177, 255, 0.22);
+          font-size: 16px;
+          font-weight: 900;
+          text-align: center;
+          outline: none;
+        }
+        .cosmicRunnerScoreForm input:focus {
+          border-color: rgba(255, 143, 201, 0.9);
+          box-shadow: 0 0 0 4px rgba(255, 143, 201, 0.2);
+        }
+        .cosmicRunnerScoreForm button:disabled {
+          cursor: default;
+          opacity: 0.62;
+        }
+        .cosmicRunnerSubmitStatus {
+          font-size: 11px;
+          opacity: 0.86;
+        }
+        @media (max-height: 720px) {
+          .cosmicRunnerLeaderboard {
+            top: auto;
+            bottom: calc(max(16px, env(safe-area-inset-bottom)) + 62px);
+            max-height: 28vh;
+            overflow: hidden;
+          }
+          .cosmicRunnerLeaderboard li:nth-child(n + 6) { display: none; }
+          .cosmicRunnerHint { display: none; }
         }
       `}</style>
     </>
