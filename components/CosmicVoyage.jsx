@@ -2818,7 +2818,7 @@ side: source.side ?? THREE.FrontSide,
 
       <div className="shoppingIntroPreviewText">
   <a
-    href="https://shop.almostmadeinjapan.com/home"
+    href="https://shop.almostmadeinjapan.com/"
     className="shoppingIntroLogoLink"
     aria-label={languageCopy.logoAlt}
     data-button-sound="/sounds/intro-logo.mp3"
@@ -4663,7 +4663,7 @@ if (state.landed) {
 
         <div className="logoContainer">
   <a
-    href="https://shop.almostmadeinjapan.com/home"
+    href="https://shop.almostmadeinjapan.com/"
     className="logoLink"
     aria-label={copy.logoAlt}
     data-button-sound="/sounds/main-logo.mp3"
