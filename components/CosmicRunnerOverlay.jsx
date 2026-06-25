@@ -247,13 +247,9 @@ export default function CosmicRunnerOverlay({
     scene.fog = new THREE.Fog(0xfff6ff, 10, 42);
 
     const camera = new THREE.PerspectiveCamera(58, 1, 0.01, 100);
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.75));
-
-renderer.outputColorSpace = THREE.SRGBColorSpace;
-renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.45;
-
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     mount.appendChild(renderer.domElement);
@@ -315,44 +311,8 @@ renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
       wrap.traverse((child) => {
   if (!child.isMesh) return;
-
   child.castShadow = true;
   child.receiveShadow = true;
-
-  const materials = Array.isArray(child.material)
-    ? child.material
-    : [child.material];
-
-  const fixedMaterials = materials.map((material) => {
-    if (!material) return material;
-
-    const mat = material.clone();
-
-    if (mat.map) {
-      mat.map.colorSpace = THREE.SRGBColorSpace;
-      mat.map.anisotropy = renderer.capabilities.getMaxAnisotropy();
-      mat.map.needsUpdate = true;
-    }
-
-    if (mat.emissiveMap) {
-      mat.emissiveMap.colorSpace = THREE.SRGBColorSpace;
-      mat.emissiveMap.needsUpdate = true;
-    }
-
-    mat.color.multiplyScalar(1.18);
-    mat.roughness = Math.min(mat.roughness ?? 0.55, 0.42);
-    mat.metalness = Math.max(mat.metalness ?? 0, 0.02);
-
-    if (mat.emissive) {
-      mat.emissive.set("#baff28");
-      mat.emissiveIntensity = 0.08;
-    }
-
-    mat.needsUpdate = true;
-    return mat;
-  });
-
-  child.material = Array.isArray(child.material) ? fixedMaterials : fixedMaterials[0];
 });
 
       return wrap;
