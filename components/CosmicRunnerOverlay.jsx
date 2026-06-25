@@ -634,7 +634,31 @@ export default function CosmicRunnerOverlay({
               aria-expanded={scoreboardOpen}
               onClick={toggleScoreboard}
             >
-              🏆
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 24 24"
+    width="24"
+    height="24"
+    role="img"
+    aria-hidden="true"
+    className="buttonIcon"
+  >
+    <g
+      fill="none"
+      stroke="#000000"
+      strokeWidth="1.65"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M7.05 3.35h9.9a1.55 1.55 0 0 1 1.55 1.55v1.8h2.55a1.25 1.25 0 0 1 1.25 1.25v2.45a4.65 4.65 0 0 1-4.65 4.65h-.7" />
+      <path d="M7.05 3.35A1.55 1.55 0 0 0 5.5 4.9v1.8H2.95A1.25 1.25 0 0 0 1.7 7.95v2.45a4.65 4.65 0 0 0 4.65 4.65h.7" />
+      <path d="M5.5 6.7v4.35c0 4.25 2.95 7.25 6.5 7.25s6.5-3 6.5-7.25V6.7" />
+      <path d="M10.25 18.15c-.12 1.08-.82 2.05-1.85 2.7h7.2c-1.03-.65-1.73-1.62-1.85-2.7" />
+      <path d="M5.7 22.05h12.6" />
+      <path d="M12 7.1l1.08 2.18 2.4.35-1.74 1.69.41 2.39L12 12.58l-2.15 1.13.41-2.39-1.74-1.69 2.4-.35L12 7.1Z" />
+    </g>
+  </svg>
+
             </button>
             <button type="button" data-button-sound="/sounds/runner-close.mp3" onClick={() => onClose?.()}>×</button>
           </div>
