@@ -103,71 +103,6 @@ function requestRunnerSound(sound, options = {}) {
 
 
 
-
-function createFastRainbowTexture() {
-  const canvas = document.createElement("canvas");
-  canvas.width = 512;
-  canvas.height = 256;
-
-  const ctx = canvas.getContext("2d", { alpha: true });
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.colorSpace = THREE.SRGBColorSpace;
-  texture.wrapS = THREE.RepeatWrapping;
-  texture.wrapT = THREE.RepeatWrapping;
-  texture.minFilter = THREE.LinearFilter;
-  texture.magFilter = THREE.LinearFilter;
-  texture.generateMipmaps = false;
-
-  const palette = [
-    "rgba(255, 183, 220, 0.78)",
-    "rgba(171, 247, 204, 0.72)",
-    "rgba(184, 167, 255, 0.76)",
-    "rgba(145, 222, 255, 0.7)",
-  ];
-
-  function drawRibbonLine(baseOffset, color, width, glow) {
-    const samples = 40;
-    ctx.save();
-    ctx.beginPath();
-    ctx.lineCap = "round";
-    ctx.lineJoin = "round";
-    ctx.strokeStyle = color;
-    ctx.lineWidth = width;
-    ctx.shadowColor = color;
-    ctx.shadowBlur = glow;
-
-    for (let step = 0; step <= samples; step += 1) {
-      const t = step / samples;
-      const x = t * canvas.width;
-      const y = canvas.height * 0.86 - t * canvas.height * 0.56 + baseOffset + Math.sin(t * 9.2 + baseOffset * 0.045) * 15;
-      if (step === 0) ctx.moveTo(x, y);
-      else ctx.lineTo(x, y);
-    }
-
-    ctx.stroke();
-    ctx.restore();
-  }
-
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-  // Draw the ribbon three times so texture-offset movement loops smoothly.
-  for (let repeat = -1; repeat <= 1; repeat += 1) {
-    const repeatedLift = repeat * canvas.height * 0.72;
-    for (let index = 0; index < 18; index += 1) {
-      const offset = -76 + index * 9.2 + repeatedLift;
-      const color = palette[index % palette.length];
-      drawRibbonLine(offset, color, 9.5, 10);
-    }
-    for (let index = 0; index < 10; index += 1) {
-      const offset = -62 + index * 16 + repeatedLift;
-      drawRibbonLine(offset, "rgba(255, 255, 255, 0.22)", 2.2, 6);
-    }
-  }
-
-  texture.needsUpdate = true;
-  return texture;
-}
-
 function requestRunnerMusic(action, options = {}) {
   if (typeof window === "undefined") return;
 
@@ -320,31 +255,6 @@ export default function CosmicRunnerOverlay({
       ink: "#4b2864",
     };
 
-    const rainbowTexture = createFastRainbowTexture();
-    const rainbowMaterial = new THREE.MeshBasicMaterial({
-      map: rainbowTexture,
-      transparent: true,
-      opacity: 0.72,
-      depthWrite: false,
-      depthTest: false,
-    });
-    const rainbowPlane = new THREE.Mesh(new THREE.PlaneGeometry(13.6, 6.8), rainbowMaterial);
-    rainbowPlane.position.set(1.15, 2.55, -9.8);
-    rainbowPlane.renderOrder = -20;
-    scene.add(rainbowPlane);
-
-    const rainbowGlowMaterial = new THREE.MeshBasicMaterial({
-      map: rainbowTexture,
-      transparent: true,
-      opacity: 0.22,
-      depthWrite: false,
-      depthTest: false,
-      blending: THREE.AdditiveBlending,
-    });
-    const rainbowGlowPlane = new THREE.Mesh(new THREE.PlaneGeometry(15.2, 7.6), rainbowGlowMaterial);
-    rainbowGlowPlane.position.set(1.15, 2.55, -9.9);
-    rainbowGlowPlane.renderOrder = -21;
-    scene.add(rainbowGlowPlane);
 
     const runnerX = -1.15;
     const runner = new THREE.Group();
@@ -596,14 +506,6 @@ export default function CosmicRunnerOverlay({
 
       if (mixer) mixer.update(mixerClock.getDelta());
 
-      const rainbowTime = now * 0.001;
-      rainbowTexture.offset.x = (rainbowTime * 0.012) % 1;
-      rainbowTexture.offset.y = (rainbowTime * 0.02) % 1;
-      rainbowPlane.position.x = 1.15 + Math.sin(rainbowTime * 0.38) * 0.08;
-      rainbowPlane.position.y = 2.55 + Math.sin(rainbowTime * 0.31) * 0.05;
-      rainbowGlowPlane.position.x = 1.15 + Math.sin(rainbowTime * 0.27 + 1.4) * 0.11;
-      rainbowGlowPlane.position.y = 2.55 + Math.sin(rainbowTime * 0.24 + 0.8) * 0.07;
-      rainbowMaterial.opacity = 0.66 + Math.sin(rainbowTime * 0.6) * 0.06;
 
       for (const sparkle of sparkles) {
         sparkle.position.x -= sparkle.userData.speed * delta;
@@ -693,11 +595,6 @@ export default function CosmicRunnerOverlay({
       window.removeEventListener("keydown", onKey);
       mount.removeEventListener("pointerdown", onPointer);
       stopGameMusic(true);
-      rainbowTexture.dispose();
-      rainbowMaterial.dispose();
-      rainbowGlowMaterial.dispose();
-      rainbowPlane.geometry.dispose();
-      rainbowGlowPlane.geometry.dispose();
       renderer.dispose();
       renderer.domElement.remove();
     };
