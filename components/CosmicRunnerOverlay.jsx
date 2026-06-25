@@ -157,7 +157,7 @@ export default function CosmicRunnerOverlay({
     } catch {
       setLeaderboard(readLocalLeaderboard());
       setLeaderboardMode("local");
-      setLeaderboardMessage("Local scores on this device. Add REDIS_URL on Vercel for everyone.");
+      setLeaderboardMessage("Local scores on this device.");
     }
   }, []);
 
@@ -216,7 +216,7 @@ export default function CosmicRunnerOverlay({
       };
       setLeaderboard(saveLocalScore(localEntry));
       setLeaderboardMode("local");
-      setLeaderboardMessage("Score saved locally. Add REDIS_URL on Vercel to share it with everyone.");
+      setLeaderboardMessage("Score saved locally.");
       setScoreSubmitted(true);
       setScoreboardOpen(true);
     } finally {
@@ -787,18 +787,16 @@ export default function CosmicRunnerOverlay({
           font-size: 17px !important;
           line-height: 1;
         }
-        .cosmicRunnerScoreboardBackdrop {
-          position: fixed;
-          inset: 0;
-          z-index: 2;
-          border: 0;
-          padding: 0;
-          background: rgba(255, 240, 252, 0.26);
-          backdrop-filter: blur(16px) saturate(1.08);
-          -webkit-backdrop-filter: blur(16px) saturate(1.08);
-          cursor: pointer;
-          touch-action: manipulation;
-        }
+.cosmicRunnerScoreboardBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 2;
+  border: 0;
+  padding: 0;
+  background: rgba(255, 248, 255, 0.86);
+  backdrop-filter: blur(70px) saturate(0.55) brightness(1.12);
+  -webkit-backdrop-filter: blur(70px) saturate(0.55) brightness(1.12);
+}
         .cosmicRunnerLeaderboard {
           position: fixed;
           top: calc(max(14px, env(safe-area-inset-top)) + 62px);
