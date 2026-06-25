@@ -15,7 +15,7 @@ const LEADERBOARD_API_URL = "/api/leaderboard";
 const LOCAL_LEADERBOARD_KEY = "cosmicRunnerLeaderboardLocal";
 const PLAYER_NAME_KEY = "cosmicRunnerPlayerName";
 const DEVICE_ID_KEY = "cosmicRunnerDeviceId";
-const LEADERBOARD_LIMIT = 10;
+const LEADERBOARD_LIMIT = 100;
 const MAX_PLAYER_NAME_LENGTH = 18;
 
 function getDeviceId() {
@@ -136,6 +136,7 @@ export default function CosmicRunnerOverlay({
   const [lastScore, setLastScore] = useState(0);
   const [scoreSubmitted, setScoreSubmitted] = useState(false);
   const [submittingScore, setSubmittingScore] = useState(false);
+  const [scoreboardOpen, setScoreboardOpen] = useState(false);
 
   const refreshLeaderboard = useCallback(async () => {
     if (typeof window === "undefined") return;
@@ -156,7 +157,7 @@ export default function CosmicRunnerOverlay({
     } catch {
       setLeaderboard(readLocalLeaderboard());
       setLeaderboardMode("local");
-      setLeaderboardMessage("Local scores on this device.");
+      setLeaderboardMessage("Local scores on this device. Add REDIS_URL on Vercel for everyone.");
     }
   }, []);
 
@@ -206,6 +207,7 @@ export default function CosmicRunnerOverlay({
       setLeaderboardMode(data?.mode === "global" ? "global" : "local");
       setLeaderboardMessage(data?.mode === "global" ? "Score saved for everyone." : "Score saved on this device.");
       setScoreSubmitted(true);
+      setScoreboardOpen(true);
     } catch {
       const localEntry = {
         ...entry,
@@ -214,12 +216,25 @@ export default function CosmicRunnerOverlay({
       };
       setLeaderboard(saveLocalScore(localEntry));
       setLeaderboardMode("local");
-      setLeaderboardMessage("Score saved locally.");
+      setLeaderboardMessage("Score saved locally. Add REDIS_URL on Vercel to share it with everyone.");
       setScoreSubmitted(true);
+      setScoreboardOpen(true);
     } finally {
       setSubmittingScore(false);
     }
   }, [lastScore, refreshLeaderboard, scoreSubmitted, submittingScore]);
+
+  const sortedLeaderboard = [...leaderboard].sort(
+    (a, b) => b.score - a.score || new Date(a.createdAt) - new Date(b.createdAt),
+  );
+
+  const toggleScoreboard = useCallback(() => {
+    setScoreboardOpen((current) => {
+      const next = !current;
+      if (next) refreshLeaderboard();
+      return next;
+    });
+  }, [refreshLeaderboard]);
 
   useEffect(() => {
     if (!open || !mountRef.current) return;
@@ -612,28 +627,50 @@ export default function CosmicRunnerOverlay({
               <span>Score: <b ref={scoreRef}>0</b></span>
               <span>Best: <b ref={bestRef}>0</b></span>
             </div>
+            <button
+              type="button"
+              className="cosmicRunnerTrophyButton"
+              data-button-sound="/sounds/runner-scoreboard.mp3"
+              aria-label="Show scoreboard"
+              aria-expanded={scoreboardOpen}
+              onClick={toggleScoreboard}
+            >
+              🏆
+            </button>
             <button type="button" data-button-sound="/sounds/runner-close.mp3" onClick={() => onClose?.()}>×</button>
           </div>
 
-          <aside className="cosmicRunnerGlass cosmicRunnerLeaderboard" aria-live="polite">
-            <div className="cosmicRunnerLeaderboardTop">
-              <h3>Scoreboard</h3>
-              <span>{leaderboardMode === "global" ? "Everyone" : "This device"}</span>
-            </div>
-            {leaderboard.length > 0 ? (
-              <ol>
-                {leaderboard.map((entry, index) => (
-                  <li key={entry.id || `${entry.name}-${entry.score}-${index}`}>
-                    <span>{index + 1}. {entry.name}</span>
-                    <b>{entry.score}</b>
-                  </li>
-                ))}
-              </ol>
-            ) : (
-              <p className="cosmicRunnerLeaderboardEmpty">No scores yet.</p>
-            )}
-            <p className="cosmicRunnerLeaderboardStatus">{leaderboardMessage}</p>
-          </aside>
+          {scoreboardOpen && (
+            <aside className="cosmicRunnerGlass cosmicRunnerLeaderboard" aria-live="polite">
+              <div className="cosmicRunnerLeaderboardTop">
+                <div>
+                  <h3>Scoreboard</h3>
+                  <span>{leaderboardMode === "global" ? "Everyone" : "This device"}</span>
+                </div>
+                <button
+                  type="button"
+                  data-button-sound="/sounds/runner-close.mp3"
+                  aria-label="Close scoreboard"
+                  onClick={() => setScoreboardOpen(false)}
+                >
+                  ×
+                </button>
+              </div>
+              {sortedLeaderboard.length > 0 ? (
+                <ol>
+                  {sortedLeaderboard.map((entry, index) => (
+                    <li key={entry.id || `${entry.name}-${entry.score}-${index}`}>
+                      <span>{index + 1}. {entry.name}</span>
+                      <b>{entry.score}</b>
+                    </li>
+                  ))}
+                </ol>
+              ) : (
+                <p className="cosmicRunnerLeaderboardEmpty">No scores yet.</p>
+              )}
+              <p className="cosmicRunnerLeaderboardStatus">{leaderboardMessage}</p>
+            </aside>
+          )}
 
           <div className="cosmicRunnerGlass cosmicRunnerHint">Tap to jump.</div>
 
@@ -735,22 +772,50 @@ export default function CosmicRunnerOverlay({
           font-size: 12px;
           font-weight: 800;
         }
+        .cosmicRunnerTrophyButton {
+          min-width: 44px;
+          font-size: 17px !important;
+          line-height: 1;
+        }
         .cosmicRunnerLeaderboard {
           position: fixed;
-          top: calc(max(14px, env(safe-area-inset-top)) + 58px);
+          top: calc(max(14px, env(safe-area-inset-top)) + 62px);
           left: 50%;
           transform: translateX(-50%);
-          z-index: 2;
+          z-index: 3;
           width: min(94vw, 560px);
-          padding: 12px 14px;
-          pointer-events: none;
+          max-height: min(62vh, 520px);
+          padding: 13px 14px 14px;
+          pointer-events: auto;
+          display: flex;
+          flex-direction: column;
         }
         .cosmicRunnerLeaderboardTop {
           display: flex;
           justify-content: space-between;
           gap: 10px;
           align-items: center;
-          margin-bottom: 6px;
+          margin-bottom: 8px;
+          flex: 0 0 auto;
+        }
+        .cosmicRunnerLeaderboardTop > div {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          min-width: 0;
+        }
+        .cosmicRunnerLeaderboardTop button {
+          border: 0;
+          border-radius: 999px;
+          width: 34px;
+          height: 34px;
+          padding: 0;
+          color: #714184;
+          background: linear-gradient(135deg, #ffd2f5, #ccefff);
+          box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.8);
+          font-size: 15px;
+          font-weight: 900;
+          cursor: pointer;
         }
         .cosmicRunnerLeaderboard h3 {
           margin: 0;
@@ -772,8 +837,20 @@ export default function CosmicRunnerOverlay({
           display: grid;
           gap: 4px;
           margin: 0;
-          padding: 0;
+          padding: 0 4px 0 0;
           list-style: none;
+          overflow-y: auto;
+          -webkit-overflow-scrolling: touch;
+          flex: 1 1 auto;
+          min-height: 0;
+          overscroll-behavior: contain;
+        }
+        .cosmicRunnerLeaderboard ol::-webkit-scrollbar {
+          width: 8px;
+        }
+        .cosmicRunnerLeaderboard ol::-webkit-scrollbar-thumb {
+          border-radius: 999px;
+          background: rgba(168, 100, 220, 0.28);
         }
         .cosmicRunnerLeaderboard li {
           display: flex;
@@ -875,12 +952,10 @@ export default function CosmicRunnerOverlay({
         }
         @media (max-height: 720px) {
           .cosmicRunnerLeaderboard {
-            top: auto;
-            bottom: calc(max(16px, env(safe-area-inset-bottom)) + 62px);
-            max-height: 28vh;
-            overflow: hidden;
+            top: calc(max(14px, env(safe-area-inset-top)) + 58px);
+            bottom: auto;
+            max-height: 46vh;
           }
-          .cosmicRunnerLeaderboard li:nth-child(n + 6) { display: none; }
           .cosmicRunnerHint { display: none; }
         }
       `}</style>
