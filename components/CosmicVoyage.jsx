@@ -587,50 +587,202 @@ const MISSION_LINK_IMAGES = [
                                                                 ];
 
 const MOVING_BG_SYMBOLS = [
-  '/images/symbols/pink-star-brooch.png',
-  '/images/symbols/pearl-planet.png',
-  '/images/symbols/fluffy-purple-star.png',
-  '/images/symbols/opal-star.png',
-  '/images/symbols/kawaii-planet.png',
+  '/images/symbols/star.png',
+  '/images/symbols/star-shining.png',
+  '/images/symbols/star-three.png',
+  '/images/symbols/star-peace.png',
+  '/images/symbols/star-face.png',
+  '/images/symbols/star-sparkle.png',
+  '/images/symbols/star-sparkle-face.png',
 ];
 
-// Maximum total symbols across all 5 images.
-const TOTAL_MOVING_SYMBOLS = 30;
+/*
+  The moving background itself is 260vw wide.
+
+  13 columns across 260vw gives roughly 5 columns per visible
+  100vw screen, which works much better than the old 6 columns.
+*/
+const MOVING_SYMBOL_COLUMNS = 13;
+const MOVING_SYMBOL_ROWS = 5;
+
+const TOTAL_MOVING_SYMBOLS =
+  MOVING_SYMBOL_COLUMNS * MOVING_SYMBOL_ROWS;
+
+function randomBetween(min, max) {
+  return min + Math.random() * (max - min);
+}
+
+function randomItem(items) {
+  return items[Math.floor(Math.random() * items.length)];
+}
 
 function createMovingBackgroundSymbols() {
-  const columns = 6;
-  const rows = 6;
+  const columns = MOVING_SYMBOL_COLUMNS;
+  const rows = MOVING_SYMBOL_ROWS;
 
-  const slots = [];
+  const cellWidth = 100 / columns;
+  const cellHeight = 100 / rows;
+
+  /*
+    Remember which symbol was placed in every cell.
+
+    This lets us stop identical symbols from sitting directly
+    beside / above one another.
+  */
+  const placedTypes = Array.from(
+    { length: rows },
+    () => Array(columns).fill(null),
+  );
+
+  const symbols = [];
 
   for (let row = 0; row < rows; row += 1) {
     for (let column = 0; column < columns; column += 1) {
-      slots.push({ row, column });
+      /*
+        Avoid matching the closest neighboring symbols.
+
+        This makes the pattern feel genuinely mixed rather than
+        apple/apple/apple or skull/skull clusters.
+      */
+      const blockedTypes = new Set([
+        placedTypes[row]?.[column - 1],
+        placedTypes[row - 1]?.[column],
+        placedTypes[row - 1]?.[column - 1],
+        placedTypes[row - 1]?.[column + 1],
+      ]);
+
+      blockedTypes.delete(null);
+      blockedTypes.delete(undefined);
+
+      const availableTypes = MOVING_BG_SYMBOLS.filter(
+        (src) => !blockedTypes.has(src),
+      );
+
+      const src = randomItem(
+        availableTypes.length
+          ? availableTypes
+          : MOVING_BG_SYMBOLS,
+      );
+
+      placedTypes[row][column] = src;
+
+      /*
+        Start at the exact center of the cell.
+      */
+      const baseX =
+        column * cellWidth +
+        cellWidth * 0.5;
+
+      const baseY =
+        row * cellHeight +
+        cellHeight * 0.5;
+
+      /*
+        Organic randomness, but deliberately restricted.
+
+        The previous layout allowed the pattern to feel patchy.
+        Here each icon can wander within its own neighborhood
+        without invading the next symbol's space.
+      */
+      const jitterX =
+        randomBetween(-0.21, 0.21) *
+        cellWidth;
+
+      const jitterY =
+        randomBetween(-0.17, 0.17) *
+        cellHeight;
+
+      /*
+        Tiny row staggering breaks the visible grid structure.
+
+        Alternating directions stops everything forming diagonal
+        railroad tracks.
+      */
+      const rowStagger =
+        row % 2 === 0
+          ? cellWidth * 0.08
+          : -cellWidth * 0.08;
+
+      let x =
+        baseX +
+        jitterX +
+        rowStagger;
+
+      let y =
+        baseY +
+        jitterY;
+
+      /*
+        Keep first / last rows away from clipping.
+      */
+      x = Math.max(1.5, Math.min(98.5, x));
+      y = Math.max(7, Math.min(93, y));
+
+      /*
+        Depth variation.
+
+        Most symbols stay medium-small, with occasional larger
+        foreground charms. This looks less like a tiled pattern.
+      */
+      const depth = Math.random();
+
+      let size;
+
+      if (depth < 0.15) {
+        // Occasional larger foreground symbol.
+        size = randomBetween(45, 53);
+      } else if (depth < 0.48) {
+        // Smaller distant symbols.
+        size = randomBetween(28, 35);
+      } else {
+        // Main pattern size.
+        size = randomBetween(35, 44);
+      }
+
+      const opacity =
+        depth < 0.15
+          ? randomBetween(0.68, 0.82)
+          : depth < 0.48
+            ? randomBetween(0.42, 0.58)
+            : randomBetween(0.55, 0.72);
+
+      /*
+        Independent animation timing prevents the symbols from
+        breathing / flashing together.
+      */
+      const floatDuration =
+        randomBetween(17, 31);
+
+      const flashDuration =
+        randomBetween(0.82, 1.65);
+
+      const flashDelay =
+        -randomBetween(0, 2.6);
+
+      const floatDirection =
+        Math.random() > 0.5
+          ? 'alternate'
+          : 'alternate-reverse';
+
+      symbols.push({
+        id: `symbol-${row}-${column}`,
+        src,
+
+        x,
+        y,
+
+        size,
+        opacity,
+
+        floatDuration,
+        flashDuration,
+        flashDelay,
+        floatDirection,
+      });
     }
   }
 
-  // Shuffle the grid cells so the five symbol types feel random,
-  // while still keeping enough spacing between every emblem.
-  for (let i = slots.length - 1; i > 0; i -= 1) {
-    const swapIndex = Math.floor(Math.random() * (i + 1));
-    [slots[i], slots[swapIndex]] = [slots[swapIndex], slots[i]];
-  }
-
-  return slots.slice(0, TOTAL_MOVING_SYMBOLS).map((slot, index) => {
-    const cellWidth = 100 / columns;
-
-    // Keep the whole symbol field mostly in the upper part of the art.
-    const yRows = [6, 15, 25, 37, 51, 66];
-
-    return {
-      id: `symbol-${index}`,
-      src: MOVING_BG_SYMBOLS[index % MOVING_BG_SYMBOLS.length],
-      x: slot.column * cellWidth + cellWidth * 0.5 + (Math.random() * 6 - 3),
-      y: yRows[slot.row] + (Math.random() * 4 - 2),
-      size: 36 + Math.random() * 28,
-      opacity: 0.52 + Math.random() * 0.28,
-    };
-  });
+  return symbols;
 }
 
 function createFluffSpriteTexture() {
@@ -4656,22 +4808,37 @@ if (state.landed) {
         <div className="pastelBackgroundMotion">
           <div className="spaceBg" />
 
-          <div className="movingSymbolLayer">
-            {movingBgSymbols.map((symbol) => (
-              <img
-                key={symbol.id}
-                className="movingBgSymbol"
-                src={symbol.src}
-                alt=""
-                style={{
-                  '--x': `${symbol.x}%`,
-                  '--y': `${symbol.y}%`,
-                  '--size': `${symbol.size}px`,
-                  '--opacity': symbol.opacity,
-                }}
-              />
-            ))}
-          </div>
+<div className="movingSymbolLayer">
+  {movingBgSymbols.map((symbol) => (
+    <img
+      key={symbol.id}
+      className="movingBgSymbol"
+      src={symbol.src}
+      alt=""
+      aria-hidden="true"
+      draggable={false}
+      decoding="async"
+      style={{
+        '--x': `${symbol.x}%`,
+        '--y': `${symbol.y}%`,
+        '--size': `${symbol.size}px`,
+        '--opacity': symbol.opacity,
+
+        '--symbol-float-duration':
+          `${symbol.floatDuration}s`,
+
+        '--symbol-flash-duration':
+          `${symbol.flashDuration}s`,
+
+        '--symbol-flash-delay':
+          `${symbol.flashDelay}s`,
+
+        animationDirection:
+          `${symbol.floatDirection}, normal`,
+      }}
+    />
+  ))}
+</div>
         </div>
       </div>
 
