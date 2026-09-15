@@ -422,7 +422,7 @@ button {
   font-family: var(--font-display);
   font-style: normal;
   font-size: clamp(1.0rem, 2.5vw, 3rem);
-  color: var(--purple-deep);
+  color: var(--white);
   letter-spacing: 0.12em;
   text-shadow: 0 2px 12px rgba(174, 219, 255, 0.85);
   animation: hintPulse 2.5s ease-in-out infinite;
@@ -989,10 +989,10 @@ select,
   opacity: 1;
   transition: opacity 0.62s ease;
   background:
-    radial-gradient(circle at 20% 15%, rgba(255, 210, 245, 0.90), transparent 32%),
-    radial-gradient(circle at 80% 20%, rgba(195, 225, 255, 0.85), transparent 34%),
-    radial-gradient(circle at 50% 85%, rgba(215, 190, 255, 0.80), transparent 38%),
-    linear-gradient(135deg, #fff7fd, #eef8ff 45%, #f7edff);
+    radial-gradient(circle at 20% 15%, rgba(215, 168, 177, 0.90), transparent 32%),
+    radial-gradient(circle at 80% 20%, rgba(139, 167, 180, 0.85), transparent 34%),
+    radial-gradient(circle at 50% 85%, rgba(143, 120, 184, 0.80), transparent 38%),
+    linear-gradient(135deg, #414141, #3e3f3f 45%, #828182);
   will-change: opacity;
 }
 
@@ -1450,7 +1450,6 @@ select,
     inset 0 1px 0 rgba(255, 255, 255, 0.66),
     inset 0 -1px 0 rgba(180, 210, 255, 0.20);
   backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
 }
 
 .shoppingIntroText {
@@ -1474,7 +1473,7 @@ select,
   font-size: 0.54em;
   line-height: 1.02;
   letter-spacing: 0.04em;
-  color: rgba(48, 36, 72, 0.82);
+  color: rgba(242, 237, 234, 1);
 }
 
 @media (max-width: 520px) {
@@ -1519,7 +1518,7 @@ select,
   letter-spacing: 0.055em;
   text-transform: uppercase;
 
-  color: var(--purple-deep);
+  color: rgba(0, 0, 0, 0.85);
   background:
     linear-gradient(
       135deg,
@@ -1535,7 +1534,6 @@ select,
     inset 0 -1px 0 rgba(180, 210, 255, 0.22);
 
   backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
 
   cursor: pointer;
   user-select: none;

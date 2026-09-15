@@ -9,6 +9,7 @@ import CosmicRunnerOverlay from "./CosmicRunnerOverlay";
 import MissionLogoOrb from "./MissionLogoOrb";
 
 const CAT_MODEL_URL = '/models/alien-cat.glb';
+const CAT_MODEL_SHOPPING_URL = '/models/alien-cat-shoppingbag.glb';
 const BOAT_MODEL_URL = '/models/cosmic-boat.glb';
 const FLOAT_RING_MODEL_URL = '/models/float-ring.glb';
 const FLOAT_RING_FALLBACK_MODEL_URL = '/models/floatring.glb';
@@ -472,10 +473,27 @@ const getDocumentLangCode = (languageCode) => {
 };
 
 
+//const CORE_MODEL_PRELOAD_URLS = [
+//  CAT_MODEL_URL,
+//  BOAT_MODEL_URL,
+//  FLOAT_RING_MODEL_URL,
+//];
+
+const INTRO_MODEL_PRELOAD_URLS = [
+  CAT_MODEL_SHOPPING_URL,
+];
+
 const CORE_MODEL_PRELOAD_URLS = [
   CAT_MODEL_URL,
   BOAT_MODEL_URL,
+];
+
+const DEFERRED_MODEL_PRELOAD_URLS = [
   FLOAT_RING_MODEL_URL,
+  FLOAT_RING_FALLBACK_MODEL_URL,
+  SPARKLE_HEART_MODEL_URL,
+  '/models/galaxy-bag.glb',
+  '/models/pastel-looping-animated-water.glb',
 ];
 
 // These are all the GLB files currently shipped in /public/models.
@@ -499,11 +517,13 @@ const PUBLIC_IMAGE_PRELOAD_URLS = [
   '/images/covers/emo.png',
   '/images/covers/nature.png',
   '/images/covers/cyber.png',
-  '/images/symbols/pink-star-brooch.png',
-  '/images/symbols/pearl-planet.png',
-  '/images/symbols/fluffy-purple-star.png',
-  '/images/symbols/opal-star.png',
-  '/images/symbols/kawaii-planet.png',
+  '/images/symbols/apple.png',
+  '/images/symbols/ghost.png',
+  '/images/symbols/leaf.png',
+  '/images/symbols/mushroom.png',
+  '/images/symbols/pumpkin.png',
+  '/images/symbols/skull.png',
+  '/images/symbols/star.png',
 ];
 
 // Change either value to Math.PI if a model faces backward after export.
@@ -587,13 +607,13 @@ const MISSION_LINK_IMAGES = [
                                                                 ];
 
 const MOVING_BG_SYMBOLS = [
+  '/images/symbols/apple.png',
+  '/images/symbols/ghost.png',
+  '/images/symbols/leaf.png',
+  '/images/symbols/mushroom.png',
+  '/images/symbols/pumpkin.png',
+  '/images/symbols/skull.png',
   '/images/symbols/star.png',
-  '/images/symbols/star-shining.png',
-  '/images/symbols/star-three.png',
-  '/images/symbols/star-peace.png',
-  '/images/symbols/star-face.png',
-  '/images/symbols/star-sparkle.png',
-  '/images/symbols/star-sparkle-face.png',
 ];
 
 /*
@@ -1231,12 +1251,12 @@ function createUltraFastWater() {
   const basePositions = waterPositions.array.slice();
 
   const waterColors = new Float32Array(waterPositions.count * 3);
-  const cyan = new THREE.Color('#4ffaff');
-  const deepCyan = new THREE.Color('#00d8ff');
-  const pink = new THREE.Color('#ff5eea');
-  const softPink = new THREE.Color('#ffd6f5');
+  const cyan = new THREE.Color('#a57254');
+  const deepCyan = new THREE.Color('#a57254');
+  const pink = new THREE.Color('#9c3131');
+  const softPink = new THREE.Color('#4a1e2a');
   const lavender = new THREE.Color('#a98cff');
-  const whiteFoam = new THREE.Color('#ffffff');
+  const whiteFoam = new THREE.Color('#000000');
   const mixedColor = new THREE.Color();
 
   for (let i = 0; i < waterPositions.count; i += 1) {
@@ -1432,8 +1452,8 @@ function createInfinityTriangleWater() {
       uWaterTexture: { value: null },
       uTextureStrength: { value: 0.0 },
 
-      colorA: { value: new THREE.Color('#c8f7ff') },
-      colorB: { value: new THREE.Color('#f7ddff') },
+      colorA: { value: new THREE.Color('#9c3131') },
+      colorB: { value: new THREE.Color('#9c3131') },
     },
     vertexShader: `
       varying vec2 vUv;
@@ -2173,7 +2193,7 @@ window.addEventListener('keydown', handleIntroKeyDown);
     const renderer = new THREE.WebGLRenderer({
       canvas: catCanvas,
       alpha: true,
-      antialias: false,
+      antialias: true,
       powerPreference: 'high-performance',
     });
     renderer.setClearColor(0x000000, 0);
@@ -2224,7 +2244,7 @@ let introCatLoadedAt = 0;
 const introMixers = [];
     
 
-    loadSceneGLTF(preloadStore, CAT_MODEL_URL)
+    loadSceneGLTF(preloadStore, CAT_MODEL_SHOPPING_URL)
       .then((gltf) => {
         if (!gltf?.scene) return;
 
@@ -2262,8 +2282,11 @@ const introMixers = [];
       introCamera.bottom = -viewportHeight / 2;
       introCamera.updateProjectionMatrix();
 
-      const dprLimit = width < 700 ? 1.0 : 1.25;
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, dprLimit));
+const dprLimit = width < 768 ? 1.5 : 1.5;
+
+renderer.setPixelRatio(
+  Math.min(window.devicePixelRatio || 1, dprLimit)
+);
       renderer.setSize(width, height, false);
     };
 
@@ -3789,16 +3812,36 @@ side: source.side ?? THREE.FrontSide,
 
     THREE.Cache.enabled = true;
 
-    const renderer = new THREE.WebGLRenderer({
-      canvas,
-      antialias: false,
-      alpha: true,
-      powerPreference: 'high-performance',
-      precision: 'mediump',
-    });
+    // const renderer = new THREE.WebGLRenderer({
+    //  canvas,
+    //  antialias: false,
+    //  alpha: true,
+    //  powerPreference: 'high-performance',
+    //  precision: 'mediump',
+    //});
 
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.25));
-    renderer.setSize(width, height);
+    //renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.25));
+    // renderer.setSize(width, height);
+
+    const isMobile =
+  window.innerWidth < 768 ||
+  window.matchMedia?.('(pointer: coarse)').matches;
+
+const renderer = new THREE.WebGLRenderer({
+  canvas,
+  antialias: true,
+  alpha: true,
+  powerPreference: 'high-performance',
+});
+
+const maxDpr = isMobile ? 1.5 : 1.5;
+
+renderer.setPixelRatio(
+  Math.min(window.devicePixelRatio || 1, maxDpr)
+);
+
+renderer.setSize(width, height);
+
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.0;
@@ -4024,10 +4067,10 @@ scene.add(pinkWireframeGlobe);
         const floatRingModel = ringGLTF.scene;
         floatRingModel.name = 'FloatingRingModel';
         improveModelQuality(floatRingModel, renderer, [
-          new THREE.Color(0xffb7dc),
-          new THREE.Color(0xcab8ff),
-          new THREE.Color(0xaedbff),
-          new THREE.Color(0xffffff),
+          // new THREE.Color(0xffb7dc),
+          // new THREE.Color(0xcab8ff),
+          // new THREE.Color(0xaedbff),
+          // new THREE.Color(0xffffff),
         ]);
 
         fitModel(
@@ -4065,9 +4108,9 @@ scene.add(pinkWireframeGlobe);
         const boatModel = boatGLTF.scene;
         boatModel.name = 'CosmicBoatModel';
         improveModelQuality(boatModel, renderer, [
-          new THREE.Color(0xaedbff),
-          new THREE.Color(0xcab8ff),
-          new THREE.Color(0xffb7dc),
+        //  new THREE.Color(0xaedbff),
+        //  new THREE.Color(0xcab8ff),
+        //  new THREE.Color(0xffb7dc),
         ]);
 
         const boatBox = fitModel(
@@ -5008,7 +5051,7 @@ if (state.landed) {
             requestSiteMusic('stop', RUNNER_GAME_MUSIC_FILE, { reset: true });
             setRunnerGameOpen(false);
           }}
-          modelPath={CAT_MODEL_URL}
+          modelPath={CAT_MODEL_SHOPPING_URL}
         />
       )}
 	          

@@ -127,7 +127,7 @@ function requestRunnerMusic(action, options = {}) {
 export default function CosmicRunnerOverlay({
   open = false,
   onClose,
-  modelPath = "/models/alien-cat.glb",
+  modelPath = "/models/alien-cat-shoppingbag.glb",
 }) {
   const mountRef = useRef(null);
   const scoreRef = useRef(null);
