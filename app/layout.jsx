@@ -20,6 +20,28 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
+
+
+      <head>
+        {/* Main loading popup cloud frame */}
+        <link
+          rel="preload"
+          as="image"
+          href="/images/ring-cloud-frame-wide.png"
+          type="image/png"
+          fetchPriority="high"
+        />
+
+        {/* Floating ring popup cloud frame */}
+        <link
+          rel="preload"
+          as="image"
+          href="/images/ring-cloud-frame.png"
+          type="image/png"
+          fetchPriority="high"
+        />
+      </head>
+
       <body>{children}</body>
     </html>
   );

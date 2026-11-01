@@ -1,4 +1,6 @@
-@import url('https://fonts.googleapis.com/css2?family=Bitcount+Prop+Single:wght@100..900&family=DotGothic16&family=Hi+Melody&family=ZCOOL+KuaiLe&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Hachi+Maru+Pop&family=Hi+Melody&family=ZCOOL+XiaoWei&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inconsolata:wght@200..900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Unkempt:wght@400;700&display=swap');
 
 * {
   box-sizing: border-box;
@@ -15,9 +17,11 @@
   --blue: #aedbff;
   --blue-deep: #649ddd;
   --ink: #66548f;
---font-main: "Bitcount Prop Single", system-ui, sans-serif;
-  --font-display: "Bitcount Prop Single", "Murecho", system-ui, sans-serif;
+  --font-main: "Inconsolata", system-ui, sans-serif;
+  --font-display: "Inconsolata", system-ui, sans-serif;
 }
+
+
 
 html,
 body {
@@ -413,25 +417,31 @@ button {
 }
 
 .hint {
-  position: absolute;
-  bottom: 14%;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 90%;
-  text-align: center;
-  font-family: var(--font-display);
-  font-style: normal;
-  font-size: clamp(1.0rem, 2.5vw, 3rem);
-  color: var(--white);
-  letter-spacing: 0.12em;
-  text-shadow: 0 2px 12px rgba(174, 219, 255, 0.85);
-  animation: hintPulse 2.5s ease-in-out infinite;
+    text-align: center;
+    width: 90%;
+    font-family: var(--font-display);
+    color: var(--white);
+    letter-spacing: .12em;
+    text-shadow: 0 2px 12px #aedbffd9;
+    font-size: clamp(1rem,2.5vw,3rem);
+    font-style: normal;
+    animation: 2.5s ease-in-out infinite hintPulse;
+    position: absolute;
+    bottom: 14%;
+    left: 50%;
+    transform: translate(-50%);
+    padding: 15px;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.46);
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.26), rgb(255 183 220), rgb(174 219 255));
+    box-shadow: 0 10px 36px rgba(145, 116, 205, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.58);
 }
 
 .loadingNetworkTicker {
   position: absolute;
   left: 50%;
-  top: calc(50% - 140px);
+  top: calc(50% - 200px);
   z-index: 10000;
 
   width: min(420px, 88vw);
@@ -988,11 +998,12 @@ select,
   pointer-events: auto;
   opacity: 1;
   transition: opacity 0.62s ease;
-  background:
-    radial-gradient(circle at 20% 15%, rgba(215, 168, 177, 0.90), transparent 32%),
-    radial-gradient(circle at 80% 20%, rgba(139, 167, 180, 0.85), transparent 34%),
-    radial-gradient(circle at 50% 85%, rgba(143, 120, 184, 0.80), transparent 38%),
-    linear-gradient(135deg, #414141, #3e3f3f 45%, #828182);
+
+  background-image: url('/images/intro-background.jpg');
+  background-size: cover;
+  background-position: center center;
+  background-repeat: no-repeat;
+
   will-change: opacity;
 }
 
@@ -1429,9 +1440,13 @@ select,
 .shoppingIntroTextCard {
   position: absolute;
   left: 50%;
-  top: 112px;
+  top: 135px;
   transform: translateX(-50%);
-  width: min(430px, 84vw);
+
+  width: min(94vw, 760px);
+  min-width: min(210px, 58vw);
+  max-width: calc(100vw - 24px);
+
   margin: 0;
   padding: 12px 18px 14px;
   border-radius: 22px;
@@ -1459,7 +1474,7 @@ select,
   font-weight: 400;
   line-height: 0.92;
   letter-spacing: 0.018em;
-  text-transform: uppercase;
+  text-transform: none;
   color: var(--pink);
   text-shadow:
     0 2px 0 rgba(255, 255, 255, 0.65),
@@ -1473,12 +1488,12 @@ select,
   font-size: 0.54em;
   line-height: 1.02;
   letter-spacing: 0.04em;
-  color: rgba(242, 237, 234, 1);
+  color: var(--pink);
 }
 
 @media (max-width: 520px) {
   .shoppingIntroTextCard {
-    top: 104px;
+    top: 115px;
     width: min(330px, 82vw);
     padding: 10px 14px 12px;
     border-radius: 18px;
@@ -1495,55 +1510,36 @@ select,
 }
 
 .shoppingIntroEnterButton {
-  position: absolute;
-  left: 50%;
-  bottom: max(34px, calc(env(safe-area-inset-bottom) + 28px));
-  z-index: 8;
-  transform: translateX(-50%);
-  pointer-events: auto;
-
-  width: min(94vw, 760px);
-  max-width: calc(100vw - 24px);
-  box-sizing: border-box;
-
-  min-width: min(210px, 58vw);
-  padding: 13px 28px 15px;
-  border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.62);
-
-  font-family: var(--font-display);
-  font-size: clamp(26px, 7vw, 48px);
-  font-weight: 400;
-  line-height: 1;
-  letter-spacing: 0.055em;
-  text-transform: uppercase;
-
-  color: rgba(0, 0, 0, 0.85);
-  background:
-    linear-gradient(
-      135deg,
-      rgba(255, 255, 255, 0.50),
-      rgba(255, 232, 250, 0.34) 44%,
-      rgba(224, 243, 255, 0.36)
-    );
-
-  box-shadow:
-    0 16px 50px rgba(145, 116, 205, 0.22),
-    0 0 34px rgba(255, 213, 246, 0.34),
-    inset 0 1px 0 rgba(255, 255, 255, 0.82),
-    inset 0 -1px 0 rgba(180, 210, 255, 0.22);
-
-  backdrop-filter: blur(14px);
-
-  cursor: pointer;
-  user-select: none;
-  -webkit-tap-highlight-color: transparent;
-
-  text-shadow:
-    0 2px 0 rgba(255, 255, 255, 0.62),
-    0 0 18px rgba(255, 255, 255, 0.58);
-
-  animation: shoppingIntroEnterPulse 1.45s ease-in-out infinite;
+    left: 50%;
+    bottom: max(34px, calc(env(safe-area-inset-bottom) + 28px));
+    z-index: 8;
+    pointer-events: auto;
+    box-sizing: border-box;
+    width: min(94vw,760px);
+    min-width: min(210px,58vw);
+    max-width: calc(100vw - 24px);
+    font-family: var(--font-display);
+    letter-spacing: .055em;
+    text-transform: none;
+    color: #c9981dd9;
+    -webkit-backdrop-filter: blur(14px);
+    backdrop-filter: blur(14px);
+    cursor: pointer;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    text-shadow: 0 2px #ffffff9e,0 0 18px #ffffff94;
+    background: linear-gradient(135deg,#ffffff80,#ffe8fa57 44%,#e0f3ff5c);
+    border: 1px solid #ffffff9e;
+    border-radius: 999px;
+    padding: 13px 28px 15px;
+    font-size: clamp(20px,3vw,28px);
+    font-weight: 400;
+    line-height: 1;
+    animation: 1.45s ease-in-out infinite shoppingIntroEnterPulse;
+    position: absolute;
+    transform: translate(-50%);
+    box-shadow: 0 16px 50px #9174cd38,0 0 34px #ffd5f657,inset 0 1px #ffffffd1,inset 0 -1px #b4d2ff38;
 }
 
 .shoppingIntroEnterButton:active {
@@ -1901,12 +1897,12 @@ body {
   font-family: var(--font-main), system-ui, sans-serif;
 }
 
-/* Japanese: DotGothic16 everywhere */
+/* Japanese: Hachi Maru Pop everywhere */
 html[lang="ja"],
 html[lang="ja"] *,
 html[lang="ja"] *::before,
 html[lang="ja"] *::after {
-  font-family: "DotGothic16", var(--font-main), system-ui, sans-serif !important;
+  font-family: "Hachi Maru Pop", var(--font-main), system-ui, sans-serif !important;
 }
 
 /* Korean: Hi Melody everywhere */
@@ -1917,12 +1913,12 @@ html[lang="ko"] *::after {
   font-family: "Hi Melody", var(--font-main), system-ui, sans-serif !important;
 }
 
-/* Chinese: ZCOOL KuaiLe everywhere */
+/* Chinese: ZCOOL XiaoWei everywhere */
 html[lang="zh-CN"],
 html[lang="zh-CN"] *,
 html[lang="zh-CN"] *::before,
 html[lang="zh-CN"] *::after {
-  font-family: "ZCOOL KuaiLe", var(--font-main), system-ui, sans-serif !important;
+  font-family: "ZCOOL XiaoWei", var(--font-main), system-ui, sans-serif !important;
 }
 
 /* Bubble chat social icon boxes */
@@ -1965,9 +1961,11 @@ html[lang="zh-CN"] *::after {
     background 0.18s ease;
 }
 
-.ringSocialButton svg {
-  width: min(58%, 30px);
-  height: min(58%, 30px);
+.ringSocialButton img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center;
   display: block;
   fill: currentColor;
   filter:
@@ -2275,3 +2273,869 @@ html[lang="it"] .shoppingIntroText span {
     width: min(15vw, 120px);
   }
   }
+
+
+
+/* ENGLISH + EUROPEAN LANGUAGE FONTS */
+
+html:is(
+  [lang="en"],
+  [lang="fr"],
+  [lang="de"],
+  [lang="es"],
+  [lang="it"],
+  [lang="pt"],
+  [lang="pt-PT"],
+  [lang="sv"]
+) {
+  --font-main: "Inconsolata", monospace;
+  --font-display: "Unkempt", cursive;
+}
+
+/* BODY TEXT: INCONSOLATA */
+
+html:is(
+  [lang="en"],
+  [lang="fr"],
+  [lang="de"],
+  [lang="es"],
+  [lang="it"],
+  [lang="pt"],
+  [lang="pt-PT"],
+  [lang="sv"]
+) :is(
+  body,
+  .stage,
+  .ui,
+  p,
+  label,
+  button,
+  input,
+  textarea,
+  select,
+  .hint,
+  .loadingPopup,
+  .loadingPercent,
+  .loadingNetworkTicker span,
+  .popupWindow,
+  .termText,
+  .missionImageLink,
+  .shoppingIntroTextCard,
+  .shoppingIntroEnterButton,
+  .ringChatBox,
+  .ringTerminalText,
+  .ringTerminalCursor,
+  .ringSocialButton
+) {
+  font-family: "Inconsolata", monospace !important;
+}
+
+/* HEADLINES: UNKEMPT */
+
+html:is(
+  [lang="en"],
+  [lang="fr"],
+  [lang="de"],
+  [lang="es"],
+  [lang="it"],
+  [lang="pt"],
+  [lang="pt-PT"],
+  [lang="sv"]
+) :is(
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  [role="heading"],
+  .shoppingIntroText,
+  .shoppingIntroText span,
+  .shoppingIntroTranslateModalTitle,
+  .loadingTitle,
+  .missionGalleryTitleBar,
+  .missionGalleryTitleBar span,
+  .termHeader,
+  .termHeader span,
+  .ringChatHeader,
+  .missionImageLink span
+) {
+  font-family: "Unkempt", cursive !important;
+  font-weight: 400;
+}
+
+
+/* ==========================================
+   FLOATING RING V2 - SQUARE CLOUD WINDOW
+   ========================================== */
+
+.ringChatOverlay .ringCloudDialog {
+  /* Main settings */
+  --cloud-size: min(92vw, 88dvh, 650px);
+  --cloud-inset: 17%;
+  --cloud-glass-opacity: 0.90;
+
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+
+  width: var(--cloud-size);
+  aspect-ratio: 1 / 1;
+  height: auto;
+
+  max-width: none;
+  max-height: none;
+  padding: 0;
+
+  box-sizing: border-box;
+  isolation: isolate;
+
+  /* Original square PNG, no stretching */
+  background:
+    url("/images/ring-cloud-frame.png")
+    center / 100% 100% no-repeat;
+
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+
+  overflow: visible;
+  cursor: default;
+}
+
+/* Frosted window INSIDE the cloud frame */
+.ringChatOverlay .ringCloudContent {
+  position: absolute;
+
+  inset: var(--cloud-inset);
+
+  display: flex;
+  flex-direction: column;
+
+  padding: clamp(7px, 1.4vw, 14px);
+  gap: 0;
+
+  min-width: 0;
+  min-height: 0;
+  box-sizing: border-box;
+
+  background: rgba(
+    255, 250, 255,
+    var(--cloud-glass-opacity)
+  );
+
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+
+  border: 1px solid rgba(255,255,255,0.75);
+  border-radius: 20px;
+
+  box-shadow: 0 8px 28px rgba(135,105,180,0.08);
+
+  z-index: 2;
+}
+
+/* Scrolling message */
+.ringChatOverlay .ringCloudDialog .ringTerminalText {
+  position: relative !important;
+  inset: auto !important;
+
+  flex: 1 1 auto !important;
+
+  width: 100% !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+
+  margin: 0 !important;
+  padding: 10px !important;
+  box-sizing: border-box;
+
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+
+  background: rgba(255,255,255,0.24);
+  border: 1px solid rgba(255,255,255,0.5);
+  border-radius: 12px;
+
+  font-size: clamp(12px, 1.2vw, 17px);
+  line-height: 1.3;
+
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+
+  scrollbar-width: thin;
+  scrollbar-color: #dba7ef #fff0fa;
+}
+
+/* Keep the header image responsive */
+.ringChatOverlay .ringCloudDialog .ringTerminalTopImage {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Social buttons directly under text */
+.ringChatOverlay .ringCloudDialog .ringSocialBar {
+  position: relative !important;
+  inset: auto !important;
+
+  flex: 0 0 auto !important;
+
+  width: 100% !important;
+  height: auto !important;
+
+  margin: 5px 0 0 !important;
+  padding: 5px 0 0 !important;
+
+  display: grid !important;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 5px;
+
+  border-top: 1px solid rgba(255,255,255,0.5);
+}
+
+/* Social icon sizing */
+.ringChatOverlay .ringCloudDialog .ringSocialButton {
+  width: 100%;
+  max-width: 65px;
+  min-width: 0;
+  min-height: 0;
+  aspect-ratio: 1;
+
+  justify-self: center;
+  border-radius: 12px;
+}
+
+/* Scrollbar styling */
+.ringChatOverlay .ringCloudDialog
+.ringTerminalText::-webkit-scrollbar {
+  width: 8px;
+}
+
+.ringChatOverlay .ringCloudDialog
+.ringTerminalText::-webkit-scrollbar-track {
+  background: #fff0fa;
+  border-radius: 999px;
+}
+
+.ringChatOverlay .ringCloudDialog
+.ringTerminalText::-webkit-scrollbar-thumb {
+  background: #dba7ef;
+  border-radius: 999px;
+}
+
+/* Mobile */
+@media (max-width: 520px) {
+  .ringChatOverlay .ringCloudDialog {
+    --cloud-size: min(96vw, 90dvh);
+    --cloud-inset: 16%;
+  }
+
+  .ringChatOverlay .ringCloudContent {
+    padding: 6px;
+    border-radius: 12px;
+  }
+
+  .ringChatOverlay .ringCloudDialog .ringTerminalText {
+    font-size: 11px;
+    padding: 5px !important;
+  }
+
+  .ringChatOverlay .ringCloudDialog .ringSocialBar {
+    gap: 3px;
+  }
+
+  .ringChatOverlay .ringCloudDialog .ringSocialButton {
+    border-radius: 8px;
+  }
+}
+
+
+/* ==========================================
+   FLOATING RING - CLOSE BUTTON
+   ========================================== */
+
+.ringChatOverlay .ringCloudContent {
+  position: absolute;
+}
+
+/* Same button appearance as Translate popup */
+.ringChatOverlay .ringCloudClose {
+  position: absolute;
+
+  top: 10px;
+  right: 10px;
+
+  z-index: 20;
+
+  display: grid;
+  place-items: center;
+
+  width: 42px;
+  height: 42px;
+  padding: 0;
+
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+/* Smaller on mobile */
+@media (max-width: 520px) {
+  .ringChatOverlay .ringCloudClose {
+    top: 6px;
+    right: 6px;
+
+    width: 32px;
+    height: 32px;
+    font-size: 20px;
+  }
+}
+
+
+/* ============================================
+   ALMOST JAPAN - WIDE CLOUD LOADING POPUP
+   Desktop / Tablet / Mobile / All Languages
+   ============================================ */
+
+.loadingOverlay .loadingPopup {
+  /* WINDOW DIMENSIONS */
+  position: relative;
+
+  width: min(82vw, 760px);
+  height: auto;
+  min-height: 245px;
+
+  max-width: none;
+  max-height: none;
+  aspect-ratio: auto;
+
+  box-sizing: border-box;
+  padding: 30px 54px;
+
+  /* CONTENT LAYOUT */
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: center;
+  gap: 14px;
+
+  flex: 0 0 auto;
+
+  /* FROSTED GLASS WINDOW */
+  background: rgba(255, 250, 255, 0.72);
+
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  border-radius: 24px;
+
+  box-shadow:
+    0 12px 40px rgba(157, 120, 205, 0.14),
+    inset 0 0 22px rgba(255, 255, 255, 0.25);
+
+  /* Allow clouds outside the popup */
+  overflow: visible;
+  isolation: isolate;
+}
+
+/* ============================================
+   CLOUD FRAME OUTSIDE THE WINDOW
+   ============================================ */
+
+.loadingOverlay .loadingPopup::before {
+  content: "";
+  display: block;
+
+  position: absolute;
+
+  /* Clouds extend beyond frosted window */
+  inset: -40px -70px;
+
+  z-index: -1;
+  pointer-events: none;
+
+  background-image:
+    url("/images/ring-cloud-frame-wide.png");
+
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+
+  /* Remove old border effects */
+  border: none;
+  border-image: none;
+  border-radius: 0;
+}
+
+/* Remove old animated shine pseudo-element */
+.loadingOverlay .loadingPopup::after {
+  content: none;
+  display: none;
+}
+
+/* Keep all real content above the decoration */
+.loadingOverlay .loadingPopup > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Hide old decorative title bar */
+.loadingOverlay .loadingWindowBar {
+  display: none;
+}
+
+/* ============================================
+   LOADING TITLE - SINGLE LINE
+   ============================================ */
+
+.loadingOverlay .loadingTitle {
+  display: block;
+
+  width: 100%;
+  min-width: 0;
+
+  margin: 0;
+  padding: 0;
+
+  font-family: var(--font-display);
+  font-size: clamp(17px, 3.8vw, 46px);
+  font-weight: 400;
+  line-height: 1.15;
+  letter-spacing: 0.01em;
+
+  text-align: center;
+
+  /* Prevent vertical stacking / wrapping */
+  white-space: nowrap !important;
+  word-break: keep-all !important;
+  overflow-wrap: normal !important;
+  hyphens: none !important;
+
+  flex: 0 0 auto;
+}
+
+/* ============================================
+   PROGRESS BAR
+   ============================================ */
+
+.loadingOverlay .loadingBarOuter {
+  position: relative;
+
+  width: 100%;
+  height: 30px;
+
+  margin: 0;
+  padding: 0;
+
+  box-sizing: border-box;
+
+  border: 2px solid #ae91dc;
+  border-radius: 999px;
+
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.76);
+
+  flex: 0 0 auto;
+}
+
+.loadingOverlay .loadingBarInner {
+  height: 100%;
+
+  border-radius: 999px;
+
+  background: linear-gradient(
+    90deg,
+    #ffb7dc,
+    #cbb7ff,
+    #aedbff
+  );
+
+  transition: width 0.08s linear;
+}
+
+/* ============================================
+   LOADING PERCENTAGE
+   ============================================ */
+
+.loadingOverlay .loadingPercent {
+  position: relative;
+
+  width: 100%;
+
+  margin: 0;
+  padding: 0;
+
+  font-size: clamp(22px, 3vw, 32px);
+  line-height: 1.2;
+
+  text-align: center;
+  white-space: nowrap;
+
+  flex: 0 0 auto;
+}
+
+/* ============================================
+   TABLET
+   ============================================ */
+
+@media (max-width: 768px) {
+  .loadingOverlay .loadingPopup {
+    width: min(80vw, 600px);
+
+    min-height: 210px;
+    padding: 24px 30px;
+    gap: 12px;
+  }
+
+  .loadingOverlay .loadingPopup::before {
+    inset: -30px -42px;
+  }
+
+  .loadingOverlay .loadingTitle {
+    font-size: clamp(17px, 4vw, 34px);
+  }
+}
+
+/* ============================================
+   MOBILE
+   ============================================ */
+
+@media (max-width: 520px) {
+  .loadingOverlay .loadingPopup {
+    width: 76vw;
+
+    min-height: 160px;
+    padding: 18px 14px;
+    gap: 10px;
+
+    border-radius: 15px;
+  }
+
+  .loadingOverlay .loadingPopup::before {
+    inset: -22px -38px;
+  }
+
+  .loadingOverlay .loadingTitle {
+    font-size: clamp(16px, 4vw, 22px);
+    letter-spacing: 0;
+    line-height: 1.1;
+  }
+
+  .loadingOverlay .loadingBarOuter {
+    height: 21px;
+  }
+
+  .loadingOverlay .loadingPercent {
+    font-size: 22px;
+  }
+}
+
+
+/* ==========================================
+   CUTE CLOUD POPUP ANIMATIONS
+   ========================================== */
+
+/* LOADING WINDOW - BOUNCY ENTRANCE */
+.loadingOverlay .loadingPopup {
+  transform-origin: center center;
+
+  animation:
+    cloudLoadingEnter 520ms
+    cubic-bezier(0.2, 0.8, 0.2, 1)
+    both;
+}
+
+@keyframes cloudLoadingEnter {
+  0% {
+    opacity: 0;
+    transform:
+      translateY(26px)
+      scale(0.85)
+      rotate(-1deg);
+    filter: blur(5px);
+  }
+
+  62% {
+    opacity: 1;
+    transform:
+      translateY(-8px)
+      scale(1.035)
+      rotate(0.4deg);
+    filter: blur(0);
+  }
+
+  82% {
+    transform:
+      translateY(2px)
+      scale(0.99);
+  }
+
+  100% {
+    opacity: 1;
+    transform:
+      translateY(0)
+      scale(1)
+      rotate(0);
+    filter: blur(0);
+  }
+}
+
+/* LOADING WINDOW - SOFT EXIT */
+.loadingOverlay[data-popup-state="closing"] .loadingPopup {
+  animation:
+    cloudLoadingExit 320ms ease-in both;
+}
+
+@keyframes cloudLoadingExit {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+
+  to {
+    opacity: 0;
+    transform: translateY(-18px) scale(0.88);
+    filter: blur(4px);
+  }
+}
+
+/* ==========================================
+   FLOATING RING - CUTE CLOUD BOUNCE
+   Preserve original center positioning
+   ========================================== */
+
+.ringChatOverlay .ringCloudDialog {
+  transform-origin: center center;
+
+  animation:
+    ringCloudEnter 540ms
+    cubic-bezier(0.2, 0.8, 0.2, 1)
+    both;
+}
+
+@keyframes ringCloudEnter {
+  0% {
+    opacity: 0;
+    transform:
+      translate(-50%, -47%)
+      scale(0.82)
+      rotate(-1.2deg);
+    filter: blur(5px);
+  }
+
+  64% {
+    opacity: 1;
+    transform:
+      translate(-50%, -51%)
+      scale(1.04)
+      rotate(0.4deg);
+    filter: blur(0);
+  }
+
+  84% {
+    transform:
+      translate(-50%, -50%)
+      scale(0.99);
+  }
+
+  100% {
+    opacity: 1;
+    transform:
+      translate(-50%, -50%)
+      scale(1)
+      rotate(0);
+    filter: blur(0);
+  }
+}
+
+/* FLOATING RING - SOFT EXIT */
+.ringChatOverlay[data-popup-state="closing"]
+.ringCloudDialog {
+  animation:
+    ringCloudExit 320ms ease-in both;
+}
+
+@keyframes ringCloudExit {
+  from {
+    opacity: 1;
+    transform:
+      translate(-50%, -50%)
+      scale(1);
+    filter: blur(0);
+  }
+
+  to {
+    opacity: 0;
+    transform:
+      translate(-50%, -47%)
+      scale(0.86);
+    filter: blur(4px);
+  }
+}
+
+/* ==========================================
+   BACKGROUND FADE
+   ========================================== */
+
+.loadingOverlay {
+  animation: cloudOverlayEnter 300ms ease-out both;
+}
+
+.ringChatOverlay {
+  animation: cloudOverlayEnter 300ms ease-out both;
+}
+
+.loadingOverlay[data-popup-state="closing"],
+.ringChatOverlay[data-popup-state="closing"] {
+  animation: cloudOverlayExit 320ms ease-in both;
+}
+
+@keyframes cloudOverlayEnter {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes cloudOverlayExit {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+
+/* Accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .loadingOverlay,
+  .loadingOverlay .loadingPopup,
+  .ringChatOverlay,
+  .ringChatOverlay .ringCloudDialog {
+    animation: none !important;
+  }
+}
+
+
+/* ==========================================
+   LOADING POPUP - CENTERED PROGRESS BAR
+   Desktop + Tablet + Mobile
+   ========================================== */
+
+/* Outer progress bar */
+.loadingOverlay .loadingPopup .loadingBarOuter {
+  width: 78% !important;
+  max-width: 620px !important;
+
+  margin-left: auto !important;
+  margin-right: auto !important;
+
+  height: 30px;
+  box-sizing: border-box;
+
+  border: 2px solid #ae91dc;
+  border-radius: 999px;
+
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.75);
+
+  flex: 0 0 auto;
+}
+
+/* Progress fill stays proportional to loading % */
+.loadingOverlay .loadingPopup .loadingBarInner {
+  height: 100%;
+  max-width: 100%;
+
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    #ffb7dc,
+    #cbb7ff,
+    #aedbff
+  );
+
+  transition: width 0.08s linear;
+}
+
+/* Mobile */
+@media (max-width: 520px) {
+  .loadingOverlay .loadingPopup .loadingBarOuter {
+    width: 76% !important;
+    height: 22px;
+  }
+}
+
+
+/* ==========================================
+   iPHONE / SAFARI / INSTAGRAM LOGO FIX
+   ========================================== */
+
+/* No square background on logo links */
+.shoppingIntroLogoLink,
+.logoLink {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Clip faint square pixels outside logo circle */
+.shoppingIntroLogo,
+.logoImage {
+  background: transparent !important;
+  border: none !important;
+
+  border-radius: 50%;
+
+  -webkit-clip-path: circle(49% at 50% 50%);
+  clip-path: circle(49% at 50% 50%);
+
+  /* Test without the original drop shadow */
+  filter: none !important;
+}
+
+
+/* ==========================================
+   SKY PERFORMANCE MODE
+   Keep:
+   - pink / blue / white glows
+   - five-layer sparkle overlay
+   Remove:
+   - rapid individual flashes
+   - extra moving shine overlay
+   Applies to both mobile and desktop
+   ========================================== */
+
+/* Keep the original five-layer sparkle overlay */
+.movingSymbolLayer::before {
+  display: block !important;
+}
+
+/* Disable the second overlay / moving shine */
+.movingSymbolLayer::after {
+  display: none !important;
+  animation: none !important;
+}
+
+/* Keep floating movement and glow, remove rapid flashing */
+.movingBgSymbol,
+.movingBgSymbol:nth-child(3n + 1),
+.movingBgSymbol:nth-child(3n + 2),
+.movingBgSymbol:nth-child(5n) {
+  /* keep the original glow look */
+  filter: inherit;
+
+  /* only float, no flashing */
+  animation-name: movingSymbolFloat !important;
+  animation-duration: var(--symbol-float-duration, 24s) !important;
+  animation-timing-function: ease-in-out !important;
+  animation-iteration-count: infinite !important;
+  animation-delay: 0s !important;
+}
+
+/* Prevent extra animation stacking on pseudo sparkle elements */
+.movingSymbolLayer::before,
+.movingBgSymbol {
+  will-change: auto !important;
+}

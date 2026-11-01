@@ -5,14 +5,17 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { clone as cloneSkeleton } from 'three/examples/jsm/utils/SkeletonUtils.js';
 import CosmicRunnerOverlay from "./CosmicRunnerOverlay";
+import CorePlanet, { preloadCorePlanet } from './CorePlanet';
+import planetStyles from './CorePlanet.module.css';
 
-import MissionLogoOrb from "./MissionLogoOrb";
 
-const CAT_MODEL_URL = '/models/alien-cat.glb';
-const CAT_MODEL_SHOPPING_URL = '/models/alien-cat-shoppingbag.glb';
-const BOAT_MODEL_URL = '/models/cosmic-boat.glb';
-const FLOAT_RING_MODEL_URL = '/models/float-ring.glb';
-const FLOAT_RING_FALLBACK_MODEL_URL = '/models/floatring.glb';
+// Separate transparent PNG characters for each scene.
+const INTRO_CAT_IMAGE_URL = '/images/alien-cat-image-shopping-bag.png';
+const CAT_IMAGE_URL = '/images/alien-cat-image.png'; // Main water + boat scene
+const RUNNER_CAT_IMAGE_URL = '/images/alien-cat-game.png';
+const BOAT_IMAGE_URL = '/images/cosmic-boat.png';
+const BOAT_BACK_IMAGE_URL = '/images/cosmic-boat-back.png'; // Show as soon as the boat starts flying away
+const FLOAT_RING_IMAGE_URL = '/images/float-ring.png';
 const SPARKLE_HEART_MODEL_URL = '/models/SparkleHeart_LowPoly.glb';
 
 // Button sounds live in /public/sounds/.
@@ -56,26 +59,15 @@ const TRANSLATE_LANGUAGE_OPTIONS = [
 const CORE_BUTTON_SOUND_FILES = [
   'SOUND.mp3',
   'intro-logo.mp3',
-  'intro-translate-open.mp3',
   'intro-translate-close.mp3',
   'intro-enter.mp3',
   'main-logo.mp3',
-  'main-translate-open.mp3',
-  'main-translate-close.mp3',
   'mission-close.mp3',
   'start-alien-cat-game.mp3',
   'collection-dreamy.mp3',
   'collection-emo.mp3',
   'collection-nature.mp3',
   'collection-cyber.mp3',
-  'social-tiktok.mp3',
-  'social-instagram.mp3',
-  'social-email.mp3',
-  'social-share.mp3',
-  'model-error-close.mp3',
-  'runner-close.mp3',
-  'runner-play-again.mp3',
-  'runner-save-score.mp3',
   FLOATING_RING_PRESS_SOUND_FILE,
   CAT_TO_BOAT_LOADING_SOUND_FILE,
   RUNNER_JUMP_SOUND_FILE,
@@ -106,15 +98,15 @@ const SITE_TRANSLATIONS = {
     "chooseLanguage": "Välj språk",
     "loadingGlossyJewelry": "Laddar glansigt smycke...",
     "couldNotLoadGlb": "Kunde inte ladda .GLB",
-    "introLine1": "EN ALIENKATT KOM",
-    "introLine2": "FÖR ATT HÄMTA DIG TILL SHOPPING",
-    "enterWebsite": "Gå in på webbplatsen",
+    "introLine1": "En Alien katt kom",
+    "introLine2": "för att hämta dig till shopping!",
+    "enterWebsite": "Gå till webbplatsen",
     "enterPortal": "GÅ IN I PORTALEN?",
     "entering": "GÅR IN...",
     "dragHint": "↑ dra alienkatten till båten ↑",
     "loadingTicker": "Ansluter till CYBER-NÄTVERKET...",
     "loadingTitle": "LADDAR...",
-    "collectionsTitle": "KOLLEKTIONER",
+    "collectionsTitle": "VÄLKOMMEN TILL VÅR UNIVERSE",
     "openCollection": "Öppna {title}",
     "modelLoadError": "MODELLFEL VID LADDNING",
     "close": "STÄNG",
@@ -139,15 +131,15 @@ const SITE_TRANSLATIONS = {
     "chooseLanguage": "Choose language",
     "loadingGlossyJewelry": "Loading glossy jewelry...",
     "couldNotLoadGlb": "Could not load GLB",
-    "introLine1": "AN ALIEN CAT HAS COME",
-    "introLine2": "TO COLLECT YOU FOR SHOPPING",
+    "introLine1": "An Alien Cat is inviting you",
+    "introLine2": "to go shopping together •⩊•",
     "enterWebsite": "Enter the website",
     "enterPortal": "CLICK HERE TO\n\nENTER THE PORTAL",
     "entering": "ENTERING...",
     "dragHint": "↑ place the alien cat on the boat ↑",
     "loadingTicker": "Connecting to the CYBER-NETWORK...",
     "loadingTitle": "LOADING...",
-    "collectionsTitle": "WHICH PLANET DO YOU\n\nWANT TO LAND FIRST?",
+    "collectionsTitle": "WELCOME TO OUR UNIVERSE",
     "openCollection": "Open {title}",
     "modelLoadError": "MODEL LOAD ERROR",
     "close": "CLOSE",
@@ -180,7 +172,7 @@ const SITE_TRANSLATIONS = {
     "dragHint": "↑ 宇宙猫を船まで指で持っていってね ↑",
     "loadingTicker": "サイバーネットワークに接続中...",
     "loadingTitle": "読み込み中...",
-    "collectionsTitle": "どの星に着陸しますか？",
+    "collectionsTitle": "私たちの宇宙へようこそ",
     "openCollection": "{title}を開く",
     "modelLoadError": "モデル読み込みエラー",
     "close": "閉じる",
@@ -213,7 +205,7 @@ const SITE_TRANSLATIONS = {
     "dragHint": "↑ 외계 고양이를 보트로 드래그 ↑",
     "loadingTicker": "CYBER-NETWORK에 연결 중...",
     "loadingTitle": "로딩 중...",
-    "collectionsTitle": "컬렉션",
+    "collectionsTitle": "우리 우주에 오신 것을 환영합니다",
     "openCollection": "{title} 열기",
     "modelLoadError": "모델 로드 오류",
     "close": "닫기",
@@ -246,7 +238,7 @@ const SITE_TRANSLATIONS = {
     "dragHint": "↑ 请带领外星猫猫登上飞船 ↑",
     "loadingTicker": "正在接入赛博网络...",
     "loadingTitle": "加载中...",
-    "collectionsTitle": "你想先登陆哪颗星球吖？",
+    "collectionsTitle": "欢迎来到我们的宇宙",
     "openCollection": "打开{title}",
     "modelLoadError": "模型加载错误",
     "close": "关闭",
@@ -279,7 +271,7 @@ const SITE_TRANSLATIONS = {
     "dragHint": "↑ วางแมวเอเลี่ยนบนเรือ ↑",
     "loadingTicker": "กำลังเชื่อมต่อกับ CYBER-NETWORK...",
     "loadingTitle": "กำลังโหลด...",
-    "collectionsTitle": "อยากลงจอดที่ดาวดวงไหนก่อน?",
+    "collectionsTitle": "ยินดีต้อนรับสู่จักรวาลของเรา",
     "openCollection": "เปิด {title}",
     "modelLoadError": "เกิดข้อผิดพลาดในการโหลดโมเดล",
     "close": "ปิด",
@@ -304,15 +296,15 @@ const SITE_TRANSLATIONS = {
     "chooseLanguage": "Choisir une langue",
     "loadingGlossyJewelry": "Chargement du bijou brillant...",
     "couldNotLoadGlb": "Impossible de charger le GLB",
-    "introLine1": "UN CHAT ALIEN EST VENU",
-    "introLine2": "TE CHERCHER POUR FAIRE DU SHOPPING",
+    "introLine1": "Un Chat Alien est venu",
+    "introLine2": "te chercher pour faire du shopping!",
     "enterWebsite": "Entrer sur le site",
     "enterPortal": "ENTRER DANS LE PORTAIL ?",
     "entering": "ENTRÉE...",
     "dragHint": "↑ fais glisser le chat alien vers le bateau ↑",
     "loadingTicker": "Connexion au CYBER-RÉSEAU...",
     "loadingTitle": "CHARGEMENT...",
-    "collectionsTitle": "COLLECTIONS",
+    "collectionsTitle": "BIENVENUE DANS NOTRE UNIVERS",
     "openCollection": "Ouvrir {title}",
     "modelLoadError": "ERREUR DE CHARGEMENT DU MODÈLE",
     "close": "FERMER",
@@ -337,15 +329,15 @@ const SITE_TRANSLATIONS = {
     "chooseLanguage": "Sprache wählen",
     "loadingGlossyJewelry": "Glänzendes Schmuckstück wird geladen...",
     "couldNotLoadGlb": "GLB konnte nicht geladen werden",
-    "introLine1": "EINE ALIEN-KATZE KAM",
-    "introLine2": "UM DICH ZUM SHOPPING ABZUHOLEN",
+    "introLine1": "Eine Alien-Katze kam",
+    "introLine2": "um dich zum shopping abzuholen",
     "enterWebsite": "Website betreten",
     "enterPortal": "DAS PORTAL BETRETEN?",
     "entering": "BETRETE...",
     "dragHint": "↑ zieh die Alien-Katze zum Boot ↑",
     "loadingTicker": "Verbindung zum CYBER-NETWORK...",
     "loadingTitle": "LÄDT...",
-    "collectionsTitle": "KOLLEKTIONEN",
+    "collectionsTitle": "WILLKOMMEN IN UNSEREM UNIVERSUM",
     "openCollection": "{title} öffnen",
     "modelLoadError": "MODELL-LADEFEHLER",
     "close": "SCHLIESSEN",
@@ -370,15 +362,15 @@ const SITE_TRANSLATIONS = {
     "chooseLanguage": "Elegir idioma",
     "loadingGlossyJewelry": "Cargando joya brillante...",
     "couldNotLoadGlb": "No se pudo cargar el GLB",
-    "introLine1": "UN GATO ALIENÍGENA VINO",
-    "introLine2": "A RECOGERTE PARA IR DE COMPRAS",
+    "introLine1": "Un gato Alienígena vino",
+    "introLine2": "a recogerte para ir de compras",
     "enterWebsite": "Clica aquí para entrar al portal",
     "enterPortal": "Clica aquí para entrar al portal",
     "entering": "ENTRANDO...",
     "dragHint": "↑ coloca al gato alienígena donde el barco ↑",
     "loadingTicker": "Conectándose a la red cibernética...",
     "loadingTitle": "CARGANDO...",
-    "collectionsTitle": "¿En qué planeta te gustaría aterrizar primero?",
+    "collectionsTitle": "BIENVENIDO A NUESTRO UNIVERSO",
     "openCollection": "Abrir {title}",
     "modelLoadError": "ERROR AL CARGAR EL MODELO",
     "close": "CERRAR",
@@ -403,15 +395,15 @@ const SITE_TRANSLATIONS = {
     "chooseLanguage": "Scegli lingua",
     "loadingGlossyJewelry": "Caricamento gioiello lucido...",
     "couldNotLoadGlb": "Impossibile caricare GLB",
-    "introLine1": "È ARRIVATO UN GATTO ALIENO",
-    "introLine2": "PER PORTARTI A FARE SHOPPING",
+    "introLine1": "È arrivato un Gatto Alieno",
+    "introLine2": "per portarti a fare shopping",
     "enterWebsite": "Entra nel sito",
     "enterPortal": "ENTRARE NEL PORTALE?",
     "entering": "ENTRO...",
     "dragHint": "↑ trascina il gatto alieno sulla barca ↑",
     "loadingTicker": "Connessione alla CYBER-NETWORK...",
     "loadingTitle": "CARICAMENTO...",
-    "collectionsTitle": "COLLEZIONI",
+    "collectionsTitle": "BENVENUTI NEL NOSTRO UNIVERSO",
     "openCollection": "Apri {title}",
     "modelLoadError": "ERRORE DI CARICAMENTO MODELLO",
     "close": "CHIUDI",
@@ -444,7 +436,7 @@ const SITE_TRANSLATIONS = {
     "dragHint": "↑ Coloca o gato extraterrestre no barco ↑",
     "loadingTicker": "A ligar à rede informática...",
     "loadingTitle": "CARREGANDO...",
-    "collectionsTitle": "Em que planeta queres aterrar primeiro?",
+    "collectionsTitle": "BEM-VINDO AO NOSSO UNIVERSO",
     "openCollection": "Abrir {title}",
     "modelLoadError": "ERRO AO CARREGAR MODELO",
     "close": "FECHAR",
@@ -473,62 +465,33 @@ const getDocumentLangCode = (languageCode) => {
 };
 
 
-//const CORE_MODEL_PRELOAD_URLS = [
-//  CAT_MODEL_URL,
-//  BOAT_MODEL_URL,
-//  FLOAT_RING_MODEL_URL,
-//];
-
-const INTRO_MODEL_PRELOAD_URLS = [
-  CAT_MODEL_SHOPPING_URL,
+// The intro, main character, boat and clickable float ring are all PNG textures.
+const CORE_IMAGE_PRELOAD_URLS = [
+  INTRO_CAT_IMAGE_URL,
+  CAT_IMAGE_URL,
+  BOAT_IMAGE_URL,
+  BOAT_BACK_IMAGE_URL,
+  FLOAT_RING_IMAGE_URL,
 ];
 
-const CORE_MODEL_PRELOAD_URLS = [
-  CAT_MODEL_URL,
-  BOAT_MODEL_URL,
-];
-
-const DEFERRED_MODEL_PRELOAD_URLS = [
-  FLOAT_RING_MODEL_URL,
-  FLOAT_RING_FALLBACK_MODEL_URL,
-  SPARKLE_HEART_MODEL_URL,
-  '/models/galaxy-bag.glb',
-  '/models/pastel-looping-animated-water.glb',
-];
-
-// These are all the GLB files currently shipped in /public/models.
-// Cat + boat are highest priority because the main scene needs them first.
+// Other models still use GLB and preload independently.
 const ALL_PUBLIC_GLB_PRELOAD_URLS = [
-  CAT_MODEL_URL,
-  BOAT_MODEL_URL,
-  FLOAT_RING_MODEL_URL,
-  FLOAT_RING_FALLBACK_MODEL_URL,
   SPARKLE_HEART_MODEL_URL,
   '/models/galaxy-bag.glb',
   '/models/pastel-looping-animated-water.glb',
 ];
 
 const PUBLIC_IMAGE_PRELOAD_URLS = [
+  ...CORE_IMAGE_PRELOAD_URLS,
+  RUNNER_CAT_IMAGE_URL,
   '/images/pastel-sky.jpg',
-  '/images/pastel-sky.png',
   '/images/water-texture.jpg',
   '/images/almostmadeinjapan.png',
   '/images/covers/dreamy.png',
   '/images/covers/emo.png',
   '/images/covers/nature.png',
   '/images/covers/cyber.png',
-  '/images/symbols/apple.png',
-  '/images/symbols/ghost.png',
-  '/images/symbols/leaf.png',
-  '/images/symbols/mushroom.png',
-  '/images/symbols/pumpkin.png',
-  '/images/symbols/skull.png',
-  '/images/symbols/star.png',
 ];
-
-// Change either value to Math.PI if a model faces backward after export.
-const CAT_MODEL_ROTATION_Y = 0;
-const BOAT_MODEL_ROTATION_Y = 0;
 
 const START = new THREE.Vector3(1.62, -0.50, 5.0);
 const DEFAULT_SEAT = new THREE.Vector3(2.5, 1.0, 2.1);
@@ -541,8 +504,9 @@ const CAT_GROUND_Y = -0.5;
 // x = left/right, y = water height/submerge, z = front/back.
 // More negative x moves it left. More negative y sinks it deeper into the water.
 const FLOAT_RING_POSITION = new THREE.Vector3(-1.30, BOAT_WATERLINE_Y - 0.92, 4.88);
-const FLOAT_RING_TARGET_SIZE = 1.68;
-const FLOAT_RING_MODEL_TILT_X = -Math.PI / 2;
+// Sizes account for transparent padding inside the supplied PNGs.
+const BOAT_IMAGE_PLANE_SIZE = 7.2;
+const FLOAT_RING_IMAGE_PLANE_SIZE = 2.0;
 
 const clampNumber = (value, min, max) => Math.max(min, Math.min(max, value));
 
@@ -607,13 +571,13 @@ const MISSION_LINK_IMAGES = [
                                                                 ];
 
 const MOVING_BG_SYMBOLS = [
-  '/images/symbols/apple.png',
-  '/images/symbols/ghost.png',
-  '/images/symbols/leaf.png',
-  '/images/symbols/mushroom.png',
-  '/images/symbols/pumpkin.png',
-  '/images/symbols/skull.png',
   '/images/symbols/star.png',
+  '/images/symbols/star-shining.png',
+  '/images/symbols/star-three.png',
+  '/images/symbols/star-peace.png',
+  '/images/symbols/star-face.png',
+  '/images/symbols/star-sparkle.png',
+  '/images/symbols/star-sparkle-face.png',
 ];
 
 /*
@@ -638,7 +602,12 @@ function randomItem(items) {
 
 function createMovingBackgroundSymbols() {
   const columns = MOVING_SYMBOL_COLUMNS;
-  const rows = MOVING_SYMBOL_ROWS;
+
+  // Fewer animated decorations on mobile
+  const rows =
+    window.innerWidth < 768
+      ? 3
+      : MOVING_SYMBOL_ROWS;
 
   const cellWidth = 100 / columns;
   const cellHeight = 100 / rows;
@@ -1095,6 +1064,48 @@ function fitModel(root, targetSize, groundY, rotationY, scaleMode = 'max') {
   return new THREE.Box3().setFromObject(root);
 }
 
+// Create a camera-facing PNG character while retaining a normal Three.js
+// Object3D parent for dragging, jumping, rotation, and boat-follow motion.
+// Clone the shared preloaded texture so disposing the intro scene does not
+// dispose the image texture used later by the main scene.
+function createAlienCatImage(preloadedTexture, maxDimension, groundY, name, camera) {
+  const sourceImage = preloadedTexture?.image;
+  const sourceWidth = sourceImage?.naturalWidth || sourceImage?.width;
+  const sourceHeight = sourceImage?.naturalHeight || sourceImage?.height;
+
+  if (!sourceWidth || !sourceHeight) {
+    throw new Error('The alien cat PNG texture has no valid dimensions.');
+  }
+
+  const aspect = sourceWidth / sourceHeight;
+  const width = maxDimension * Math.min(1, aspect);
+  const height = maxDimension / Math.max(1, aspect);
+
+  const texture = preloadedTexture.clone();
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.minFilter = THREE.LinearMipmapLinearFilter;
+  texture.magFilter = THREE.LinearFilter;
+  texture.needsUpdate = true;
+
+  const imageMesh = new THREE.Mesh(
+    new THREE.PlaneGeometry(width, height),
+    new THREE.MeshBasicMaterial({
+      map: texture,
+      transparent: true,
+      alphaTest: 0.025,
+      depthTest: true,
+      depthWrite: false,
+      side: THREE.DoubleSide,
+      toneMapped: false,
+    }),
+  );
+  imageMesh.name = name;
+  imageMesh.position.set(0, groundY + height * 0.5, 0);
+  // Flat image faces the camera rather than showing its paper-thin edge.
+  if (camera) imageMesh.quaternion.copy(camera.quaternion);
+  return { imageMesh, width, height };
+}
+
 function createMixer(root, clips, mixers) {
   if (!clips?.length) return;
 
@@ -1239,7 +1250,7 @@ function createUltraFastWater() {
   // Smooth, high pastel waves for mobile:
   // one water mesh, no flat overlay planes, no GLB, no texture slicing.
   // Colors live directly on the wave vertices so pink/lavender/cyan stay visible.
-  const segments = window.innerWidth < 768 ? 44 : 64;
+  const segments = window.innerWidth < 768 ? 32 : 48;
   const geometry = new THREE.PlaneGeometry(
     120,
     120,
@@ -1248,15 +1259,16 @@ function createUltraFastWater() {
   );
 
   const waterPositions = geometry.attributes.position;
+  waterPositions.setUsage(THREE.DynamicDrawUsage);
   const basePositions = waterPositions.array.slice();
 
   const waterColors = new Float32Array(waterPositions.count * 3);
-  const cyan = new THREE.Color('#a57254');
-  const deepCyan = new THREE.Color('#a57254');
-  const pink = new THREE.Color('#9c3131');
-  const softPink = new THREE.Color('#4a1e2a');
+  const cyan = new THREE.Color('#4ffaff');
+  const deepCyan = new THREE.Color('#00d8ff');
+  const pink = new THREE.Color('#ff5eea');
+  const softPink = new THREE.Color('#ffd6f5');
   const lavender = new THREE.Color('#a98cff');
-  const whiteFoam = new THREE.Color('#000000');
+  const whiteFoam = new THREE.Color('#ffffff');
   const mixedColor = new THREE.Color();
 
   for (let i = 0; i < waterPositions.count; i += 1) {
@@ -1281,6 +1293,9 @@ function createUltraFastWater() {
     new THREE.BufferAttribute(waterColors, 3),
   );
   geometry.computeVertexNormals();
+
+  geometry.attributes.color.setUsage(THREE.DynamicDrawUsage);
+geometry.attributes.normal.setUsage(THREE.DynamicDrawUsage);
 
   const material = new THREE.MeshStandardMaterial({
     color: 0xffffff,
@@ -1452,8 +1467,8 @@ function createInfinityTriangleWater() {
       uWaterTexture: { value: null },
       uTextureStrength: { value: 0.0 },
 
-      colorA: { value: new THREE.Color('#9c3131') },
-      colorB: { value: new THREE.Color('#9c3131') },
+      colorA: { value: new THREE.Color('#c8f7ff') },
+      colorB: { value: new THREE.Color('#f7ddff') },
     },
     vertexShader: `
       varying vec2 vUv;
@@ -2193,7 +2208,7 @@ window.addEventListener('keydown', handleIntroKeyDown);
     const renderer = new THREE.WebGLRenderer({
       canvas: catCanvas,
       alpha: true,
-      antialias: true,
+      antialias: false,
       powerPreference: 'high-performance',
     });
     renderer.setClearColor(0x000000, 0);
@@ -2241,33 +2256,22 @@ const introDragState = {
 };
 
 let introCatLoadedAt = 0;
-const introMixers = [];
-    
 
-    loadSceneGLTF(preloadStore, CAT_MODEL_SHOPPING_URL)
-      .then((gltf) => {
-        if (!gltf?.scene) return;
+    preloadTexture(preloadStore, INTRO_CAT_IMAGE_URL)
+      .then((texture) => {
+        if (!texture) throw new Error(`Could not load ${INTRO_CAT_IMAGE_URL}`);
+        if (disposed) return;
 
-        if (disposed) {
-          disposeObject(gltf.scene);
-          return;
-        }
-
-        const catModel = gltf.scene;
-        catModel.name = 'ShoppingIntroAlienCat';
-        improveModelQuality(catModel, renderer, [
-          new THREE.Color(0xffb7dc),
-          new THREE.Color(0xcab8ff),
-          new THREE.Color(0xaedbff),
-        ]);
-        fitModel(catModel, 3.55, CAT_GROUND_IN_INTRO, CAT_MODEL_ROTATION_Y, 'max');
-        introCatGroup.add(catModel);
-        createMixer(catModel, gltf.animations, introMixers);
+        const { imageMesh } = createAlienCatImage(
+          texture, 3.55, CAT_GROUND_IN_INTRO,
+          'ShoppingIntroAlienCatImage', introCamera,
+        );
+        introCatGroup.add(imageMesh);
         introCatLoadedAt = elapsed;
         introCatGroup.visible = true;
       })
       .catch((error) => {
-        console.error('Could not load intro alien-cat.glb:', error);
+        console.error('Could not load intro alien cat PNG:', error);
       });
 
     const resizeCatCanvas = () => {
@@ -2282,11 +2286,8 @@ const introMixers = [];
       introCamera.bottom = -viewportHeight / 2;
       introCamera.updateProjectionMatrix();
 
-const dprLimit = width < 768 ? 1.5 : 1.5;
-
-renderer.setPixelRatio(
-  Math.min(window.devicePixelRatio || 1, dprLimit)
-);
+      const dprLimit = width < 700 ? 1.0 : 1.25;
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, dprLimit));
       renderer.setSize(width, height, false);
     };
 
@@ -2540,7 +2541,6 @@ introCatGroup.rotation.z = introDragState.isDragging
 
 introCatGroup.scale.setScalar(1 + Math.max(0, bounce) * 0.18);
 
-      introMixers.forEach((mixer) => mixer.update(dt));
       renderer.render(introScene, introCamera);
 
 const exitElapsed =
@@ -2595,7 +2595,6 @@ window.removeEventListener('pointercancel', finishIntroCatDrag);
 catCanvas.style.pointerEvents = '';
 catCanvas.style.touchAction = '';
 document.body.style.cursor = '';
-  introMixers.forEach((mixer) => mixer.stopAllAction());
 
   disposeObject(introScene);
   renderer.dispose();
@@ -3012,7 +3011,7 @@ side: source.side ?? THREE.FrontSide,
   type="button"
   className="shoppingIntroTranslateButton"
   aria-label={languageCopy.translate}
-  data-button-sound="/sounds/intro-translate-open.mp3"
+  data-button-sound=""
   aria-expanded={showTranslateModal}
   onClick={() => setShowTranslateModal(true)}
 >
@@ -3113,10 +3112,9 @@ side: source.side ?? THREE.FrontSide,
               })}
             </div>
 
-            <div ref={translateGlbStageRef} className="shoppingIntroTranslateGlbStage">
-              <div className="shoppingIntroTranslateGlbLoading">
-                {languageCopy[translateGlbStatusKey] || languageCopy.chooseLanguage}
-              </div>
+            <div className="shoppingIntroTranslateGlbStage">
+              <div className={planetStyles.translatePlanet}><CorePlanet /></div>
+              <div className="shoppingIntroTranslateGlbLoading">{languageCopy.chooseLanguage}</div>
             </div>
           </div>
         </div>
@@ -3166,7 +3164,10 @@ function CollectionMiniGlobe() {
 
     const resize = () => {
       const size = Math.max(1, canvas.clientWidth || 110);
-      const dpr = Math.min(window.devicePixelRatio || 1, 1.25);
+      const dpr = Math.min(
+       Math.max(window.devicePixelRatio || 1, 1.5),
+      2
+      );
 
       renderer.setPixelRatio(dpr);
       renderer.setSize(size, size, false);
@@ -3208,8 +3209,74 @@ function CollectionMiniGlobe() {
 }
 
 
+/* Keep a popup mounted until its closing animation finishes */
+function usePopupPresence(open, exitDuration = 360) {
+  const [rendered, setRendered] = useState(open);
+  const [exiting, setExiting] = useState(false);
+
+  useEffect(() => {
+    if (open) {
+      setRendered(true);
+      setExiting(false);
+      return;
+    }
+
+    if (!rendered) return;
+
+    setExiting(true);
+
+    const reduceMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)"
+    ).matches;
+
+    const timer = window.setTimeout(() => {
+      setRendered(false);
+      setExiting(false);
+    }, reduceMotion ? 0 : exitDuration);
+
+    return () => window.clearTimeout(timer);
+  }, [open, rendered, exitDuration]);
+
+  return { rendered, exiting };
+}
+
+
+
 export default function CosmicVoyage() {
   useButtonPressSound();
+
+
+
+
+  const popupFrameImagesRef = useRef([]);
+
+  useEffect(() => {
+    const frameUrls = [
+      "/images/ring-cloud-frame-wide.png",
+      "/images/ring-cloud-frame.png",
+    ];
+
+    popupFrameImagesRef.current = frameUrls.map((url) => {
+      const image = new Image();
+
+      image.decoding = "async";
+      image.src = url;
+
+      if (typeof image.decode === "function") {
+        image.decode().catch(() => {
+          console.warn("Cloud frame could not decode:", url);
+        });
+      }
+
+      return image;
+    });
+
+    return () => {
+      popupFrameImagesRef.current = [];
+    };
+  }, []);
+
+
 
   const canvasRef = useRef(null);
   const stateRef = useRef(null);
@@ -3225,6 +3292,17 @@ export default function CosmicVoyage() {
   const [runnerGameOpen, setRunnerGameOpen] = useState(false);
   const runnerGameOpenRef = useRef(false);
   const [ringPopupOpen, setRingPopupOpen] = useState(false);
+
+const {
+  rendered: loadingVisible,
+  exiting: loadingExiting,
+} = usePopupPresence(loading, 360);
+
+const {
+  rendered: ringVisible,
+  exiting: ringExiting,
+} = usePopupPresence(ringPopupOpen, 360);
+
   const [ringPopupPlacement, setRingPopupPlacement] = useState({
     left: 72,
     top: 180,
@@ -3237,11 +3315,14 @@ export default function CosmicVoyage() {
   const [movingBgSymbols, setMovingBgSymbols] = useState([]);
   const [introFinished, setIntroFinished] = useState(false);
   const [coreModelsReady, setCoreModelsReady] = useState(false);
-  const [selectedLanguageCode, setSelectedLanguageCode] = useState(() => {
-    if (typeof window === 'undefined') return DEFAULT_LANGUAGE_CODE;
 
-    return window.localStorage.getItem('amij-language-code') || DEFAULT_LANGUAGE_CODE;
-  });
+
+const [selectedLanguageCode, setSelectedLanguageCode] =
+  useState(DEFAULT_LANGUAGE_CODE);
+
+const [languageRestored, setLanguageRestored] = useState(false);
+
+
   const [showMainTranslateModal, setShowMainTranslateModal] = useState(false);
   const mainTranslateGlbStageRef = useRef(null);
   const [mainTranslateGlbStatusKey, setMainTranslateGlbStatusKey] = useState('chooseLanguage');
@@ -3287,15 +3368,45 @@ export default function CosmicVoyage() {
   }
 }, []);
 
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      window.localStorage.setItem('amij-language-code', selectedLanguageCode);
-    }
 
-    if (typeof document !== 'undefined') {
-      document.documentElement.lang = getDocumentLangCode(selectedLanguageCode);
+// Restore the visitor's saved language after hydration.
+useEffect(() => {
+  try {
+    const savedLanguage = window.localStorage.getItem(
+      'amij-language-code'
+    );
+
+    const isSupported = TRANSLATE_LANGUAGE_OPTIONS.some(
+      (language) => language.code === savedLanguage
+    );
+
+    if (isSupported) {
+      setSelectedLanguageCode(savedLanguage);
     }
-  }, [selectedLanguageCode]);
+  } catch {
+    // Continue with English if browser storage is unavailable.
+  }
+
+  setLanguageRestored(true);
+}, []);
+
+// Save future language changes only after restoration.
+useEffect(() => {
+  if (!languageRestored) return;
+
+  try {
+    window.localStorage.setItem(
+      'amij-language-code',
+      selectedLanguageCode
+    );
+  } catch {
+    // Browser storage may be unavailable.
+  }
+
+  document.documentElement.lang =
+    getDocumentLangCode(selectedLanguageCode);
+}, [selectedLanguageCode, languageRestored]);
+
 
 
   useEffect(() => {
@@ -3440,7 +3551,14 @@ side: source.side ?? THREE.FrontSide,
       powerPreference: 'high-performance',
     });
 
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.25));
+
+renderer.setPixelRatio(
+  Math.min(
+    window.devicePixelRatio || 1,
+    window.innerWidth < 768 ? 1.0 : 1.25
+  )
+);
+
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.42;
@@ -3688,7 +3806,7 @@ side: source.side ?? THREE.FrontSide,
   }, []);
 
   useEffect(() => {
-    if (!ringPopupOpen) {
+      if (!ringVisible) {
       setRingTerminalText('');
       return undefined;
     }
@@ -3705,7 +3823,7 @@ side: source.side ?? THREE.FrontSide,
     }, 24);
 
     return () => window.clearInterval(timer);
-  }, [ringPopupOpen, copy.ringTerminalMessage]);
+  }, [ringVisible, copy.ringTerminalMessage]);
 
   useEffect(() => {
     if (!ringTerminalRef.current) return;
@@ -3731,6 +3849,9 @@ side: source.side ?? THREE.FrontSide,
     state.boatGroup.position.set(0, BOAT_WATERLINE_Y, BOAT_DEPTH);
     state.boatGroup.rotation.set(0, 0, 0);
     state.boatGroup.scale.setScalar(1);
+    // On replay, show the normal front-facing boat again.
+    if (state.boatFrontImage) state.boatFrontImage.visible = true;
+    if (state.boatBackImage) state.boatBackImage.visible = false;
 
     state.catGroup.position.copy(START);
     state.catGroup.rotation.set(0, 0, 0);
@@ -3756,15 +3877,23 @@ side: source.side ?? THREE.FrontSide,
 
     THREE.Cache.enabled = true;
 
-    // Start the two models needed for first paint immediately.
-    Promise.allSettled(
-      CORE_MODEL_PRELOAD_URLS.map((url) => preloadGLB(preloadStore, url)),
-    ).then((results) => {
+// Load and parse CorePlanet before the visitor opens its popup.
+preloadCorePlanet().catch((error) => {
+  console.warn('CorePlanet preload failed:', error);
+});
+
+    // Wait for all core PNG images before allowing the intro to proceed.
+    const coreAssets = CORE_IMAGE_PRELOAD_URLS.map((url) => ({
+      url,
+      promise: preloadTexture(preloadStore, url),
+    }));
+
+    Promise.allSettled(coreAssets.map((asset) => asset.promise)).then((results) => {
       results.forEach((result, index) => {
-        if (result.status === 'rejected') {
+        if (result.status === 'rejected' || (result.status === 'fulfilled' && !result.value)) {
           console.error(
-            `Could not preload core model ${CORE_MODEL_PRELOAD_URLS[index]}:`,
-            result.reason,
+            `Could not preload core asset ${coreAssets[index].url}:`,
+            result.status === 'rejected' ? result.reason : 'Asset unavailable',
           );
         }
       });
@@ -3776,13 +3905,11 @@ side: source.side ?? THREE.FrontSide,
 
     // Warm the rest of /public in idle time so the intro stays smooth.
     const cancelIdleWork = runSoonWhenIdle(() => {
-      ALL_PUBLIC_GLB_PRELOAD_URLS
-        .filter((url) => !CORE_MODEL_PRELOAD_URLS.includes(url))
-        .forEach((url) => {
-          preloadGLB(preloadStore, url).catch((error) => {
-            console.warn(`Optional model preload skipped ${url}:`, error);
-          });
+      ALL_PUBLIC_GLB_PRELOAD_URLS.forEach((url) => {
+        preloadGLB(preloadStore, url).catch((error) => {
+          console.warn(`Optional model preload skipped ${url}:`, error);
         });
+      });
 
       PUBLIC_IMAGE_PRELOAD_URLS.forEach((url) => {
         preloadTexture(preloadStore, url).catch(() => null);
@@ -3812,36 +3939,23 @@ side: source.side ?? THREE.FrontSide,
 
     THREE.Cache.enabled = true;
 
-    // const renderer = new THREE.WebGLRenderer({
-    //  canvas,
-    //  antialias: false,
-    //  alpha: true,
-    //  powerPreference: 'high-performance',
-    //  precision: 'mediump',
-    //});
+    const renderer = new THREE.WebGLRenderer({
+      canvas,
+      antialias: true,
+      alpha: true,
+      powerPreference: 'high-performance',
+      precision: 'mediump',
+    });
 
-    //renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.25));
-    // renderer.setSize(width, height);
-
-    const isMobile =
-  window.innerWidth < 768 ||
-  window.matchMedia?.('(pointer: coarse)').matches;
-
-const renderer = new THREE.WebGLRenderer({
-  canvas,
-  antialias: true,
-  alpha: true,
-  powerPreference: 'high-performance',
-});
-
-const maxDpr = isMobile ? 1.5 : 1.5;
 
 renderer.setPixelRatio(
-  Math.min(window.devicePixelRatio || 1, maxDpr)
+  Math.min(
+    window.devicePixelRatio || 1,
+    window.innerWidth < 768 ? 1.0 : 1.25
+  )
 );
 
-renderer.setSize(width, height);
-
+    renderer.setSize(width, height);
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.0;
@@ -3964,8 +4078,8 @@ scene.add(pinkWireframeGlobe);
       },
     );
 
-    // These groups preserve all of the original motion and drag behaviour.
-    // The GLB scenes are inserted inside them after loading.
+    // Keep the original animation, dragging and interaction groups.
+    // The cat, boat and ring are now camera-facing transparent PNG meshes.
     const boatGroup = new THREE.Group();
     boatGroup.position.z = BOAT_DEPTH;
     scene.add(boatGroup);
@@ -4047,144 +4161,97 @@ scene.add(pinkWireframeGlobe);
     floatRingGlow.position.set(0, 0.28, 0);
     floatRingGroup.add(floatRingGlow);
 
-    // Load the boat and cat from the intro preload cache when possible.
-    // If the intro finished before a preload completed, this waits on the same Promise
-    // instead of starting a duplicate network request.
+    // All four main-scene assets are PNG textures, not GLB models.
+    // Keep the invisible drag/drop and clickable-ring meshes intact.
     const preloadStore = preloadStoreRef.current;
+    let boatImage = null;
+    let boatBackImage = null;
+    let floatRingImage = null;
 
+    preloadTexture(preloadStore, FLOAT_RING_IMAGE_URL)
+      .then((ringTexture) => {
+        if (disposed || !ringTexture) return;
 
-    loadSceneGLTF(preloadStore, FLOAT_RING_MODEL_URL)
-      .catch((primaryError) => {
-        console.warn('Could not load /models/float-ring.glb, trying /models/floatring.glb:', primaryError);
-        return loadSceneGLTF(preloadStore, FLOAT_RING_FALLBACK_MODEL_URL);
-      })
-      .then((ringGLTF) => {
-        if (disposed) {
-          disposeObject(ringGLTF.scene);
-          return;
-        }
-
-        const floatRingModel = ringGLTF.scene;
-        floatRingModel.name = 'FloatingRingModel';
-        improveModelQuality(floatRingModel, renderer, [
-          // new THREE.Color(0xffb7dc),
-          // new THREE.Color(0xcab8ff),
-          // new THREE.Color(0xaedbff),
-          // new THREE.Color(0xffffff),
-        ]);
-
-        fitModel(
-          floatRingModel,
-          FLOAT_RING_TARGET_SIZE,
-          -0.16,
-          0,
-          'max',
+        // Billboard sits partially below the waterline like the old ring.
+        const result = createAlienCatImage(
+          ringTexture,
+          FLOAT_RING_IMAGE_PLANE_SIZE,
+          -0.5,
+          'FloatingRingImage',
+          camera,
         );
-
-        // If the ring appears upright in your exported GLB, change this constant to 0.
-        floatRingModel.rotation.x = FLOAT_RING_MODEL_TILT_X;
-        floatRingModel.rotation.z = 0.14;
-        floatRingModel.traverse((object) => {
-          object.userData.isFloatingRing = true;
-        });
-
-        floatRingGroup.add(floatRingModel);
+        floatRingImage = result.imageMesh;
+        floatRingImage.userData.isFloatingRing = true;
+        // Avoid drawing a plain rectangle where the PNG has transparency.
+        floatRingImage.material.alphaTest = 0.025;
+        floatRingGroup.add(floatRingImage);
       })
       .catch((error) => {
-        console.warn('Floating ring model could not be loaded:', error);
+        console.warn('Floating ring PNG could not be loaded:', error);
       });
 
     Promise.all([
-      loadSceneGLTF(preloadStore, BOAT_MODEL_URL),
-      loadSceneGLTF(preloadStore, CAT_MODEL_URL),
+      preloadTexture(preloadStore, BOAT_IMAGE_URL),
+      preloadTexture(preloadStore, BOAT_BACK_IMAGE_URL),
+      preloadTexture(preloadStore, CAT_IMAGE_URL),
     ])
-      .then(([boatGLTF, catGLTF]) => {
-        if (disposed) {
-          disposeObject(boatGLTF.scene);
-          disposeObject(catGLTF.scene);
-          return;
-        }
+      .then(([boatTexture, boatBackTexture, catTexture]) => {
+        if (disposed) return;
+        if (!boatTexture) throw new Error(`Could not load ${BOAT_IMAGE_URL}`);
+        if (!boatBackTexture) throw new Error(`Could not load ${BOAT_BACK_IMAGE_URL}`);
+        if (!catTexture) throw new Error(`Could not load ${CAT_IMAGE_URL}`);
 
-        const boatModel = boatGLTF.scene;
-        boatModel.name = 'CosmicBoatModel';
-        improveModelQuality(boatModel, renderer, [
-        //  new THREE.Color(0xaedbff),
-        //  new THREE.Color(0xcab8ff),
-        //  new THREE.Color(0xffb7dc),
-        ]);
-
-        const boatBox = fitModel(
-          boatModel,
-          7.0,
-          -0.65,
-          BOAT_MODEL_ROTATION_Y,
-          'horizontal',
+        // Boat image is upright and faces the camera, while its parent
+        // group keeps the old water bob and fly-away motion.
+        const result = createAlienCatImage(
+          boatTexture,
+          BOAT_IMAGE_PLANE_SIZE,
+          -1.85,
+          'CosmicBoatImage',
+          camera,
         );
+        boatImage = result.imageMesh;
+        boatGroup.add(boatImage);
 
-        boatGroup.add(boatModel);
-        createMixer(boatModel, boatGLTF.animations, mixers);
+        // The rear view occupies the same world-space width and follows the
+        // very same boatGroup through water bobbing and the flyaway path.
+        // Keep it hidden until the cat is actually dropped onto the boat.
+        const backResult = createAlienCatImage(
+          boatBackTexture,
+          BOAT_IMAGE_PLANE_SIZE,
+          -1.85,
+          'CosmicBoatBackImage',
+          camera,
+        );
+        boatBackImage = backResult.imageMesh;
+        boatBackImage.visible = false;
+        boatGroup.add(boatBackImage);
 
-        const boatSize = boatBox.getSize(new THREE.Vector3());
+        // A PNG has no 3D deck geometry or CatSeat marker. Position the
+        // cat near the illustrated cabin/deck, slightly in front of the boat.
+        seatPosition.set(-0.25, 1.55, 0.55);
+        dropZoneRing.position.y = seatPosition.y + CAT_GROUND_Y + 0.04;
 
-        // Optional exact marker:
-        // Add an Empty named "CatSeat" inside cosmic-boat.glb to control
-        // the final cat position precisely.
-        const seatMarker =
-          boatModel.getObjectByName('CatSeat') ||
-          boatModel.getObjectByName('cat_seat') ||
-          boatModel.getObjectByName('CAT_SEAT');
-
-        if (seatMarker) {
-          const markerWorld = seatMarker.getWorldPosition(new THREE.Vector3());
-          seatPosition.copy(boatGroup.worldToLocal(markerWorld));
-        } else {
-          const estimatedDeckY = boatBox.min.y + boatSize.y * 0.25;
-
-          seatPosition.set(
-            -0.8,
-            estimatedDeckY - CAT_GROUND_Y + 0.03,
-            boatBox.max.z - boatSize.z * 0.38,
+        const { imageMesh: catImage, width: catWidth, height: catHeight } =
+          createAlienCatImage(
+            catTexture, 2.35, CAT_GROUND_Y, 'AlienCatImage', camera,
           );
-        }
-
-        dropZoneRing.position.y =
-          seatPosition.y + CAT_GROUND_Y + 0.04;
-
-        const catModel = catGLTF.scene;
-        catModel.name = 'AlienCatModel';
-        improveModelQuality(catModel, renderer, [
-          new THREE.Color(0xffb7dc),
-          new THREE.Color(0xcab8ff),
-          new THREE.Color(0xaedbff),
-        ]);
-
-        const catBox = fitModel(
-          catModel,
-          2.35,
-          CAT_GROUND_Y,
-          CAT_MODEL_ROTATION_Y,
-          'max',
-        );
-
-        catGroup.add(catModel);
-        createMixer(catModel, catGLTF.animations, mixers);
-
-        const catSize = catBox.getSize(new THREE.Vector3());
-        const hitRadius =
-          Math.max(catSize.x, catSize.y, catSize.z) * 0.7;
+        catGroup.add(catImage);
+        const hitRadius = Math.max(catWidth, catHeight) * 0.7;
 
         const currentState = stateRef.current;
         if (currentState) {
+          currentState.boatFrontImage = boatImage;
+          currentState.boatBackImage = boatBackImage;
           currentState.modelsReady = true;
           currentState.catHitRadius = Math.max(0.7, hitRadius);
         }
       })
       .catch((error) => {
-        console.error('Cosmic Voyage model/setup error:', error);
-
+        console.error('Cosmic Voyage image/setup error:', error);
         if (!disposed) {
           setModelError(
-            `Model setup failed: ${error?.message || 'Unknown GLB/model error'}`,
+            `Image setup failed: ${error?.message || 'Unknown PNG/scene error'}`,
           );
         }
       });
@@ -4262,6 +4329,8 @@ scene.add(pinkWireframeGlobe);
       cur: currentPosition,
       tgt: targetPosition,
       boatGroup,
+      boatFrontImage: null,
+      boatBackImage: null,
       catGroup,
       floatRingGroup,
       particleMaterial,
@@ -4418,6 +4487,9 @@ scene.add(pinkWireframeGlobe);
         state.launching = true;
         state.launchComplete = false;
         state.launchElapsed = 0;
+        // Swap front PNG for the rear view immediately on successful drop.
+        if (boatImage) boatImage.visible = false;
+        if (boatBackImage) boatBackImage.visible = true;
 
         boatGroup.updateMatrixWorld(true);
         state.tgt.copy(
@@ -4540,12 +4612,21 @@ scene.add(pinkWireframeGlobe);
       );
       camera.lookAt(0, 0, 0);
       camera.updateProjectionMatrix();
+      // Update the PNG facing direction when desktop/mobile camera changes.
+      const catImage = catGroup.getObjectByName('AlienCatImage');
+      if (catImage) catImage.quaternion.copy(camera.quaternion);
     };
 
     window.addEventListener('resize', onResize);
 
     const clock = new THREE.Clock();
+    // Reusable quaternion, no per-frame allocation for image billboarding.
+    const billboardParentQuaternion = new THREE.Quaternion();
     let elapsed = 0;
+
+    const reusableWaterColor = new THREE.Color();
+
+    let waterNormalFrame = 0;
 
     const lerp = (from, to, amount) =>
       from + (to - from) * amount;
@@ -4602,14 +4683,16 @@ pinkWireframeGlobe.rotation.z =
         const x = pastelWater.basePositions[i * 3];
         const y = pastelWater.basePositions[i * 3 + 1];
 
+        const waterTime = elapsed * 0.5;
+
         const longWave =
-          Math.sin(x * 0.18 + elapsed * 2.55) * 0.50;
+          Math.sin(x * 0.18 + waterTime * 2.55) * 0.50;
         const crossWave =
-          Math.cos(y * 0.16 + elapsed * 2.15) * 0.36;
+          Math.cos(y * 0.16 + waterTime * 2.15) * 0.36;
         const diagonalWave =
-          Math.sin((x + y) * 0.085 + elapsed * 3.2) * 0.22;
+          Math.sin((x + y) * 0.085 + waterTime * 3.2) * 0.22;
         const smallTide =
-          Math.cos((x - y) * 0.12 + elapsed * 4.1) * 0.12;
+          Math.cos((x - y) * 0.12 + waterTime * 4.1) * 0.12;
 
         const height =
           longWave +
@@ -4626,29 +4709,47 @@ pinkWireframeGlobe.rotation.z =
         );
 
         const ribbonA =
-          (Math.sin(x * 0.105 + elapsed * 0.9) + 1) * 0.5;
+          (Math.sin(x * 0.105 + waterTime * 0.9) + 1) * 0.5;
         const ribbonB =
-          (Math.cos(y * 0.115 - elapsed * 0.7) + 1) * 0.5;
+          (Math.cos(y * 0.115 - waterTime * 0.7) + 1) * 0.5;
         const ribbonC =
-          (Math.sin((x + y) * 0.06 + elapsed * 1.15) + 1) * 0.5;
+          (Math.sin((x + y) * 0.06 + waterTime * 1.15) + 1) * 0.5;
 
-        const c = new THREE.Color();
+        
 
-        c.copy(pastelWater.deepCyan)
-          .lerp(pastelWater.cyan, crest * 0.65)
-          .lerp(pastelWater.pink, ribbonA * 0.42)
-          .lerp(pastelWater.lavender, ribbonB * 0.34)
-          .lerp(pastelWater.softPink, ribbonC * 0.20)
-          .lerp(pastelWater.whiteFoam, Math.max(0, crest - 0.72) * 0.75);
+reusableWaterColor
+  .copy(pastelWater.deepCyan)
+  .lerp(pastelWater.cyan, crest * 0.65)
+  .lerp(pastelWater.pink, ribbonA * 0.42)
+  .lerp(pastelWater.lavender, ribbonB * 0.34)
+  .lerp(pastelWater.softPink, ribbonC * 0.20)
+  .lerp(
+    pastelWater.whiteFoam,
+    Math.max(0, crest - 0.72) * 0.75
+  );
 
-        colorAttr.array[i * 3] = c.r;
-        colorAttr.array[i * 3 + 1] = c.g;
-        colorAttr.array[i * 3 + 2] = c.b;
+colorAttr.array[i * 3] = reusableWaterColor.r;
+colorAttr.array[i * 3 + 1] = reusableWaterColor.g;
+colorAttr.array[i * 3 + 2] = reusableWaterColor.b;
       }
 
       pastelWater.waterPositions.needsUpdate = true;
       colorAttr.needsUpdate = true;
-      pastelWater.water.geometry.computeVertexNormals();
+      
+
+/* Update water normals every second frame on mobile,
+   every frame on desktop */
+
+waterNormalFrame++;
+
+if (
+  window.innerWidth >= 768 ||
+  waterNormalFrame % 2 === 0
+) {
+  pastelWater.water.geometry.computeVertexNormals();
+}
+
+
       pastelWater.water.rotation.z = Math.sin(elapsed * 0.8) * 0.006;
 
       if (state.launching) {
@@ -4806,6 +4907,19 @@ if (state.landed) {
         }
       }
 
+      // Both boat PNGs face the camera even while their parent flies away.
+      // Only one is visible at a time; both share the same boat motion.
+      if (boatImage || boatBackImage) {
+        boatGroup.getWorldQuaternion(billboardParentQuaternion);
+        billboardParentQuaternion.invert().multiply(camera.quaternion);
+        if (boatImage) boatImage.quaternion.copy(billboardParentQuaternion);
+        if (boatBackImage) boatBackImage.quaternion.copy(billboardParentQuaternion);
+      }
+      if (floatRingImage) {
+        floatRingGroup.getWorldQuaternion(billboardParentQuaternion);
+        floatRingImage.quaternion.copy(billboardParentQuaternion).invert().multiply(camera.quaternion);
+      }
+
       renderer.render(scene, camera);
     });
 
@@ -4908,7 +5022,7 @@ if (state.landed) {
           type="button"
           className="shoppingIntroTranslateButton mainExperienceTranslateButton"
           aria-label={copy.translate}
-          data-button-sound="/sounds/main-translate-open.mp3"
+          data-button-sound=""
           aria-expanded={showMainTranslateModal}
           onClick={() => setShowMainTranslateModal(true)}
           style={{
@@ -4959,7 +5073,7 @@ if (state.landed) {
                 type="button"
                 className="shoppingIntroTranslateModalClose"
                 aria-label={copy.closeTranslatePopup}
-                data-button-sound="/sounds/main-translate-close.mp3"
+                data-button-sound=""
                 onClick={() => setShowMainTranslateModal(false)}
               >
                 ×
@@ -5006,10 +5120,9 @@ if (state.landed) {
               })}
             </div>
 
-            <div ref={mainTranslateGlbStageRef} className="shoppingIntroTranslateGlbStage">
-              <div className="shoppingIntroTranslateGlbLoading">
-                {copy[mainTranslateGlbStatusKey] || copy.chooseLanguage}
-              </div>
+            <div className="shoppingIntroTranslateGlbStage">
+              <div className={planetStyles.translatePlanet}><CorePlanet /></div>
+              <div className="shoppingIntroTranslateGlbLoading">{copy.chooseLanguage}</div>
             </div>
           </div>
         </div>
@@ -5018,7 +5131,10 @@ if (state.landed) {
 
 {loading && (
 
-  <div className="loadingOverlay">
+    <div
+    className="loadingOverlay"
+    data-popup-state={loadingExiting ? "closing" : "open"}
+    >
     <div className="loadingNetworkTicker" aria-hidden="true">
       <span>{copy.loadingTicker}</span>
     </div>
@@ -5049,14 +5165,15 @@ if (state.landed) {
           open={runnerGameOpen}
           onClose={() => {
             requestSiteMusic('stop', RUNNER_GAME_MUSIC_FILE, { reset: true });
-            setRunnerGameOpen(false);
+            // Restore the boat and water scene instead of reopening CorePlanet.
+            resetExperience();
           }}
-          modelPath={CAT_MODEL_SHOPPING_URL}
+          imagePath={RUNNER_CAT_IMAGE_URL}
         />
       )}
 	          
 
-	      {popupOpen && (
+	      {popupOpen && !runnerGameOpen && (
         <div
           className="missionGalleryBackdrop"
           role="presentation"
@@ -5067,7 +5184,7 @@ if (state.landed) {
           }}
         >
           <div
-            className="missionGalleryWindow"
+            className={`missionGalleryWindow ${planetStyles.viewportWindow}`}
             role="dialog"
             aria-modal="true"
             aria-labelledby="missionGalleryTitle"
@@ -5103,35 +5220,16 @@ if (state.landed) {
               <CollectionMiniGlobe />
             </button>
 
-            <div className="missionImageGrid">
-				<MissionLogoOrb />
-              {MISSION_LINK_IMAGES.map((item) => {
-                const collectionTitle =
-                  copy.collectionNames?.[item.titleKey] || item.title;
-                const openCollectionLabel = formatCopy(copy.openCollection, {
-                  title: collectionTitle,
-                });
+            <div className={planetStyles.collectionPlanet}>
+              
+<CorePlanet
+  viewport
+  href="https://shop.almostmadeinjapan.com/"
+  onBackgroundClick={resetExperience}
+/>
 
-                return (
-                  <a
-                    key={item.title}
-                    className="missionImageLink"
-                    href={item.url}
-                    data-button-sound={item.sound}
-                    target="_blank"
-                    rel="noreferrer"
-                    aria-label={openCollectionLabel}
-                  >
-                    <img
-                      src={item.image}
-                      alt={collectionTitle}
-                      loading="lazy"
-                    />
-                    <span>{collectionTitle}</span>
-                  </a>
-                );
-              })}
             </div>
+            <div className={planetStyles.interactionHint}>· Click to shop ·</div>
           </div>
         </div>
       )}
@@ -5140,6 +5238,7 @@ if (state.landed) {
       {ringPopupOpen && (
         <div
           className="ringChatOverlay"
+          data-popup-state={ringExiting ? "closing" : "open"}
           role="presentation"
           onPointerDown={closeRingPopup}
         >
@@ -5160,7 +5259,7 @@ if (state.landed) {
           </div>
 
           <div
-            className="ringChatBox"
+            className="ringCloudDialog"
             role="dialog"
             aria-modal="true"
             aria-label="Floating ring message"
@@ -5171,9 +5270,25 @@ if (state.landed) {
             }}
             onPointerDown={(event) => event.stopPropagation()}
           >
-    
 
-            <pre ref={ringTerminalRef} className="ringTerminalText">
+<div className="ringCloudContent">
+
+  {/* Floating Ring close button */}
+  <button
+    type="button"
+    className="shoppingIntroTranslateModalClose ringCloudClose"
+    aria-label={copy.close || "Close popup"}
+    data-button-sound=""
+    onClick={(event) => {
+      event.stopPropagation();
+      closeRingPopup();
+    }}
+  >
+    ×
+  </button>
+
+  <pre ref={ringTerminalRef} className="ringTerminalText">
+
 
               <span className="ringTerminalImageLine">
     <img
@@ -5192,55 +5307,65 @@ if (state.landed) {
   <a
     className="ringSocialButton ringSocialButtonTikTok"
     href="https://www.tiktok.com/@almostmadeinjapan"
-    data-button-sound="/sounds/social-tiktok.mp3"
+    data-button-sound=""
     target="_blank"
     rel="noreferrer"
     aria-label="TikTok"
   >
-    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-      <path d="M15.9 3.2c.3 2.4 1.6 3.9 4 4.1v3.2c-1.4.1-2.6-.3-3.9-1.1v5.8c0 3.7-2.4 5.9-5.6 5.9-3 0-5.3-2.1-5.3-5 0-3.2 2.6-5.4 6-5.1v3.4c-1.6-.5-2.8.3-2.8 1.6 0 1.1.9 1.9 2 1.9 1.3 0 2.1-.8 2.1-2.7v-12h3.5Z" />
-    </svg>
+    <img
+      src="/images/tiktok-icon.png"
+      alt="TikTok"
+      aria-hidden="true"
+    />
   </a>
 
   <a
     className="ringSocialButton ringSocialButtonInstagram"
     href="https://www.instagram.com/almostmadeinjapan/"
-    data-button-sound="/sounds/social-instagram.mp3"
+    data-button-sound=""
     target="_blank"
     rel="noreferrer"
     aria-label="Instagram"
   >
-    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-      <path d="M7.6 2.7h8.8c2.7 0 4.9 2.2 4.9 4.9v8.8c0 2.7-2.2 4.9-4.9 4.9H7.6c-2.7 0-4.9-2.2-4.9-4.9V7.6c0-2.7 2.2-4.9 4.9-4.9Zm0 3c-1.1 0-1.9.8-1.9 1.9v8.8c0 1.1.8 1.9 1.9 1.9h8.8c1.1 0 1.9-.8 1.9-1.9V7.6c0-1.1-.8-1.9-1.9-1.9H7.6Zm4.4 3.1a3.2 3.2 0 1 1 0 6.4 3.2 3.2 0 0 1 0-6.4Zm0 2.2a1 1 0 1 0 0 2.1 1 1 0 0 0 0-2.1Zm4.2-2.7a1.1 1.1 0 1 1 0-2.2 1.1 1.1 0 0 1 0 2.2Z" />
-    </svg>
+    <img
+      src="/images/instagram-icon.png"
+      alt="Instagram"
+      aria-hidden="true"
+    />
   </a>
 
   <a
     className="ringSocialButton ringSocialButtonEmail"
     href="mailto:hello@almostmadeinjapan.com?subject=Almost Made in Japan&body=https://www.almostmadeinjapan.com/"
-    data-button-sound="/sounds/social-email.mp3"
+    data-button-sound=""
     aria-label="Email"
   >
-    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-      <path d="M3.8 5h16.4c1 0 1.8.8 1.8 1.8v10.4c0 1-.8 1.8-1.8 1.8H3.8c-1 0-1.8-.8-1.8-1.8V6.8C2 5.8 2.8 5 3.8 5Zm.9 3.4v7.9h14.6V8.4l-7.3 5-7.3-5Zm1.1-1.4 6.2 4.2L18.2 7H5.8Z" />
-    </svg>
+    <img
+      src="/images/email-icon.png"
+      alt="Email"
+      aria-hidden="true"
+    />
   </a>
 
   <button
     type="button"
     className="ringSocialButton ringSocialButtonShare"
     aria-label="Share"
-    data-button-sound="/sounds/social-share.mp3"
+    data-button-sound=""
     onClick={shareWebsite}
   >
-    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-      <path d="M18 16.1c-1 0-1.9.4-2.5 1.1L8.9 13.3c.1-.4.1-.8 0-1.2l6.5-3.8A3.3 3.3 0 1 0 14.3 6l-6.5 3.8a3.3 3.3 0 1 0 0 5.8l6.6 3.9A3.3 3.3 0 1 0 18 16.1Z" />
-    </svg>
+    <img
+      src="/images/share-icon.png"
+      alt="Share"
+      aria-hidden="true"
+    />
   </button>
+</div>
 </div>
             
           </div>
         </div>
+        
       )}
 
           {modelError && (
@@ -5249,7 +5374,7 @@ if (state.landed) {
             <span>{copy.modelLoadError}</span>
             <button
               type="button"
-              data-button-sound="/sounds/model-error-close.mp3"
+              data-button-sound=""
               onClick={() => setModelError('')}
             >
               {copy.close}

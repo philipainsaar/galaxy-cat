@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import * as THREE from "three";
-import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.js";
 
 const SITE_SOUND_EVENT_NAME = "galaxy-cat:play-sound";
 const SITE_MUSIC_EVENT_NAME = "galaxy-cat:music";
@@ -12,10 +12,29 @@ const RUNNER_GAME_MUSIC_URL = "/sounds/runner-game-music.mp3";
 const RUNNER_GAME_MUSIC_VOLUME = 0.38;
 
 // Lighter rendering for mobile.
-const RUNNER_RENDER_PIXEL_RATIO = 1;
+const RUNNER_RENDER_PIXEL_RATIO = 1.5;
 const RUNNER_SCORE_MULTIPLIER = 12;
 const RUNNER_SPARKLE_COUNT = 12;
+// Floating sky clouds. All 12 images are shuffled, then reused without
+// overlaps. These are decorations only, never obstacle hitboxes.
+const SKY_DECORATION_MODE = "png"; // "png" or "crystal"
+const SKY_DECORATION_IMAGE_URLS = Array.from(
+  { length: 12 },
+  (_, index) => `/images/cloud-${String(index).padStart(2, "0")}.png`,
+);
+const SKY_CLOUD_HEIGHT_MIN = 0.57; // World-space height of a small cloud
+const SKY_CLOUD_HEIGHT_MAX = 0.82; // World-space height of a large cloud
+const SKY_CLOUD_SPEED = 0.90;      // Same speed for all clouds: no overtaking
+const SKY_CLOUD_GAP = 0.65;       // Horizontal gap between cloud edges
+const SKY_CLOUD_Z = -2.0;        // Shared depth to maintain exact spacing
+
 const RUNNER_STRIPE_COUNT = 12;
+// All 19 transparent gem images live in /public/images/.
+// Every available gem is equally likely to appear as a runner obstacle.
+const GEM_OBSTACLE_IMAGE_URLS = Array.from(
+  { length: 19 },
+  (_, index) => `/images/gem${index + 1}.png`,
+);
 
 const LEADERBOARD_API_URL = "/api/leaderboard";
 const LOCAL_LEADERBOARD_KEY = "cosmicRunnerLeaderboardLocal";
@@ -127,7 +146,7 @@ function requestRunnerMusic(action, options = {}) {
 export default function CosmicRunnerOverlay({
   open = false,
   onClose,
-  modelPath = "/models/alien-cat-shoppingbag.glb",
+  imagePath = "/images/alien-cat-game.png",
 }) {
   const mountRef = useRef(null);
   const scoreRef = useRef(null);
@@ -255,7 +274,7 @@ export default function CosmicRunnerOverlay({
     const camera = new THREE.PerspectiveCamera(58, 1, 0.01, 100);
 
 const renderer = new THREE.WebGLRenderer({
-  antialias: false,
+  antialias: true,
   alpha: true,
   powerPreference: "high-performance",
 });
@@ -288,8 +307,7 @@ renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     scene.add(runner);
 
     let visual = null;
-    let mixer = null;
-    const mixerClock = new THREE.Clock();
+    let runnerTexture = null;
 
     const setStatus = (text) => {
       if (statusRef.current) statusRef.current.textContent = text;
@@ -301,122 +319,409 @@ renderer.shadowMap.type = THREE.PCFSoftShadowMap;
       runner.add(visual);
     }
 
-    function fitGLB(object) {
-      const wrap = new THREE.Group();
-      wrap.add(object);
-      object.updateMatrixWorld(true);
-
-      const box = new THREE.Box3().setFromObject(object);
-      const size = new THREE.Vector3();
-      const center = new THREE.Vector3();
-      box.getSize(size);
-      box.getCenter(center);
-      object.position.sub(center);
-
-      const maxAxis = Math.max(size.x, size.y, size.z) || 1;
-      const targetHeight = 2.15;
-      wrap.scale.setScalar(targetHeight / maxAxis);
-      wrap.position.y = targetHeight * 0.5;
-      wrap.rotation.y = Math.PI / 2;
-
-      wrap.traverse((child) => {
-  if (!child.isMesh) return;
-  child.castShadow = true;
-  child.receiveShadow = true;
-});
-
-      return wrap;
-    }
-
-    setStatus("Loading alien cat GLB...");
-
-    if (modelPath) {
-      new GLTFLoader().load(
-        modelPath,
-        (gltf) => {
-          if (dead) return;
-          setVisual(fitGLB(gltf.scene));
-          if (gltf.animations?.length) {
-            mixer = new THREE.AnimationMixer(gltf.scene);
-            mixer.clipAction(gltf.animations[0]).play();
-            setStatus("Alien cat loaded with animation.");
-          } else {
-            setStatus("");
+    // Render the PNG within the existing Three.js runner group.
+    // The runner group still handles jump movement, bounce, and knockdown.
+    setStatus("Loading alien cat PNG...");
+    if (imagePath) {
+      new THREE.TextureLoader().load(
+        imagePath,
+        (texture) => {
+          if (dead) {
+            texture.dispose();
+            return;
           }
+          texture.colorSpace = THREE.SRGBColorSpace;
+          texture.minFilter = THREE.LinearMipmapLinearFilter;
+          texture.magFilter = THREE.LinearFilter;
+          texture.needsUpdate = true;
+          runnerTexture = texture;
+
+          const image = texture.image;
+          const aspect = (image?.naturalWidth || image?.width || 1) /
+            (image?.naturalHeight || image?.height || 1);
+          const height = 2.15;
+          const width = height * aspect;
+
+          const cat = new THREE.Mesh(
+            new THREE.PlaneGeometry(width, height),
+            new THREE.MeshBasicMaterial({
+              map: texture,
+              transparent: true,
+              alphaTest: 0.025,
+              depthWrite: false,
+              depthTest: true,
+              side: THREE.DoubleSide,
+              toneMapped: false,
+            }),
+          );
+          cat.name = "AlienCatRunnerPNG";
+          cat.position.y = height * 0.5;
+          cat.quaternion.copy(camera.quaternion);
+          setVisual(cat);
+          if (gemAssetsReady) setStatus("");
         },
         undefined,
-        () => setStatus("Could not load alien-cat.glb.")
+        () => {
+          if (!dead) setStatus("Could not load alien-cat-game.png.");
+        },
       );
     }
 
-    const groundGroup = new THREE.Group();
-    scene.add(groundGroup);
-    const groundMat = new THREE.MeshStandardMaterial({ color: colors.blue, roughness: 0.64 });
-    for (let i = 0; i < 3; i++) {
-      const ground = new THREE.Mesh(new THREE.BoxGeometry(22, 0.22, 5.4), groundMat);
-      ground.position.set(i * 22 - 22, -0.13, 0);
-      ground.receiveShadow = true;
-      groundGroup.add(ground);
-    }
+/* ==========================================
+   SINGLE SMOOTH BLUE ROAD - NO SEAMS
+   ========================================== */
 
-    const stripeMat = new THREE.MeshStandardMaterial({ color: colors.pink, roughness: 0.52 });
-    const stripes = [];
-    for (let i = 0; i < RUNNER_STRIPE_COUNT; i++) {
-      const stripe = new THREE.Mesh(new THREE.BoxGeometry(0.92, 0.045, 0.12), stripeMat);
-      stripe.position.set(i * 2.2 - 12, 0.025, 2.12);
-      scene.add(stripe);
-      stripes.push(stripe);
-    }
+const ROAD_LENGTH = 80;     // long enough to cover the whole view
+const ROAD_WIDTH = 5.4;
+const ROAD_CORE_WIDTH = 4.8;
+const ROAD_Y = -0.13;
+const ROAD_THICKNESS = 0.22;
+const ROAD_ROUNDNESS = 0.10;
+
+function createRoadEdgeTexture() {
+  const canvas = document.createElement("canvas");
+  canvas.width = 256;
+  canvas.height = 256;
+  const ctx = canvas.getContext("2d");
+
+  const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+  gradient.addColorStop(0.00, "rgba(174,219,255,0)");
+  gradient.addColorStop(0.08, "rgba(174,219,255,0.20)");
+  gradient.addColorStop(0.18, "rgba(174,219,255,0.85)");
+  gradient.addColorStop(0.28, "rgba(174,219,255,1)");
+  gradient.addColorStop(0.72, "rgba(174,219,255,1)");
+  gradient.addColorStop(0.82, "rgba(174,219,255,0.85)");
+  gradient.addColorStop(0.92, "rgba(174,219,255,0.20)");
+  gradient.addColorStop(1.00, "rgba(174,219,255,0)");
+
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.wrapS = THREE.ClampToEdgeWrapping;
+  texture.wrapT = THREE.ClampToEdgeWrapping;
+  texture.needsUpdate = true;
+  return texture;
+}
+
+const groundCoreMaterial = new THREE.MeshStandardMaterial({
+  color: colors.blue,
+  roughness: 0.64,
+  metalness: 0.02,
+  depthWrite: false
+});
+
+const groundCoreGeometry = new RoundedBoxGeometry(
+  ROAD_LENGTH,
+  ROAD_THICKNESS,
+  ROAD_CORE_WIDTH,
+  3,
+  ROAD_ROUNDNESS
+);
+
+const groundEdgeTexture = createRoadEdgeTexture();
+
+const groundEdgeMaterial = new THREE.MeshBasicMaterial({
+  map: groundEdgeTexture,
+  color: 0xffffff,
+  transparent: true,
+  opacity: 1,
+  depthWrite: false,
+  side: THREE.DoubleSide,
+  toneMapped: false
+});
+
+const groundEdgeGeometry = new THREE.PlaneGeometry(
+  ROAD_LENGTH,
+  ROAD_WIDTH
+);
+
+const groundGroup = new THREE.Group();
+scene.add(groundGroup);
+
+const roadCore = new THREE.Mesh(groundCoreGeometry, groundCoreMaterial);
+roadCore.position.set(0, ROAD_Y, 0);
+roadCore.receiveShadow = true;
+groundGroup.add(roadCore);
+
+const roadEdges = new THREE.Mesh(groundEdgeGeometry, groundEdgeMaterial);
+roadEdges.rotation.x = -Math.PI / 2;
+roadEdges.position.set(0, ROAD_Y + ROAD_THICKNESS / 2 + 0.005, 0);
+roadEdges.renderOrder = -10;
+groundGroup.add(roadEdges);
+
+
+const stripeMat = new THREE.MeshStandardMaterial({
+  color: colors.pink,
+  roughness: 0.52
+});
+
+const stripes = [];
+for (let i = 0; i < RUNNER_STRIPE_COUNT; i++) {
+  const stripe = new THREE.Mesh(
+    new THREE.CapsuleGeometry(0.055, 0.78, 6, 12),
+    stripeMat
+  );
+
+  stripe.rotation.z = Math.PI / 2; // make it horizontal
+  stripe.scale.z = 0.45;           // flatten depth a bit
+  stripe.position.set(i * 2.2 - 12, 0.025, 2.12);
+
+  scene.add(stripe);
+  stripes.push(stripe);
+}
 
     const obstacles = [];
+    const obstacleScreenBounds = new THREE.Box3();
+    const obstacleScreenCorner = new THREE.Vector3();
     const obstacleGroup = new THREE.Group();
     scene.add(obstacleGroup);
 
+    // Load each PNG once and reuse its GPU texture for every appearance.
+    // Sprites automatically face the camera and preserve transparent edges.
+    const gemLoader = new THREE.TextureLoader();
+    let gemTextures = [];
+    let gemAssetsReady = false;
+    let lastGemUrl = null;
+
     function makeObstacle() {
+      if (!gemTextures.length) return null;
+
+      // Uniform selection across all 19 images, without an immediate repeat.
+      const candidates = gemTextures.length > 1
+        ? gemTextures.filter((entry) => entry.url !== lastGemUrl)
+        : gemTextures;
+      const chosen = candidates[Math.floor(Math.random() * candidates.length)];
+      lastGemUrl = chosen.url;
+
       const group = new THREE.Group();
-      const h = THREE.MathUtils.randFloat(0.68, 1.22);
-      const w = THREE.MathUtils.randFloat(0.28, 0.48);
-      const palette = [colors.hotPink, colors.purple, colors.blue, colors.yellow];
-      const mat = new THREE.MeshStandardMaterial({
-        color: palette[Math.floor(Math.random() * palette.length)],
-        roughness: 0.31,
-        metalness: 0.08,
+      const height = THREE.MathUtils.randFloat(0.85, 1.22);
+      const width = height * chosen.aspect;
+      const material = new THREE.SpriteMaterial({
+        map: chosen.texture,
+        color: 0xffffff,
+        transparent: true,
+        alphaTest: 0.04,
+        depthTest: true,
+        depthWrite: false,
+        fog: false,
+        toneMapped: false,
       });
-      const crystal = new THREE.Mesh(new THREE.ConeGeometry(w, h, 5), mat);
-      crystal.position.y = h / 2;
-      crystal.rotation.y = Math.random() * Math.PI;
-      crystal.castShadow = true;
-      group.add(crystal);
-      group.userData.width = w * 1.1;
-      group.userData.height = h;
-      group.userData.spin = THREE.MathUtils.randFloat(-2, 2);
+      const sprite = new THREE.Sprite(material);
+      sprite.name = `RunnerGem_${chosen.url.split('/').pop()}`;
+      sprite.scale.set(width, height, 1);
+      sprite.position.y = height * 0.5;
+      group.add(sprite);
+
+      // Keep gameplay hitboxes aligned to the visible (rounded) gem artwork.
+      group.userData.width = width * 0.78;
+      group.userData.height = height * 0.85;
+      group.userData.centerY = height * 0.5;
+      group.userData.sprite = sprite;
+      group.userData.wobblePhase = Math.random() * Math.PI * 2;
       return group;
+    }
+
+    function disposeObstacle(obstacle) {
+      obstacleGroup.remove(obstacle);
+      obstacle.userData.sprite?.material?.dispose();
     }
 
     function spawnObstacle(x = 5.2) {
       const obstacle = makeObstacle();
+      if (!obstacle) return;
       obstacle.position.set(x, 0, THREE.MathUtils.randFloat(-0.18, 0.18));
       obstacleGroup.add(obstacle);
       obstacles.push(obstacle);
     }
 
+    // Start gameplay only when the PNGs are ready: no blank or white rectangles.
+    Promise.allSettled(
+      GEM_OBSTACLE_IMAGE_URLS.map(async (url) => {
+        const texture = await gemLoader.loadAsync(url);
+        texture.colorSpace = THREE.SRGBColorSpace;
+        texture.magFilter = THREE.LinearFilter;
+        texture.minFilter = THREE.LinearMipmapLinearFilter;
+        texture.anisotropy = Math.min(4, renderer.capabilities.getMaxAnisotropy());
+        const image = texture.image;
+        const width = image?.naturalWidth || image?.width || 1;
+        const height = image?.naturalHeight || image?.height || 1;
+        return { url, texture, aspect: width / height };
+      }),
+    ).then((results) => {
+      const loaded = results
+        .filter((result) => result.status === 'fulfilled')
+        .map((result) => result.value);
+
+      if (dead) {
+        loaded.forEach(({ texture }) => texture.dispose());
+        return;
+      }
+      gemTextures = loaded;
+      const missingCount = results.length - loaded.length;
+      if (missingCount) {
+        console.warn(`${missingCount} runner gem PNG(s) could not load.`, results);
+      }
+      if (!gemTextures.length) {
+        setStatus('Could not load the obstacle PNGs from /images/.');
+        return;
+      }
+      gemAssetsReady = true;
+      setStatus('');
+      restart();
+    });
+
+    // SKY DECORATIONS: randomly ordered clouds with no visual collisions.
+    // The position interval of each sprite is disjoint on the X axis.
+    // All clouds move at identical speed, so intervals cannot overtake.
     const sparkles = [];
-    const sparkleMat = new THREE.MeshStandardMaterial({ color: "#ffffff", emissive: colors.pink, emissiveIntensity: 0.62 });
-    for (let i = 0; i < RUNNER_SPARKLE_COUNT; i++) {
-      const sparkle = new THREE.Mesh(new THREE.OctahedronGeometry(0.075, 0), sparkleMat);
-      sparkle.position.set(
-        THREE.MathUtils.randFloat(-5.5, 8),
-        THREE.MathUtils.randFloat(2.1, 5.5),
-        THREE.MathUtils.randFloat(-2.4, 1.3)
+    const skyTextures = [];
+    const skyPlane = new THREE.Plane(new THREE.Vector3(0, 0, 1), -SKY_CLOUD_Z);
+    const skyRaycaster = new THREE.Raycaster();
+    const skyPoint = new THREE.Vector3();
+    const skyProjected = new THREE.Vector3();
+    const skyRight = new THREE.Vector3();
+    const skyNdcPoint = new THREE.Vector2();
+    let skyDeck = [];
+    let skyDeckCursor = 0;
+
+    function worldXAtScreenEdge(ndcX) {
+      camera.updateMatrixWorld();
+      skyNdcPoint.set(ndcX, 0);
+      skyRaycaster.setFromCamera(skyNdcPoint, camera);
+      if (!skyRaycaster.ray.intersectPlane(skyPlane, skyPoint)) {
+        return ndcX * 8;
+      }
+      return skyPoint.x;
+    }
+
+    function shuffleSkyDeck() {
+      skyDeck = skyTextures.slice();
+      for (let i = skyDeck.length - 1; i > 0; i -= 1) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [skyDeck[i], skyDeck[j]] = [skyDeck[j], skyDeck[i]];
+      }
+      skyDeckCursor = 0;
+    }
+
+    function nextSkyImage() {
+      if (!skyDeck.length || skyDeckCursor >= skyDeck.length) {
+        shuffleSkyDeck();
+      }
+      return skyDeck[skyDeckCursor++];
+    }
+
+    function setSkyCloudImage(sprite, entry) {
+      const height = THREE.MathUtils.randFloat(SKY_CLOUD_HEIGHT_MIN, SKY_CLOUD_HEIGHT_MAX);
+      const width = height * entry.aspect;
+      sprite.material.map = entry.texture;
+      sprite.material.needsUpdate = true;
+      sprite.scale.set(width, height, 1);
+      sprite.userData.width = width;
+      sprite.userData.height = height;
+    }
+
+    function respawnSkyCloud(sprite) {
+      setSkyCloudImage(sprite, nextSkyImage());
+      // Spawn outside the RIGHT edge or after the rightmost active cloud.
+      // This conservative rule guarantees none of the cloud rectangles touch,
+      // even if clouds occupy different heights or the viewport was resized.
+      let nextLeft = worldXAtScreenEdge(1) + SKY_CLOUD_GAP;
+      for (const other of sparkles) {
+        if (other === sprite) continue;
+        nextLeft = Math.max(
+          nextLeft,
+          other.position.x + other.userData.width / 2 + SKY_CLOUD_GAP,
+        );
+      }
+      sprite.position.set(
+        nextLeft + sprite.userData.width / 2,
+        THREE.MathUtils.randFloat(2.55, 4.55),
+        SKY_CLOUD_Z,
       );
-      sparkle.userData.speed = THREE.MathUtils.randFloat(0.7, 1.8);
-      scene.add(sparkle);
-      sparkles.push(sparkle);
+    }
+
+    function skyCloudIsPastLeftEdge(sprite) {
+      // PNG sprite is camera-facing, so use its right edge in screen space.
+      skyRight.set(1, 0, 0).applyQuaternion(camera.quaternion);
+      skyProjected.copy(sprite.position)
+        .addScaledVector(skyRight, sprite.userData.width / 2)
+        .project(camera);
+      return skyProjected.x < -1.07;
+    }
+
+    if (SKY_DECORATION_MODE === "png") {
+      const loader = new THREE.TextureLoader();
+      Promise.allSettled(
+        SKY_DECORATION_IMAGE_URLS.map(async (url) => {
+          const texture = await loader.loadAsync(url);
+          texture.colorSpace = THREE.SRGBColorSpace;
+          texture.minFilter = THREE.LinearMipmapLinearFilter;
+          texture.magFilter = THREE.LinearFilter;
+          const img = texture.image;
+          const width = img?.naturalWidth || img?.width || 1;
+          const height = img?.naturalHeight || img?.height || 1;
+          return { texture, aspect: width / height, url };
+        }),
+      ).then((results) => {
+        const loaded = results
+          .filter((result) => result.status === "fulfilled")
+          .map((result) => result.value);
+        if (dead) {
+          loaded.forEach((entry) => entry.texture.dispose());
+          return;
+        }
+        if (loaded.length !== SKY_DECORATION_IMAGE_URLS.length) {
+          console.warn("Some cloud images could not load:", results);
+        }
+        skyTextures.push(...loaded);
+        if (!skyTextures.length) return;
+
+        // Place clouds in a spaced procession, starting near the left edge.
+        // Subsequent loops reuse every image in a new randomized order.
+        let rightmost = worldXAtScreenEdge(-1) - 0.2;
+        for (let i = 0; i < RUNNER_SPARKLE_COUNT; i += 1) {
+          const sprite = new THREE.Sprite(new THREE.SpriteMaterial({
+            transparent: true,
+            color: 0xffffff,
+            depthWrite: false,
+            depthTest: true,
+            toneMapped: false,
+            fog: false,
+          }));
+          setSkyCloudImage(sprite, nextSkyImage());
+          sprite.position.set(
+            rightmost + SKY_CLOUD_GAP + sprite.userData.width / 2,
+            THREE.MathUtils.randFloat(2.55, 4.55),
+            SKY_CLOUD_Z,
+          );
+          rightmost = sprite.position.x + sprite.userData.width / 2;
+          sprite.name = "DecorativeSkyCloud";
+          scene.add(sprite);
+          sparkles.push(sprite);
+        }
+      });
+    } else {
+      const sparkleMat = new THREE.MeshStandardMaterial({
+        color: "#ffffff", emissive: colors.pink, emissiveIntensity: 0.62,
+      });
+      for (let i = 0; i < RUNNER_SPARKLE_COUNT; i += 1) {
+        const sparkle = new THREE.Mesh(new THREE.OctahedronGeometry(0.075, 0), sparkleMat);
+        sparkle.position.set(
+          THREE.MathUtils.randFloat(-5.5, 8),
+          THREE.MathUtils.randFloat(2.1, 5.5),
+          THREE.MathUtils.randFloat(-2.4, 1.3),
+        );
+        sparkle.userData.speed = THREE.MathUtils.randFloat(0.7, 1.8);
+        scene.add(sparkle);
+        sparkles.push(sparkle);
+      }
     }
 
     let velocityY = 0;
     let grounded = true;
-    let running = true;
+    let running = false; // Wait for the PNG obstacle textures before starting.
     let speed = 4.3;
     let score = 0;
     let best = Number(localStorage.getItem("cosmicRunnerBest") || 0);
@@ -442,6 +747,7 @@ renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     }
 
     function restart() {
+      if (!gemAssetsReady) return;
       running = true;
       speed = 4.3;
       score = 0;
@@ -456,7 +762,7 @@ renderer.shadowMap.type = THREE.PCFSoftShadowMap;
       setLastScore(0);
       setScoreSubmitted(false);
       overRef.current?.classList.remove("show");
-      for (const obstacle of obstacles) obstacleGroup.remove(obstacle);
+      for (const obstacle of obstacles) disposeObstacle(obstacle);
       obstacles.length = 0;
       spawnObstacle(5.4);
       text();
@@ -490,6 +796,7 @@ renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     }
 
     function jump() {
+      if (!gemAssetsReady) return;
       if (!running) {
         restart();
         return;
@@ -507,7 +814,7 @@ renderer.shadowMap.type = THREE.PCFSoftShadowMap;
         new THREE.Vector3(0.72, 1.55, 0.82)
       );
       obstacleBox.setFromCenterAndSize(
-        new THREE.Vector3(obstacle.position.x, obstacle.position.y + obstacle.userData.height / 2, obstacle.position.z),
+        new THREE.Vector3(obstacle.position.x, obstacle.position.y + obstacle.userData.centerY, obstacle.position.z),
         new THREE.Vector3(obstacle.userData.width, obstacle.userData.height, 0.76)
       );
       return playerBox.intersectsBox(obstacleBox);
@@ -520,6 +827,8 @@ renderer.shadowMap.type = THREE.PCFSoftShadowMap;
       camera.updateProjectionMatrix();
       camera.position.set(0, h >= w ? 2.95 : 2.65, h >= w ? 6.65 : 6.2);
       camera.lookAt(-0.35, 1.12, 0);
+      // Keep the side-view PNG facing the viewer at every screen size.
+      if (visual) visual.quaternion.copy(camera.quaternion);
       renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, RUNNER_RENDER_PIXEL_RATIO));
       renderer.setSize(w, h);
     }
@@ -530,14 +839,25 @@ renderer.shadowMap.type = THREE.PCFSoftShadowMap;
       const delta = Math.min(0.033, (now - last) / 1000);
       last = now;
 
-      if (mixer) mixer.update(mixerClock.getDelta());
 
-
-      for (const sparkle of sparkles) {
-        sparkle.position.x -= sparkle.userData.speed * delta;
-        sparkle.rotation.x += 2 * delta;
-        sparkle.rotation.y += 1.5 * delta;
-        if (sparkle.position.x < -5.8) sparkle.position.x = THREE.MathUtils.randFloat(5.8, 8.8);
+      // Clouds all travel at the same speed, so one can never catch another.
+      if (SKY_DECORATION_MODE === "png") {
+        camera.updateMatrixWorld();
+        for (const cloud of sparkles) {
+          cloud.position.x -= SKY_CLOUD_SPEED * delta;
+          if (skyCloudIsPastLeftEdge(cloud)) {
+            respawnSkyCloud(cloud);
+          }
+        }
+      } else {
+        for (const sparkle of sparkles) {
+          sparkle.position.x -= sparkle.userData.speed * delta;
+          sparkle.rotation.x += 2 * delta;
+          sparkle.rotation.y += 1.5 * delta;
+          if (sparkle.position.x < -5.8) {
+            sparkle.position.x = THREE.MathUtils.randFloat(5.8, 8.8);
+          }
+        }
       }
 
       if (running) {
@@ -558,10 +878,6 @@ renderer.shadowMap.type = THREE.PCFSoftShadowMap;
         runner.scale.set(1 + bounce, 1 - bounce * 0.7, 1 + bounce);
         runner.rotation.z = grounded ? Math.sin(now * 0.014) * 0.035 : -0.18;
 
-        for (const ground of groundGroup.children) {
-          ground.position.x -= speed * delta;
-          if (ground.position.x < -22) ground.position.x += 66;
-        }
         for (const stripe of stripes) {
           stripe.position.x -= speed * delta;
           if (stripe.position.x < -12) stripe.position.x += 39.6;
@@ -576,16 +892,52 @@ renderer.shadowMap.type = THREE.PCFSoftShadowMap;
         for (let i = obstacles.length - 1; i >= 0; i--) {
           const obstacle = obstacles[i];
           obstacle.position.x -= speed * delta;
-          obstacle.rotation.y += obstacle.userData.spin * delta;
-          if (hit(obstacle)) endGame();
-          if (obstacle.position.x < -4.4) {
-            obstacleGroup.remove(obstacle);
-            obstacles.splice(i, 1);
+          // A tiny, playful rocking motion without turning the flat sprite edge-on.
+          const gemSprite = obstacle.userData.sprite;
+          if (gemSprite) {
+            gemSprite.material.rotation = Math.sin(now * 0.0025 + obstacle.userData.wobblePhase) * 0.09;
           }
+          if (hit(obstacle)) endGame();
+
+/* Remove gem ONLY after fully leaving the left viewport */
+camera.updateMatrixWorld();
+
+obstacleScreenBounds.setFromObject(obstacle);
+
+let rightmostScreenX = -Infinity;
+
+for (let corner = 0; corner < 8; corner++) {
+  obstacleScreenCorner.set(
+    (corner & 1)
+      ? obstacleScreenBounds.max.x
+      : obstacleScreenBounds.min.x,
+    (corner & 2)
+      ? obstacleScreenBounds.max.y
+      : obstacleScreenBounds.min.y,
+    (corner & 4)
+      ? obstacleScreenBounds.max.z
+      : obstacleScreenBounds.min.z
+  );
+
+  obstacleScreenCorner.project(camera);
+
+  rightmostScreenX = Math.max(
+    rightmostScreenX,
+    obstacleScreenCorner.x
+  );
+}
+
+// -1 = left edge of the visible screen
+// -1.05 = extra 5% offscreen margin
+if (rightmostScreenX < -1.05) {
+  disposeObstacle(obstacle);
+  obstacles.splice(i, 1);
+}
+
         }
-      } else {
-  runner.rotation.z = Math.PI / 2;
-  runner.position.y = 0;
+      } else if (gemAssetsReady) {
+        runner.rotation.z = Math.PI / 2;
+        runner.position.y = 0.4;
       }
 
       renderer.render(scene, camera);
@@ -606,7 +958,7 @@ renderer.shadowMap.type = THREE.PCFSoftShadowMap;
       jump();
     }
 
-    restart();
+    setStatus('Loading gem obstacles...');
     resize();
     text();
     window.addEventListener("resize", resize);
@@ -621,10 +973,32 @@ renderer.shadowMap.type = THREE.PCFSoftShadowMap;
       window.removeEventListener("keydown", onKey);
       mount.removeEventListener("pointerdown", onPointer);
       stopGameMusic(true);
+      for (const obstacle of obstacles) disposeObstacle(obstacle);
+      gemTextures.forEach(({ texture }) => texture.dispose());
+      if (visual) {
+        visual.geometry?.dispose();
+        visual.material?.dispose();
+      }
+      runnerTexture?.dispose();
+      // Dispose decorative assets when leaving the runner.
+      for (const sparkle of sparkles) {
+        scene.remove(sparkle);
+        if (sparkle.isSprite) {
+          sparkle.material?.dispose();
+        } else {
+          sparkle.geometry?.dispose();
+        }
+      }
+      if (SKY_DECORATION_MODE !== "png" && sparkles[0]?.material) {
+        sparkles[0].material.dispose();
+      }
+      skyTextures.forEach(({ texture }) => texture.dispose());
+      groundCoreGeometry.dispose();
+
       renderer.dispose();
       renderer.domElement.remove();
     };
-  }, [open, modelPath, refreshLeaderboard]);
+  }, [open, imagePath, refreshLeaderboard]);
 
   return (
     <>
@@ -632,6 +1006,7 @@ renderer.shadowMap.type = THREE.PCFSoftShadowMap;
       {open && (
         <div className="cosmicRunnerOverlay">
           <div ref={mountRef} className="cosmicRunnerCanvas" />
+          <div ref={statusRef} className="cosmicRunnerGlass cosmicRunnerStatus" role="status" aria-live="polite" />
 
           <div className="cosmicRunnerHud">
             <div className="cosmicRunnerGlass cosmicRunnerScore">
@@ -641,7 +1016,7 @@ renderer.shadowMap.type = THREE.PCFSoftShadowMap;
             <button
               type="button"
               className="cosmicRunnerTrophyButton"
-              data-button-sound="/sounds/runner-scoreboard.mp3"
+              data-button-sound="/sounds/intro-enter.mp3"
               aria-label="Show scoreboard"
               aria-expanded={scoreboardOpen}
               onClick={toggleScoreboard}
@@ -672,14 +1047,14 @@ renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   </svg>
 
             </button>
-            <button type="button" data-button-sound="/sounds/runner-close.mp3" onClick={() => onClose?.()}>×</button>
+            <button type="button" data-button-sound="" onClick={() => onClose?.()}>×</button>
           </div>
 
           {scoreboardOpen && (
             <button
               type="button"
               className="cosmicRunnerScoreboardBackdrop"
-              data-button-sound="/sounds/runner-close.mp3"
+              data-button-sound=""
               aria-label="Close scoreboard"
               onClick={() => setScoreboardOpen(false)}
             />
@@ -694,7 +1069,7 @@ renderer.shadowMap.type = THREE.PCFSoftShadowMap;
                 </div>
                 <button
                   type="button"
-                  data-button-sound="/sounds/runner-close.mp3"
+                  data-button-sound=""
                   aria-label="Close scoreboard"
                   onClick={() => setScoreboardOpen(false)}
                 >
@@ -721,7 +1096,7 @@ renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
           <div ref={overRef} className="cosmicRunnerGlass cosmicRunnerGameOver">
             <h2>Try again!</h2>
-            <p>The alien cat crashed into a crystal.</p>
+            <p>The alien cat crashed into a gem.</p>
             <p className="cosmicRunnerFinalScore">Score: <b>{lastScore}</b></p>
             <form className="cosmicRunnerScoreForm" onSubmit={submitScore}>
               <label htmlFor="cosmicRunnerPlayerName">Name for scoreboard</label>
@@ -739,14 +1114,14 @@ renderer.shadowMap.type = THREE.PCFSoftShadowMap;
               />
               <button
                 type="submit"
-                data-button-sound="/sounds/runner-save-score.mp3"
+                data-button-sound="/sounds/intro-enter.mp3"
                 disabled={submittingScore || scoreSubmitted}
               >
                 {scoreSubmitted ? "Saved" : submittingScore ? "Saving..." : "Save score"}
               </button>
             </form>
             <p className="cosmicRunnerSubmitStatus">{leaderboardMessage}</p>
-            <button type="button" data-button-sound="/sounds/runner-play-again.mp3" onClick={() => window.dispatchEvent(new KeyboardEvent("keydown", { code: "Space" }))}>
+            <button type="button" data-button-sound="/sounds/intro-enter.mp3" onClick={() => window.dispatchEvent(new KeyboardEvent("keydown", { code: "Space" }))}>
               Play again
             </button>
           </div>
@@ -806,6 +1181,7 @@ renderer.shadowMap.type = THREE.PCFSoftShadowMap;
           cursor: pointer;
           white-space: nowrap;
         }
+        .cosmicRunnerStatus:empty { display: none; }
         .cosmicRunnerStatus {
           position: fixed;
           left: 50%;
