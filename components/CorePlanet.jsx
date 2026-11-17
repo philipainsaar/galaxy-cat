@@ -25,7 +25,9 @@ const GAME_GLOBE_COMPACT_SIZE = 48;
 // Each star follows the ring and disappears when hidden behind the planet.
 // Colors, glow, transparency and animated reflections are independently preserved.
 const ORBIT_SHOP_BUTTON_ENABLED = true;
-const ORBIT_SHOP_BUTTON_TEXT = '🛒'; // Unicode shopping bag; no PNG or SVG needed
+// const ORBIT_SHOP_BUTTON_TEXT = '🛒'; // Unicode shopping bag; no PNG or SVG needed
+const ORBIT_SHOP_BUTTON_IMAGE = '/images/shoppingbag.png';
+const ORBIT_SHOP_BUTTON_ICON_SIZE = 0.55;
 const ORBIT_SHOP_BUTTON_SIZE = 1.4;           // 0.7 compact; 1 normal; 1.4 large
 const ORBIT_SHOP_BUTTON_POSITION = -0.48;     // Where on the visible ring to start (screen Y)
 const ORBIT_SHOP_BUTTON_WIDTH = 1.46;         // Rounded-star width in 3D world units
@@ -62,6 +64,26 @@ const ORBIT_SHOP_BUTTON_MIRROR_OFFSET = Math.PI; // Opposite around the torus (1
 const ORBIT_SHOP_BUTTON_STAR_POINTS = 5;     // 4 = rounded sparkle-star silhouette
 const ORBIT_SHOP_BUTTON_STAR_INNER_RATIO = 0.58; // Smaller = deeper star valleys
 const ORBIT_SHOP_BUTTON_STAR_ROUNDNESS = 0.30;  // 0 sharp, 0.2 soft, 0.3 very round
+// =====================================================================
+
+
+// ===== TWO MIRRORED TAP HERE LABELS =====================================
+// Text-only 3D lettering halfway between the two star buttons on the Torus.
+// It follows the GLB orbit and is readable from either outside-facing side.
+const ORBIT_TAP_TEXT_ENABLED = true;
+const ORBIT_TAP_TEXT = 'Tap here';
+const ORBIT_TAP_TEXT_WIDTH = 2.75;        // Width in 3D units before button scale
+const ORBIT_TAP_TEXT_HEIGHT = 0.76;       // Height in 3D units before button scale
+const ORBIT_TAP_TEXT_LIFT = 0.03;         // Keep the labels close to the ring
+const ORBIT_TAP_TEXT_OUTSIDE_GAP = 0.26;  // Small radial outward offset (0 = earlier position)
+const ORBIT_TAP_TEXT_FONT_SIZE = 184;     // Unchanged from the Minimal Fix
+const ORBIT_TAP_TEXT_DESKTOP_SIZE = 1.22;  // Text dimensions +22%, still wrapped onto ring
+const ORBIT_TAP_TEXT_MOBILE_SIZE = 1.55;   // Text dimensions +55%, still wrapped onto ring
+const ORBIT_TAP_TEXT_MOBILE_BREAKPOINT = 768; // Window width in CSS pixels
+const ORBIT_TAP_TEXT_COLOR = '#ffffff';  // Main letter fill
+const ORBIT_TAP_TEXT_OUTLINE = '#7c458f'; // Dark outline for contrast
+const ORBIT_TAP_TEXT_GLOW = '#e9a4ff';   // Soft lilac glow
+const ORBIT_TAP_TEXT_OPACITY = 1.0;
 // =====================================================================
 
 // ===== SPARKLE SETTINGS (EDIT THESE ONLY) ==============================
@@ -1057,58 +1079,9 @@ function createOrbitShopMesh(ring, globe, camera) {
 
     // A custom text canvas becomes a material map on a true 3D front plane.
     // The texture has NO solid background; the bevelled body provides it.
-    const canvas = document.createElement('canvas');
-    canvas.width = 896;
-    canvas.height = 320;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) { orbitRoot.remove(orbitGroup); return null; }
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    // Always honor the top-of-file font weight, even after fitting long text.
-    const fontWeight = Math.max(100, Math.min(900, ORBIT_SHOP_TEXT_WEIGHT));
-    const textFont = (px) => `${fontWeight} ${px}px "Inconsolata", ui-monospace, monospace`;
-    ctx.font = textFont(260);
-    // Fit text inside the curved 3D face without changing button geometry.
-    const maxTextWidth = canvas.width * 0.87;
-    const measuredWidth = ctx.measureText(ORBIT_SHOP_BUTTON_TEXT).width;
-    if (measuredWidth > maxTextWidth) {
-      ctx.font = textFont(Math.max(52, Math.floor(116 * maxTextWidth / measuredWidth)));
-    }
-    const textX = canvas.width / 2;
-    const textY = canvas.height / 2;
-    const outlineWidth = Math.max(0, ORBIT_SHOP_TEXT_OUTLINE_WIDTH);
-    ctx.lineJoin = 'round';
-    ctx.lineCap = 'round';
-
-    // Draw the luminous halo on the transparent lettering texture itself.
-    // A separate material keeps the text legible when the body/edge are glassy.
-    if (ORBIT_SHOP_TEXT_GLOW_ENABLED && ORBIT_SHOP_TEXT_GLOW_BLUR > 0) {
-      ctx.save();
-      ctx.shadowColor = ORBIT_SHOP_TEXT_GLOW_COLOR;
-      ctx.shadowBlur = Math.max(0, ORBIT_SHOP_TEXT_GLOW_BLUR);
-      ctx.shadowOffsetX = 0;
-      ctx.shadowOffsetY = 0;
-      ctx.strokeStyle = ORBIT_SHOP_TEXT_GLOW_COLOR;
-      ctx.lineWidth = outlineWidth + 3;
-      ctx.globalAlpha = 0.65;
-      // A second pass strengthens the soft light, rather than enlarging the text.
-      for (let pass = 0; pass < 2; pass += 1) {
-        ctx.strokeText(ORBIT_SHOP_BUTTON_TEXT, textX, textY);
-      }
-      ctx.restore();
-    }
-
-    // Dark purple outline + white core: crisp, thicker, and easily readable.
-    // The text colors are independent of the 3D glass face and its opacity.
-    if (outlineWidth > 0) {
-      ctx.lineWidth = outlineWidth;
-      ctx.strokeStyle = ORBIT_SHOP_TEXT_COLOR;
-      ctx.strokeText(ORBIT_SHOP_BUTTON_TEXT, textX, textY);
-    }
-    ctx.fillStyle = ORBIT_SHOP_BUTTON_TEXT_COLOR;
-    ctx.fillText(ORBIT_SHOP_BUTTON_TEXT, textX, textY);
-    const textMap = new THREE.CanvasTexture(canvas);
+    const textMap = new THREE.TextureLoader().load(
+    ORBIT_SHOP_BUTTON_IMAGE
+    );
     textMap.colorSpace = THREE.SRGBColorSpace;
     textMap.anisotropy = 4;
     const textMaterial = new THREE.MeshBasicMaterial({
@@ -1124,7 +1097,11 @@ function createOrbitShopMesh(ring, globe, camera) {
       side: THREE.FrontSide,
     });
     const textMesh = new THREE.Mesh(
-      wrapToOrbit(new THREE.PlaneGeometry(w * 0.78, h * 0.27, 36, 2)
+      wrapToOrbit(new THREE.PlaneGeometry(
+        w * ORBIT_SHOP_BUTTON_ICON_SIZE,
+        w * ORBIT_SHOP_BUTTON_ICON_SIZE * (543 / 512),
+        36, 2
+      )
         .translate(0, 0, faceZ + 0.013)),
       textMaterial,
     );
@@ -1139,7 +1116,9 @@ function createOrbitShopMesh(ring, globe, camera) {
     // the plane by 180 degrees (so it reads normally from outside), and put
     // it just beyond the rear bevel. Only the camera-facing text is rendered.
     const outsideTextGeometry = new THREE.PlaneGeometry(
-      w * 0.78, h * 0.27, 36, 2,
+      w * ORBIT_SHOP_BUTTON_ICON_SIZE,
+      w * ORBIT_SHOP_BUTTON_ICON_SIZE * (543 / 512),
+      36, 2
     );
     outsideTextGeometry.rotateY(Math.PI);
     outsideTextGeometry.translate(0, 0, -faceZ - 0.013);
@@ -1338,6 +1317,248 @@ function createOrbitShopMesh(ring, globe, camera) {
     return null;
   }
 
+
+  // Add two text-only labels in the empty arcs between the two star buttons.
+  // The locations are star angle + 90° and + 270°: opposite sides of the ring.
+  // Both front and rear planes have normal-reading text, not reversed lettering.
+  const tapLabels = [];
+  const tapOcclusionCenter = globeCenter.clone();
+  const tapOcclusionCamera = camera.position.clone();
+  const tapOcclusionRadius = { value: worldRadius };
+
+  if (ORBIT_TAP_TEXT_ENABLED && buttons.length >= 2) {
+    const textCanvas = document.createElement('canvas');
+    textCanvas.width = 1024;
+    textCanvas.height = 320;
+    const context = textCanvas.getContext('2d');
+
+    if (context) {
+      const tw = textCanvas.width;
+      const th = textCanvas.height;
+      context.clearRect(0, 0, tw, th);
+      context.textAlign = 'center';
+      context.textBaseline = 'middle';
+      context.lineJoin = 'round';
+      context.lineCap = 'round';
+      const textWeight = 700;
+      const tapFont = (size) =>
+  `${textWeight} ${size}px "Unkempt", cursive`;
+      context.font = tapFont(ORBIT_TAP_TEXT_FONT_SIZE);
+      const availableWidth = tw * 0.87;
+      const measured = context.measureText(ORBIT_TAP_TEXT).width;
+      if (measured > availableWidth) {
+        context.font = tapFont(Math.floor(
+          ORBIT_TAP_TEXT_FONT_SIZE * availableWidth / measured
+        ));
+      }
+      // Luminous outline behind opaque white lettering.
+      context.save();
+      context.shadowColor = ORBIT_TAP_TEXT_GLOW;
+      context.shadowBlur = 28;
+      context.strokeStyle = ORBIT_TAP_TEXT_GLOW;
+      context.globalAlpha = 0.72;
+      context.lineWidth = 12;
+      context.strokeText(ORBIT_TAP_TEXT, tw / 2, th / 2);
+      context.restore();
+      context.lineWidth = 9;
+      context.strokeStyle = ORBIT_TAP_TEXT_OUTLINE;
+      context.strokeText(ORBIT_TAP_TEXT, tw / 2, th / 2);
+      context.fillStyle = ORBIT_TAP_TEXT_COLOR;
+      context.fillText(ORBIT_TAP_TEXT, tw / 2, th / 2);
+
+      const tapTexture = new THREE.CanvasTexture(textCanvas);
+      tapTexture.colorSpace = THREE.SRGBColorSpace;
+      tapTexture.anisotropy = 4;
+
+      function patchTapOcclusion(material) {
+        material.onBeforeCompile = (shader) => {
+          shader.uniforms.uTapSphereCenter = { value: tapOcclusionCenter };
+          shader.uniforms.uTapCamera = { value: tapOcclusionCamera };
+          shader.uniforms.uTapSphereRadius = tapOcclusionRadius;
+          shader.vertexShader = shader.vertexShader.replace(
+            '#include <common>',
+            '#include <common>\nvarying vec3 vTapWorldPosition;'
+          );
+          shader.vertexShader = shader.vertexShader.replace(
+            '#include <project_vertex>',
+            '#include <project_vertex>\nvTapWorldPosition = (modelMatrix * vec4(transformed, 1.0)).xyz;'
+          );
+          shader.fragmentShader = shader.fragmentShader.replace(
+            '#include <common>',
+            `#include <common>
+             varying vec3 vTapWorldPosition;
+             uniform vec3 uTapSphereCenter;
+             uniform vec3 uTapCamera;
+             uniform float uTapSphereRadius;`
+          );
+          shader.fragmentShader = shader.fragmentShader.replace(
+            '#include <clipping_planes_fragment>',
+            `#include <clipping_planes_fragment>
+             vec3 tapRay = vTapWorldPosition - uTapCamera;
+             float tapDistance = length(tapRay);
+             vec3 tapDir = tapRay / max(tapDistance, 0.00001);
+             vec3 tapToSphere = uTapSphereCenter - uTapCamera;
+             float tapAlong = dot(tapToSphere, tapDir);
+             float tapDisc = tapAlong * tapAlong
+               - dot(tapToSphere, tapToSphere)
+               + uTapSphereRadius * uTapSphereRadius;
+             if (tapDisc > 0.0) {
+               float tapNear = tapAlong - sqrt(tapDisc);
+               if (tapNear > 0.0 && tapDistance > tapNear + 0.015)
+                 discard;
+             }`
+          );
+        };
+        material.customProgramCacheKey = () => 'tap-label-sphere-clip-v1';
+        material.needsUpdate = true;
+        return material;
+      }
+
+      function wrapTapAroundOrbit(geometry, frame, mount) {
+        const inward = frame.radial.clone().negate();
+        const inwardLocal = new THREE.Vector3(
+          0, inward.dot(frame.up), inward.dot(frame.forward)
+        );
+        const bendAxis = new THREE.Vector3(1, 0, 0)
+          .cross(inwardLocal).normalize();
+        // Follow the same curved ring, just slightly outside its centerline.
+        const bendRadius = (tube.radius + ORBIT_TAP_TEXT_OUTSIDE_GAP * scale) / scale;
+        const mountLocal = mount / scale;
+        const liftLocal = ORBIT_TAP_TEXT_LIFT;
+        const section = new THREE.Vector3();
+        const attr = geometry.getAttribute('position');
+        for (let vertex = 0; vertex < attr.count; vertex += 1) {
+          const x = attr.getX(vertex);
+          const y = attr.getY(vertex);
+          const z = attr.getZ(vertex);
+          const angle = x / bendRadius;
+          const sag = bendRadius * (1 - Math.cos(angle));
+          section.set(0, y + liftLocal, z + mountLocal)
+            .applyAxisAngle(bendAxis, angle);
+          attr.setXYZ(vertex,
+            bendRadius * Math.sin(angle) + section.x,
+            inwardLocal.y * sag + section.y - liftLocal,
+            inwardLocal.z * sag + section.z - mountLocal,
+          );
+        }
+        attr.needsUpdate = true;
+        geometry.computeVertexNormals();
+        geometry.computeBoundingSphere();
+        geometry.computeBoundingBox();
+        return geometry;
+      }
+
+      function buildTapLabel(theta, index) {
+        // Keep the same original torus attachment and camera-facing material.
+        const mountDistance = ringFrame(theta);
+        const frame = {
+          radial: radial.clone(),
+          up: up.clone(),
+          forward: forward.clone(),
+          tangent: tangent.clone(),
+        };
+        // UPRIGHT AXIS = TORUS PLANE NORMAL, NOT WORLD UP.
+        // A sign following an orbit curve needs its vertical along the ring's
+        // own rotation axis (axisU x axisV), and its horizontal along the
+        // actual ring tangent. Using world Y projected onto a camera-facing
+        // plane was turning the entire word diagonally across the planet.
+        const ringNormal = new THREE.Vector3()
+          .crossVectors(tube.axisU, tube.axisV).normalize();
+        const cameraUpLocal = new THREE.Vector3(0, 1, 0)
+          .applyQuaternion(camera.quaternion)
+          .transformDirection(ringInverse);
+        if (ringNormal.dot(cameraUpLocal) < 0) ringNormal.negate();
+
+        // Keep the real torus tangent! Changing this to a screen-horizontal
+        // vector makes the text leave the ring instead of bending around it.
+        frame.up.copy(ringNormal)
+          .addScaledVector(frame.tangent, -ringNormal.dot(frame.tangent))
+          .normalize();
+        // Orthogonal right-handed basis with the ring-normal as local Y.
+        frame.forward.crossVectors(frame.tangent, frame.up).normalize();
+        const label = new THREE.Group();
+        label.name = `OrbitTapHereLabel_${index + 1}`;
+        // Preserve the Minimal Fix's exact mounting location. ringFrame's
+        // original forward is the tube-facing offset. The new frame.forward
+        // above only controls label orientation, not its location.
+        label.position.copy(anchor)
+          .addScaledVector(forward, mountDistance)
+          // OUTSIDE the orbit circumference, not floating away from it.
+          .addScaledVector(frame.radial, ORBIT_TAP_TEXT_OUTSIDE_GAP * scale)
+          .addScaledVector(frame.up, ORBIT_TAP_TEXT_LIFT * scale);
+        label.quaternion.setFromRotationMatrix(
+          new THREE.Matrix4().makeBasis(frame.tangent, frame.up, frame.forward)
+        );
+        label.scale.setScalar(scale);
+        orbitRoot.add(label);
+
+        const mat = patchTapOcclusion(new THREE.MeshBasicMaterial({
+          name: `Tap Here lettering ${index + 1}`,
+          map: tapTexture,
+          transparent: true,
+          alphaTest: 0.004,
+          opacity: ORBIT_TAP_TEXT_OPACITY,
+          depthTest: true,
+          depthWrite: false,
+          toneMapped: false,
+          side: THREE.FrontSide,
+        }));
+
+        // IMPORTANT: keep Minimal Fix's real curved Three.js geometry.
+        // Size the letters by enlarging the source surface BEFORE bending it
+        // around the orbit. No camera-facing billboard or rotation overrides.
+        const mobileText = window.innerWidth <= ORBIT_TAP_TEXT_MOBILE_BREAKPOINT;
+        const tapTextSize = mobileText
+          ? ORBIT_TAP_TEXT_MOBILE_SIZE : ORBIT_TAP_TEXT_DESKTOP_SIZE;
+        for (const back of [false, true]) {
+          const geometry = new THREE.PlaneGeometry(
+            ORBIT_TAP_TEXT_WIDTH * tapTextSize,
+            ORBIT_TAP_TEXT_HEIGHT * tapTextSize,
+            56, 2
+          );
+          if (back) geometry.rotateY(Math.PI);
+          geometry.translate(0, 0, back ? -0.055 : 0.055);
+          wrapTapAroundOrbit(geometry, frame, mountDistance);
+          const mesh = new THREE.Mesh(geometry, mat);
+          mesh.name = `OrbitTapHere${back ? 'Outside' : 'Front'}_${index + 1}`;
+          mesh.renderOrder = 23;
+          mesh.frustumCulled = false;
+          // Invisible far-side labels should not capture clicks.
+          const originalRaycast = mesh.raycast.bind(mesh);
+          mesh.raycast = (raycaster, hits) => {
+            const candidates = [];
+            originalRaycast(raycaster, candidates);
+            for (const hit of candidates) {
+              const ray = hit.point.clone().sub(raycaster.ray.origin);
+              const distance = ray.length();
+              ray.divideScalar(Math.max(distance, 0.00001));
+              const toSphere = tapOcclusionCenter.clone()
+                .sub(raycaster.ray.origin);
+              const along = toSphere.dot(ray);
+              const disc = along * along - toSphere.lengthSq()
+                + tapOcclusionRadius.value ** 2;
+              if (disc > 0) {
+                const near = along - Math.sqrt(disc);
+                if (near > 0 && distance > near + 0.015) continue;
+              }
+              hits.push(hit);
+            }
+          };
+          label.add(mesh);
+        }
+        return { group: label, material: mat };
+      }
+
+      // Exact halfway points between stars. Both move with the same GLB torus.
+      const start = bestAngle + ORBIT_SHOP_BUTTON_MIRROR_OFFSET * 0.5;
+      for (let i = 0; i < 2; i += 1) {
+        tapLabels.push(buildTapLabel(
+          start + i * ORBIT_SHOP_BUTTON_MIRROR_OFFSET, i
+        ));
+      }
+    }
+  }
+
   const worldSize = new THREE.Vector3();
   return {
     // Each visible star has independent hover feedback.
@@ -1356,6 +1577,12 @@ function createOrbitShopMesh(ring, globe, camera) {
       globe.getWorldScale(worldSize);
       const radius = globeRadius * Math.max(worldSize.x, worldSize.y, worldSize.z)
         * (1 + (SHELL_HOLO_ENABLED ? SHELL_HOLO_GAP : 0));
+      if (tapLabels.length) {
+        tapOcclusionCenter.copy(globe.geometry.boundingSphere.center)
+          .applyMatrix4(globe.matrixWorld);
+        tapOcclusionCamera.copy(camera.position);
+        tapOcclusionRadius.value = radius;
+      }
       const phase = animate ? seconds : 0;
       const pulse = 0.5 + 0.5 * Math.sin(phase * Math.PI * 2 *
         Math.max(0, ORBIT_SHOP_BUTTON_GLOW_PULSE_SPEED));
@@ -1382,7 +1609,11 @@ function createOrbitShopMesh(ring, globe, camera) {
         item.sweepMaterial.uniforms.uOcclusionCamera.value.copy(item.occlusionCamera);
         item.sweepMaterial.uniforms.uOcclusionRadius.value = item.occlusionRadius.value;
       }
-      // Each 3D star inherits the torus animation without any extra movement.
+      for (const item of tapLabels) {
+        item.material.opacity = ORBIT_TAP_TEXT_OPACITY *
+          (0.92 + 0.08 * pulse);
+      }
+      // Each star and label inherits the torus animation without extra movement.
     },
   };
 }
